@@ -32,13 +32,13 @@ AsEcMeterI2C::AsEcMeterI2C(const JsonObjectConst& parameters)
     return;
   }
 
-  JsonVariantConst i2c_address_param = parameters[i2c_address_key_];
-  if (!i2c_address_param.is<uint8_t>()) {
+  int i2c_address_param = parseI2CAddress(parameters[i2c_address_key_]);
+  if (i2c_address_param < 0) {
     setInvalid(i2c_address_key_error_);
     return;
   }
   // Save the I2C address to the Ezo_board's class i2c_address variable
-  i2c_address = i2c_address_param.as<uint8_t>();
+  i2c_address = i2c_address_param;
 
   // Do a preliminary check to see if the device is connected to the bus
   if (!isDeviceConnected(i2c_address)) {
@@ -460,7 +460,8 @@ const __FlashStringHelper* AsEcMeterI2C::temperature_c_key_ =
 const __FlashStringHelper* AsEcMeterI2C::temperature_c_key_error_ =
     FPSTR("Wrong property: temperature_c (float)");
 
-const __FlashStringHelper* AsEcMeterI2C::calibrate_command_key_ = FPSTR("command");
+const __FlashStringHelper* AsEcMeterI2C::calibrate_command_key_ =
+    FPSTR("command");
 
 const __FlashStringHelper* AsEcMeterI2C::calibrate_command_key_error_ =
     FPSTR("Missing property: command (string)");
@@ -491,9 +492,11 @@ const __FlashStringHelper* AsEcMeterI2C::calibrate_double_high_command_ =
 const __FlashStringHelper* AsEcMeterI2C::calibrate_double_high_code_ =
     FPSTR("Cal,high,");
 
-const __FlashStringHelper* AsEcMeterI2C::calibrate_clear_command_ = FPSTR("clear");
+const __FlashStringHelper* AsEcMeterI2C::calibrate_clear_command_ =
+    FPSTR("clear");
 
-const __FlashStringHelper* AsEcMeterI2C::calibrate_clear_code_ = FPSTR("Cal,clear");
+const __FlashStringHelper* AsEcMeterI2C::calibrate_clear_code_ =
+    FPSTR("Cal,clear");
 
 const __FlashStringHelper* AsEcMeterI2C::calibrate_check_code_ = FPSTR("Cal,?");
 
@@ -507,7 +510,8 @@ const __FlashStringHelper* AsEcMeterI2C::unknown_command_error_ =
 const __FlashStringHelper* AsEcMeterI2C::invalid_transition_error_ =
     FPSTR("Invalid transition");
 
-const __FlashStringHelper* AsEcMeterI2C::receive_error_ = FPSTR("Receive failed");
+const __FlashStringHelper* AsEcMeterI2C::receive_error_ =
+    FPSTR("Receive failed");
 
 const __FlashStringHelper* AsEcMeterI2C::not_calibrated_error_ =
     FPSTR("Failed calibration");

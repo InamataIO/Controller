@@ -20,17 +20,15 @@ I2CAdapter::I2CAdapter(const ServiceGetters& services,
     return;
   }
 
-  JsonVariantConst clock_pin = parameter[F("scl")];
-  if (!clock_pin.is<int>()) {
-    web_socket_->sendError(type(), F("Missing property: scl (int)"));
-    setInvalid();
+  int clock_pin = toPin(parameter[scl_key_]);
+  if (clock_pin < 0) {
+    setInvalid(scl_key_error_);
     return;
   }
 
-  JsonVariantConst data_pin = parameter[F("sda")];
-  if (!data_pin.is<int>()) {
-    web_socket_->sendError(type(), F("Missing property: sda (int)"));
-    setInvalid();
+  int data_pin = parameter[sda_key_];
+  if (data_pin < 0) {
+    setInvalid(sda_key_error_);
     return;
   }
 
@@ -72,6 +70,13 @@ std::shared_ptr<Peripheral> I2CAdapter::factory(
 
 bool I2CAdapter::registered_ =
     PeripheralFactory::registerFactory(type(), factory);
+
+const __FlashStringHelper* I2CAdapter::scl_key_ = FPSTR("scl");
+const __FlashStringHelper* I2CAdapter::scl_key_error_ =
+    FPSTR("Missing property: scl (unsigned int)");
+const __FlashStringHelper* I2CAdapter::sda_key_ = FPSTR("sda");
+const __FlashStringHelper* I2CAdapter::sda_key_error_ =
+    FPSTR("Missing property: sda (unsigned int)");
 
 }  // namespace util
 }  // namespace peripherals

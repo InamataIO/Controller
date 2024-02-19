@@ -36,6 +36,11 @@ class I2CAdapter : public Peripheral {
 
   bool* taken_variable;
   TwoWire* wire_;
+
+  static const __FlashStringHelper* scl_key_;
+  static const __FlashStringHelper* scl_key_error_;
+  static const __FlashStringHelper* sda_key_;
+  static const __FlashStringHelper* sda_key_error_;
 };
 
 }  // namespace util

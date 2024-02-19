@@ -22,13 +22,13 @@ AsRtdMeterI2C::AsRtdMeterI2C(const JsonVariantConst& parameters)
     return;
   }
 
-  JsonVariantConst i2c_address_param = parameters[i2c_address_key_];
-  if (!i2c_address_param.is<uint8_t>()) {
+  int i2c_address_param = parseI2CAddress(parameters[i2c_address_key_]);
+  if (i2c_address_param < 0) {
     setInvalid(i2c_address_key_error_);
     return;
   }
   // Save the I2C address to the Ezo_board's class i2c_address variable
-  i2c_address = i2c_address_param.as<uint8_t>();
+  i2c_address = i2c_address_param;
 
   // Do a preliminary check to see if the device is connected to the bus
   if (!isDeviceConnected(i2c_address)) {

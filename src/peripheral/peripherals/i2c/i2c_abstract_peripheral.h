@@ -23,6 +23,7 @@ class I2CAbstractPeripheral : public Peripheral {
  protected:
   TwoWire* getWire();
   bool isDeviceConnected(uint16_t i2c_address);
+  int parseI2CAddress(JsonVariantConst i2c_address);
 
   static String missingI2CDeviceError(int i2c_address);
 
@@ -30,16 +31,13 @@ class I2CAbstractPeripheral : public Peripheral {
   static const __FlashStringHelper* i2c_address_key_error_;
 
  private:
-  static String invalidI2CAdapterError(const utils::UUID& uuid,
-                                       const String& type);
-
   static const __FlashStringHelper* i2c_adapter_key_;
   static const __FlashStringHelper* i2c_adapter_key_error_;
 
   std::shared_ptr<peripherals::util::I2CAdapter> i2c_adapter_;
 };
 
-}  // namespace i2c_adapter
+}  // namespace i2c
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata

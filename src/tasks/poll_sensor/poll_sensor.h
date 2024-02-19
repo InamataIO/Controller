@@ -44,7 +44,9 @@ class PollSensor : public get_values_task::GetValuesTask {
 
   std::shared_ptr<WebSocket> web_socket_;
 
+  /// Interval between readings
   std::chrono::milliseconds interval_;
+  /// End the task after this time is reached
   std::chrono::steady_clock::time_point run_until_;
   std::shared_ptr<peripheral::capabilities::StartMeasurement>
       start_measurement_peripheral_ = nullptr;

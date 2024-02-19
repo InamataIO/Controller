@@ -31,6 +31,10 @@ void Peripheral::setInvalid(const String& error_message) {
   error_message_ = error_message;
 }
 
+String Peripheral::notAValidError(const utils::UUID& uuid, const String& type) {
+  return uuid.toString() + F(" is not a valid ") + type;
+}
+
 const __FlashStringHelper* Peripheral::data_point_type_key_ =
     FPSTR("data_point_type");
 const __FlashStringHelper* Peripheral::data_point_type_key_error_ =

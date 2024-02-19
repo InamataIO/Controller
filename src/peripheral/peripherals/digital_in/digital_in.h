@@ -47,9 +47,6 @@ class DigitalIn : public Peripheral, public capabilities::GetValues {
   /// How to setup the input GPIO
   static const __FlashStringHelper* input_type_key_;
   static const __FlashStringHelper* input_type_key_error_;
-  static const __FlashStringHelper* input_type_floating;
-  static const __FlashStringHelper* input_type_pullup;
-  static const __FlashStringHelper* input_type_pulldown;
 };
 
 }  // namespace digital_in

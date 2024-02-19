@@ -15,6 +15,36 @@ capabilities, each table will be labelled as such.
 | uuid      | String | Yes  | unique ID of the peripheral |
 | type      | String | Yes  | type of the peripheral      |
 
+### ADS1015 / 1115
+
+A 4 channel ADC chip with an I2C interface from Texas Instruments. It is split
+into two peripheral types, an adapter (ADS1x15Adapter) and one for each channel
+(ADS1x15Input). The adapter is connected to an I2C adapter and the channels to
+the ADS1x15Adapter.
+
+#### ADS1x15Adapter
+
+| Parameter   | Type   | Req. | Content                               |
+| ----------- | ------ | ---- | ------------------------------------- |
+| i2c_adapter | String | Yes  | UUID of the I2C adapter peripheral    |
+| i2c_address | String | Yes  | I2C address of the ADS1x15 sensor     |
+| variant     | String | Yes  | Select between "ADS1015" or "ADS1115" |
+
+#### ADS1x15Input
+
+| Parameter               | Type   | Req. | Content                                          |
+| ----------------------- | ------ | ---- | ------------------------------------------------ |
+| ads1x15_adapter         | String | Yes  | UUID of the ADS1x15 adapter peripheral           |
+| gain                    | String | No   | Gain for the ADC (2/3, 1, 2 (default), 4, 8, 16) |
+| channel                 | String | Yes  | Channels 0-3 or differential between channels    |
+| voltage_data_point_type | String | No   | Channels 0-3 or differential between channels    |
+| unit_data_point_type    | String | No   | Channels 0-3 or differential between channels    |
+| min_v                   | Number | No   | Minimum voltage (range dependent on gain)        |
+| max_v                   | Number | No   | Maximum voltage (range dependent on gain)        |
+| min_unit                | Number | No   | Minimum unit value                               |
+| max_unit                | Number | No   | Maximum unit value                               |
+| limit_unit              | Bool   | No   | Whether to clamp the mapped unit value           |
+
 ### Analog In
 
 | Parameter               | Type   | Req. | Content                                          |
@@ -141,7 +171,7 @@ chip, the humidity data point type also has to be specified.
 Values close to 0 mean that touch was detected. The sensor is built into the
 ESP32 and a wire only has to be connected to one of the compatible pins.
 
-### CSE6677 - Power Sensor
+### CSE7766 - Power Sensor
 
 | Parameter               | Type   | Req. | Content                                  |
 | ----------------------- | ------ | ---- | ---------------------------------------- |

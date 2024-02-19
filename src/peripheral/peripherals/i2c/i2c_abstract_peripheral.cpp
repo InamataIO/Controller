@@ -22,7 +22,7 @@ I2CAbstractPeripheral::I2CAbstractPeripheral(const JsonObjectConst& parameter) {
       peripheral->isValid()) {
     i2c_adapter_ = std::static_pointer_cast<util::I2CAdapter>(peripheral);
   } else {
-    setInvalid(invalidI2CAdapterError(i2c_adapter_uuid, peripheral->getType()));
+    setInvalid(notAValidError(i2c_adapter_uuid, peripheral->getType()));
     return;
   }
 }
@@ -35,17 +35,20 @@ bool I2CAbstractPeripheral::isDeviceConnected(uint16_t i2c_address) {
   return error == 0;
 }
 
+int I2CAbstractPeripheral::parseI2CAddress(JsonVariantConst i2c_address) {
+  if (!i2c_address.is<float>()) {
+    return -1;
+  }
+  int i2c_address_int = i2c_address.as<int>();
+  if (i2c_address_int < 0 || i2c_address_int > 255) {
+    return -1;
+  }
+  return i2c_address_int;
+}
+
 String I2CAbstractPeripheral::missingI2CDeviceError(int i2c_address) {
   String error(F("Cannot find device with I2C address: "));
   error += i2c_address;
-  return error;
-}
-
-String I2CAbstractPeripheral::invalidI2CAdapterError(const utils::UUID& uuid,
-                                                     const String& type) {
-  String error = uuid.toString();
-  error += F(" is not a valid ");
-  error += type;
   return error;
 }
 
@@ -58,7 +61,7 @@ const __FlashStringHelper* I2CAbstractPeripheral::i2c_adapter_key_ =
 const __FlashStringHelper* I2CAbstractPeripheral::i2c_adapter_key_error_ =
     FPSTR("Missing property: i2c_adapter (uuid)");
 
-}  // namespace i2c_adapter
+}  // namespace i2c
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata

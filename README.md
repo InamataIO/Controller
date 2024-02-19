@@ -15,7 +15,8 @@ Below is a list of currently supported peripherals in the firmware. Some may not
 - All PWM peripherals
 - All capacitive touch sensors
 - BME/BMP280 air sensors
-- CSE6677 power sensor
+- CSE7766 power sensor
+- ADS1015 / ADS1115 sensors
 - NeoPixel LED strips
 - Atlas Scientific EC / pH / RTD meters
 

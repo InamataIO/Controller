@@ -32,8 +32,8 @@ BME280::BME280(const JsonObjectConst& parameters)
   }
 
   // Get and check the I2C address of the BME/P280 chip
-  JsonVariantConst i2c_address = parameters[i2c_address_key_];
-  if (!i2c_address.is<uint8_t>()) {
+  int i2c_address = parseI2CAddress(parameters[i2c_address_key_]);
+  if (i2c_address < 0) {
     setInvalid(i2c_address_key_error_);
     return;
   }

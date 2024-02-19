@@ -29,11 +29,11 @@ DigitalIn::DigitalIn(const JsonObjectConst& parameters) {
     setInvalid(input_type_key_error_);
     return;
   }
-  if (input_type == input_type_floating) {
+  if (input_type == F("floating")) {
     pinMode(pin_, INPUT);
-  } else if (input_type == input_type_pullup) {
+  } else if (input_type == F("pullup")) {
     pinMode(pin_, INPUT_PULLUP);
-  } else if (input_type == input_type_pulldown) {
+  } else if (input_type == F("pulldown")) {
 #ifdef ESP32
     pinMode(pin_, INPUT_PULLDOWN);
 #else
@@ -76,9 +76,6 @@ const __FlashStringHelper* DigitalIn::pin_key_error_ =
 const __FlashStringHelper* DigitalIn::input_type_key_ = FPSTR("input_type");
 const __FlashStringHelper* DigitalIn::input_type_key_error_ =
     FPSTR("Missing property: input_type (str)");
-const __FlashStringHelper* DigitalIn::input_type_floating = FPSTR("floating");
-const __FlashStringHelper* DigitalIn::input_type_pullup = FPSTR("pullup");
-const __FlashStringHelper* DigitalIn::input_type_pulldown = FPSTR("pulldown");
 
 }  // namespace digital_in
 }  // namespace peripherals

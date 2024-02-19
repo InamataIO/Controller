@@ -22,6 +22,4 @@ void setup() {
   }
 }
 
-void loop() {
-  scheduler.execute();
-}
+void loop() { scheduler.execute(); }
