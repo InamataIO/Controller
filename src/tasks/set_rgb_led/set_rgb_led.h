@@ -25,6 +25,14 @@ class SetRgbLed : public BaseTask {
   bool TaskCallback() final;
 
  private:
+  /**
+   * Extract variant and return 0-255 value. -1 if invalid
+   *
+   * \param color JSON variant with the color as a number
+   * \return Brightness of color in 0-255 range. -1 if invalid
+   */
+  int toColor(JsonVariantConst color) const;
+
   static bool registered_;
   static BaseTask* factory(const ServiceGetters& services,
                            const JsonObjectConst& parameters,

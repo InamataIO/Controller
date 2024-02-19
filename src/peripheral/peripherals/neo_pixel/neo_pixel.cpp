@@ -15,19 +15,20 @@ NeoPixel::NeoPixel(const JsonObjectConst& parameters) {
     return;
   }
 
-  JsonVariantConst led_pin = parameters[led_pin_key_];
-  if (!led_pin.is<unsigned int>()) {
+  int led_pin = toPin(parameters[led_pin_key_]);
+  if (led_pin < 0) {
     setInvalid(led_pin_key_error_);
     return;
   }
 
   JsonVariantConst led_count = parameters[led_count_key_];
-  if (!led_count.is<unsigned int>()) {
+  if (!led_count.is<float>() || led_count < 0) {
     setInvalid(led_count_key_error_);
     return;
   }
 
-  uint8_t color_encoding_int = getColorEncoding(color_encoding_str.as<const char*>());
+  uint8_t color_encoding_int =
+      getColorEncoding(color_encoding_str.as<const char*>());
   if (color_encoding_int == 0) {
     setInvalid(invalidColorEncodingError(color_encoding_str.as<const char*>()));
     return;
@@ -78,7 +79,8 @@ bool NeoPixel::registered_ =
 bool NeoPixel::capability_led_strip_ =
     capabilities::LedStrip::registerType(type());
 
-const __FlashStringHelper* NeoPixel::color_encoding_key_ = FPSTR("color_encoding");
+const __FlashStringHelper* NeoPixel::color_encoding_key_ =
+    FPSTR("color_encoding");
 const __FlashStringHelper* NeoPixel::color_encoding_key_error_ FPSTR(
     "Missing property: color_encoding (string)");
 const __FlashStringHelper* NeoPixel::led_pin_key_ = FPSTR("led_pin");

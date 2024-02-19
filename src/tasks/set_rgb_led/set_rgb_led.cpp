@@ -43,7 +43,7 @@ SetRgbLed::SetRgbLed(const JsonObjectConst& parameters, Scheduler& scheduler)
   JsonVariantConst brightness = parameters[brightness_key_];
 
   // XOR test. Either color or brightness may be set
-  if (color.is<JsonObject>() == brightness.is<float>()) {
+  if (color.isNull() != brightness.is<float>()) {
     setInvalid(brightness_or_color_error_);
     return;
   }
@@ -55,27 +55,27 @@ SetRgbLed::SetRgbLed(const JsonObjectConst& parameters, Scheduler& scheduler)
     color_ = utils::Color::fromBrightness(brightness_clipped);
   }
 
-  if (color.is<JsonObject>()) {
-    JsonVariantConst color_red = color[red_key_];
-    if (!color_red.is<uint8_t>()) {
+  if (!color.isNull()) {
+    int color_red = toColor(color[red_key_]);
+    if (color_red < 0) {
       setInvalid(red_key_error_);
       return;
     }
 
-    JsonVariantConst color_green = color[green_key_];
-    if (!color_green.is<uint8_t>()) {
+    int color_green = toColor(color[green_key_]);
+    if (color_green < 0) {
       setInvalid(green_key_error_);
       return;
     }
 
-    JsonVariantConst color_blue = color[blue_key_];
-    if (!color_blue.is<uint8_t>()) {
+    int color_blue = toColor(color[blue_key_]);
+    if (color_blue < 0) {
       setInvalid(blue_key_error_);
       return;
     }
 
     JsonVariantConst color_white = color[white_key_];
-    if (color_white.is<uint8_t>()) {
+    if (color_white.is<float>() && color_white >= 0 && color_white <= 255) {
       color_ = utils::Color::fromRgbw(color_red, color_green, color_blue,
                                       color_white);
     } else if (color_white.isNull()) {
@@ -99,6 +99,17 @@ const String& SetRgbLed::type() {
 bool SetRgbLed::TaskCallback() {
   peripheral_->turnOn(color_);
   return false;
+}
+
+int SetRgbLed::toColor(JsonVariantConst color) const {
+  if (!color.is<float>()) {
+    return -1;
+  }
+  int color_number = color.as<int>();
+  if (color_number < 0 || color_number > 255) {
+    return -1;
+  }
+  return color_number;
 }
 
 bool SetRgbLed::registered_ = TaskFactory::registerTask(type(), factory);
