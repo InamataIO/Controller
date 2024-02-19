@@ -43,6 +43,17 @@ DigitalIn::DigitalIn(const JsonObjectConst& parameters) {
     setInvalid(input_type_key_error_);
     return;
   }
+
+  // Set if it is an active low peripheral. Default is active high
+  JsonVariantConst active_low = parameters[active_low_key_];
+  if (active_low.is<bool>() == active_low.isNull()) {
+    setInvalid(active_low_key_error_);
+    return;
+  }
+  // If null, returns false. If bool, returns true or false
+  if (active_low.as<bool>()) {
+    active_low_ = true;
+  }
 }
 
 const String& DigitalIn::getType() const { return type(); }
@@ -53,9 +64,12 @@ const String& DigitalIn::type() {
 }
 
 capabilities::GetValues::Result DigitalIn::getValues() {
-  return {.values = {
-              utils::ValueUnit{.value = static_cast<float>(digitalRead(pin_)),
-                               .data_point_type = data_point_type_}}};
+  bool value = bool(digitalRead(pin_));
+  if (active_low_) {
+    value != value;
+  }
+  return {.values = {utils::ValueUnit{.value = static_cast<float>(value),
+                                      .data_point_type = data_point_type_}}};
 }
 
 std::shared_ptr<Peripheral> DigitalIn::factory(
@@ -68,10 +82,6 @@ bool DigitalIn::registered_ =
 
 bool DigitalIn::capability_get_values_ =
     capabilities::GetValues::registerType(type());
-
-const __FlashStringHelper* DigitalIn::pin_key_ = FPSTR("pin");
-const __FlashStringHelper* DigitalIn::pin_key_error_ =
-    FPSTR("Missing property: pin (unsigned int)");
 
 const __FlashStringHelper* DigitalIn::input_type_key_ = FPSTR("input_type");
 const __FlashStringHelper* DigitalIn::input_type_key_error_ =

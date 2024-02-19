@@ -39,6 +39,12 @@ const __FlashStringHelper* Peripheral::data_point_type_key_ =
     FPSTR("data_point_type");
 const __FlashStringHelper* Peripheral::data_point_type_key_error_ =
     FPSTR("Missing property: data_point_type (UUID)");
+const __FlashStringHelper* Peripheral::pin_key_ = FPSTR("pin");
+const __FlashStringHelper* Peripheral::pin_key_error_ =
+    FPSTR("Missing property: pin (unsigned int)");
+const __FlashStringHelper* Peripheral::active_low_key_ = FPSTR("active_low");
+const __FlashStringHelper* Peripheral::active_low_key_error_ =
+    FPSTR("Wrong property: active_low (bool)");
 
 }  // namespace peripheral
 }  // namespace inamata

@@ -41,8 +41,6 @@ class DigitalOut : public Peripheral, public capabilities::SetValue {
 
   /// The pin to be used as a GPIO output
   unsigned int pin_;
-  static const __FlashStringHelper* pin_key_;
-  static const __FlashStringHelper* pin_key_error_;
 
   // Check if an initial state should be set
   static const __FlashStringHelper* initial_state_key_;
@@ -50,8 +48,6 @@ class DigitalOut : public Peripheral, public capabilities::SetValue {
 
   /// If active low logic is used. Inverts set value. False by default
   bool active_low_ = false;
-  static const __FlashStringHelper* active_low_key_;
-  static const __FlashStringHelper* active_low_key_error_;
 
   /// Data point type for the GPIO output pin state
   utils::UUID data_point_type_{nullptr};

@@ -50,8 +50,6 @@ class AnalogIn : public Peripheral,
 #else
   static const std::array<uint8_t, 1> valid_pins_;
 #endif
-  static const __FlashStringHelper* pin_key_;
-  static const __FlashStringHelper* pin_key_error_;
   static const __FlashStringHelper* invalid_pin_error_;
 };
 

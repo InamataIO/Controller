@@ -68,7 +68,8 @@ const String& DigitalOut::type() {
 
 void DigitalOut::setValue(utils::ValueUnit value_unit) {
   if (value_unit.data_point_type != data_point_type_) {
-    web_socket_->sendError(type(), value_unit.sourceUnitError(data_point_type_));
+    web_socket_->sendError(type(),
+                           value_unit.sourceUnitError(data_point_type_));
     return;
   }
 
@@ -96,17 +97,10 @@ bool DigitalOut::registered_ =
 bool DigitalOut::capability_set_value_ =
     capabilities::SetValue::registerType(type());
 
-const __FlashStringHelper* DigitalOut::pin_key_ = FPSTR("pin");
-const __FlashStringHelper* DigitalOut::pin_key_error_ =
-    FPSTR("Missing property: pin (unsigned int)");
-
-const __FlashStringHelper* DigitalOut::initial_state_key_ = FPSTR("initial_state");
+const __FlashStringHelper* DigitalOut::initial_state_key_ =
+    FPSTR("initial_state");
 const __FlashStringHelper* DigitalOut::initial_state_key_error_ =
     FPSTR("Wrong property: initial_state (bool)");
-
-const __FlashStringHelper* DigitalOut::active_low_key_ = FPSTR("active_low");
-const __FlashStringHelper* DigitalOut::active_low_key_error_ =
-    FPSTR("Wrong property: active_low (bool)");
 
 }  // namespace digital_out
 }  // namespace peripherals

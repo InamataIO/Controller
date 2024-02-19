@@ -91,9 +91,6 @@ bool AnalogOut::registered_ =
 bool AnalogOut::capability_set_value_ =
     capabilities::SetValue::registerType(type());
 
-const __FlashStringHelper* AnalogOut::pin_key_ = FPSTR("pin");
-const __FlashStringHelper* AnalogOut::pin_key_error_ =
-    FPSTR("Missing property: pin (unsigned int)");
 const __FlashStringHelper* AnalogOut::invalid_pin_error_ =
     FPSTR("Pin # not valid (only 25, 26)");
 

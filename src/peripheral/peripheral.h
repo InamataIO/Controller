@@ -78,6 +78,10 @@ class Peripheral {
   // Common parameter keys can be reused
   static const __FlashStringHelper* data_point_type_key_;
   static const __FlashStringHelper* data_point_type_key_error_;
+  static const __FlashStringHelper* pin_key_;
+  static const __FlashStringHelper* pin_key_error_;
+  static const __FlashStringHelper* active_low_key_;
+  static const __FlashStringHelper* active_low_key_error_;
 
  private:
   /// If the peripheral was constructed correctly and is still functional

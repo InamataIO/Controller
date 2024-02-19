@@ -65,8 +65,6 @@ class Pwm : public Peripheral, public capabilities::SetValue {
   int resolution_ = -1;
 
   /// Name of the parameter to which the pin the PWM signal is connected
-  static const __FlashStringHelper* pin_key_;
-  static const __FlashStringHelper* pin_key_error_;
   static const __FlashStringHelper* no_channels_available_error_;
 };
 

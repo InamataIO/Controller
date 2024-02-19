@@ -110,9 +110,6 @@ void Pwm::freeResources() {
   resolution_ = -1;
 }
 
-const __FlashStringHelper* Pwm::pin_key_ = FPSTR("pin");
-const __FlashStringHelper* Pwm::pin_key_error_ =
-    FPSTR("Missing property: pin (unsigned int)");
 const __FlashStringHelper* Pwm::no_channels_available_error_ =
     FPSTR("No remaining PWM channels available");
 

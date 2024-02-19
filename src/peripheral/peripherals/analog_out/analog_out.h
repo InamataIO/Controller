@@ -41,8 +41,6 @@ class AnalogOut : public Peripheral, public capabilities::SetValue {
 
   /// The pin to be used as a GPIO output
   unsigned int pin_;
-  static const __FlashStringHelper* pin_key_;
-  static const __FlashStringHelper* pin_key_error_;
   static const __FlashStringHelper* invalid_pin_error_;
 
   /// Data point type for the writing as voltage

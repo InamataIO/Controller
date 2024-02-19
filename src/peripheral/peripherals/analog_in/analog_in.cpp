@@ -101,9 +101,6 @@ const __FlashStringHelper* AnalogIn::invalid_pin_error_ =
 const std::array<uint8_t, 1> AnalogIn::valid_pins_ = {-1};
 const __FlashStringHelper* AnalogIn::invalid_pin_error_ = FPSTR("");
 #endif
-const __FlashStringHelper* AnalogIn::pin_key_ = FPSTR("pin");
-const __FlashStringHelper* AnalogIn::pin_key_error_ =
-    FPSTR("Missing property: pin (unsigned int)");
 
 }  // namespace analog_in
 }  // namespace peripherals
