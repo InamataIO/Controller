@@ -1,16 +1,45 @@
 # Based on https://docs.platformio.org/en/latest/integration/ci/gitlab.html#using-cmd-ci-command
 image: python:3.10
 
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+  rules:
+    # Never auto cancel for anything in the main branch
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      auto_cancel:
+        on_new_commit: none
+    - when: always
+
+variables:  # Change pip's cache directory to be inside the project directory since we can only cache local items.
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PLATFORMIO_CACHE_DIR: "$CI_PROJECT_DIR/.cache/platformio"
+
 cache:
-  paths:
-    - ~/.cache/pip
-    - ~/.platformio/.cache
+  - key: $CI_JOB_NAME
+    paths:
+      - $CI_PROJECT_DIR/.cache/pip
+      - $CI_PROJECT_DIR/.cache/platformio
 
 stages:
  - test
+ - build
 
-before_script:
-  - "pip install -U platformio"
+.before_script: &before_script
+  - git config --global advice.detachedHead false
+  - pip install -U platformio
+
+.esp32-script:
+  before_script: *before_script
+  script: platformio run -e esp32doit-devkit-v1 -e esp32doit-devkit-v1-dbg
+
+.esp32-s3-script:
+  before_script: *before_script
+  script: platformio run -e esp32-s3-devkitc-1
+
+.esp8266-script:
+  before_script: *before_script
+  script: platformio run -e athom-plug-v2 -e athom-plug-v2-dbg -e esp8266
 
 # pio ci is not used because it didn't work along with the extra_scripts
 # job:
@@ -18,14 +47,79 @@ before_script:
 #   script: "platformio ci --project-conf=platformio.ini --board=esp32doit-devkit-v1" # --board=XXXX --lib=lib/*
 #   variables: {PLATFORMIO_CI_SRC: "src"}
 
-build:esp32:
+
+##############################################################################
+# Test jobs
+
+.test-base:
+  rules:
+    # Never run for push events
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: never
+    # Never run when tags are created
+    - if: "$CI_COMMIT_TAG"
+      when: never
+    # Run for all commits in merge requests to the main branch
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: always
+    # Manually stated jobs are allowed to fail
+    - when: manual
+      allow_failure: true
+  artifacts:
+      when: on_success
+      expire_in: "30 days"
+      paths:
+        - .pio/build/*/*@*.bin
+
+test:esp32:
+  extends: [.test-base, .esp32-script]
   stage: test
-  script: "platformio run -e esp32doit-devkit-v1 -e esp32doit-devkit-v1-dbg"
+
+test:esp32-s3:
+  extends: [.test-base, .esp32-s3-script]
+  stage: test
+
+test:esp8266:
+  extends: [.test-base, .esp8266-script]
+  stage: test
+
+##############################################################################
+# Build jobs on merged MR
+
+.build-base:
+  rules:
+    # Always run CI if it is on the main branch
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+      interruptible: false
+    # Never run for push events
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: never
+    # Never run when tags are created
+    - if: "$CI_COMMIT_TAG"
+      when: never
+  artifacts:
+      when: on_success
+      expire_in: never
+      paths:
+        - .pio/build/*/*@*.bin
+  dependencies: []
+  interruptible: false
+
+build:esp32:
+  extends: [.build-base, .esp32-script]
+  stage: build
 
 build:esp32-s3:
-  stage: test
-  script: "platformio run -e esp32-s3-devkitc-1"
+  extends: [.build-base, .esp32-s3-script]
+  stage: build
 
 build:esp8266:
-  stage: test
-  script: "platformio run -e athom-plug-v2 -e athom-plug-v2-dbg -e esp8266"
+  extends: [.build-base, .esp8266-script]
+  stage: build
+
+build:tag-commit:
+  extends: [.build-base]
+  stage: build
+  before_script: "git remote set-url origin ${CI_PROJECT_URL/gitlab.com/ci-build:${PROJECT_TOKEN}@gitlab.com}.git"
+  script: "./scripts/tag_commit.sh"

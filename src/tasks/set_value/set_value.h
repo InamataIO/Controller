@@ -14,7 +14,8 @@ namespace set_value {
 
 class SetValue : public BaseTask {
  public:
-  SetValue(const JsonObjectConst& parameters, Scheduler& scheduler);
+  SetValue(const ServiceGetters& services, const JsonObjectConst& parameters,
+           Scheduler& scheduler);
   virtual ~SetValue() = default;
 
   const String& getType() const final;
@@ -29,8 +30,15 @@ class SetValue : public BaseTask {
                            Scheduler& scheduler);
 
   std::shared_ptr<peripheral::capabilities::SetValue> peripheral_;
+  utils::UUID peripheral_id_;
 
   utils::ValueUnit value_unit_;
+
+  std::shared_ptr<WebSocket> web_socket_;
+  bool send_data_point_;
+
+  static const __FlashStringHelper* send_data_point_key_;
+  static const __FlashStringHelper* send_data_point_key_error_;
 };
 
 }  // namespace set_value
