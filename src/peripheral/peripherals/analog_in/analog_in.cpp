@@ -33,7 +33,7 @@ AnalogIn::AnalogIn(const JsonObjectConst& parameters) {
   }
 
   String error = parseParameters(parameters);
-  if (error) {
+  if (!error.isEmpty()) {
     setInvalid(error);
   }
 }
