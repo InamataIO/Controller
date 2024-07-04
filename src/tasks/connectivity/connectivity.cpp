@@ -87,7 +87,7 @@ void CheckConnectivity::handleWebSocket() {
   WebSocket::ConnectState state = web_socket_->handle();
   if (state == WebSocket::ConnectState::kConnected) {
     web_socket_connected_since_boot_ = true;
-  } else if (state == WebSocket::ConnectState::kFailed){
+  } else if (state == WebSocket::ConnectState::kFailed) {
     TRACELN(F("WS failed"));
     if (web_socket_connected_since_boot_) {
       web_socket_->resetConnectAttempt();

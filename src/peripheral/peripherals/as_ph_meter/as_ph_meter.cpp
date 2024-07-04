@@ -143,12 +143,6 @@ bool AsPhMeterI2C::capability_get_values_ =
 bool AsPhMeterI2C::capability_start_measurement_ =
     capabilities::StartMeasurement::registerType(type());
 
-const __FlashStringHelper* AsPhMeterI2C::temperature_c_key_ =
-    FPSTR("temperature_c");
-
-const __FlashStringHelper* AsPhMeterI2C::temperature_c_key_error_ =
-    FPSTR("Wrong property: temperature_c (float)");
-
 const __FlashStringHelper* AsPhMeterI2C::sleep_code_ = FPSTR("Sleep");
 
 }  // namespace as_ph_meter

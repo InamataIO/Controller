@@ -36,7 +36,7 @@ The secrets configuration is stored on the flash either in `secrets.json` for ES
     { "ssid": "Berge24", "password": "EinPasswort" }
   ],
   "ws_token": "d60f9b8fb0474649b584fa897e76394f272bdc36",
-  "core_domain": "core.staging.inamata.co",
+  "core_domain": "core.inamata.io",
   "secure_url": true,
   "name": "Controller 3"
 }

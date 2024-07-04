@@ -1,4 +1,4 @@
-#ifndef ARDUINO_ESP32S3_DEV
+#ifndef ARDUINO_ESP32S3
 
 #include "analog_out.h"
 

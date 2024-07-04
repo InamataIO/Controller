@@ -454,12 +454,6 @@ const __FlashStringHelper* AsEcMeterI2C::probe_type_cast_error_ =
 
 const __FlashStringHelper* AsEcMeterI2C::probe_type_code_ = FPSTR("K,");
 
-const __FlashStringHelper* AsEcMeterI2C::temperature_c_key_ =
-    FPSTR("temperature_c");
-
-const __FlashStringHelper* AsEcMeterI2C::temperature_c_key_error_ =
-    FPSTR("Wrong property: temperature_c (float)");
-
 const __FlashStringHelper* AsEcMeterI2C::calibrate_command_key_ =
     FPSTR("command");
 

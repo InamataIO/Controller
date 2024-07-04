@@ -27,19 +27,29 @@ stages:
 
 .before_script: &before_script
   - git config --global advice.detachedHead false
+  - git remote set-url origin ${CI_PROJECT_URL/gitlab.com/gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com}.git
+  - ./scripts/check_version.sh
   - pip install -U platformio
+
+.after_script: &after_script
+# Move all firmware images to the top-level folder for easier extraction
+  - ls -hola
+  - find .pio -type f -iname "*@*.bin" -exec mv -t . {} +
 
 .esp32-script:
   before_script: *before_script
   script: platformio run -e esp32doit-devkit-v1 -e esp32doit-devkit-v1-dbg
+  after_script: *after_script
 
 .esp32-s3-script:
   before_script: *before_script
   script: platformio run -e esp32-s3-devkitc-1
+  after_script: *after_script
 
 .esp8266-script:
   before_script: *before_script
   script: platformio run -e athom-plug-v2 -e athom-plug-v2-dbg -e esp8266
+  after_script: *after_script
 
 # pio ci is not used because it didn't work along with the extra_scripts
 # job:
@@ -67,9 +77,10 @@ stages:
       allow_failure: true
   artifacts:
       when: on_success
+      name: "$CI_JOB_NAME"
       expire_in: "30 days"
       paths:
-        - .pio/build/*/*@*.bin
+        - ./*@*.bin
 
 test:esp32:
   extends: [.test-base, .esp32-script]
@@ -100,9 +111,10 @@ test:esp8266:
       when: never
   artifacts:
       when: on_success
+      name: "$CI_JOB_NAME"
       expire_in: never
       paths:
-        - .pio/build/*/*@*.bin
+        - ./*@*.bin
   dependencies: []
   interruptible: false
 

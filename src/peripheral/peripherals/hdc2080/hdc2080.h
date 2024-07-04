@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ArduinoJson.h>
-#include <SparkFunBME280.h>
+#include <HDC2080.h>
 
 #include "managers/service_getters.h"
 #include "peripheral/capabilities/get_values.h"
@@ -11,22 +11,22 @@
 namespace inamata {
 namespace peripheral {
 namespace peripherals {
-namespace bme280 {
+namespace hdc2080 {
 
-class BME280 : public peripherals::i2c::I2CAbstractPeripheral,
-               public capabilities::GetValues {
+class HDC2080 : public peripherals::i2c::I2CAbstractPeripheral,
+                public capabilities::GetValues {
  public:
-  BME280(const JsonObjectConst& parameters);
-  virtual ~BME280() = default;
+  HDC2080(const JsonObjectConst& parameters);
+  virtual ~HDC2080() = default;
 
   // Type registration in the peripheral factory
   const String& getType() const final;
   static const String& type();
 
   /**
-   * Reads all available data points from the BME/P280
+   * Reads the temperature and humidity values
    *
-   * \return A vector with all read data points and their type
+   * \return The data points and their types
    */
   capabilities::GetValues::Result getValues() final;
 
@@ -37,24 +37,14 @@ class BME280 : public peripherals::i2c::I2CAbstractPeripheral,
   static bool capability_get_values_;
 
   utils::UUID temperature_data_point_type_{nullptr};
-  utils::UUID pressure_data_point_type_{nullptr};
   utils::UUID humidity_data_point_type_{nullptr};
 
-  /// The supported chip types and their chip IDs used to identify them
-  enum class ChipType { BMP280 = 0x58, BME280 = 0x60, Unknown };
-
-  /// The driver to read data from the BME/P280
-  ::BME280 driver_;
-  /// BME280s I2C address
+  ::HDC2080 driver_;
+  /// HDC2080 I2C address
   uint8_t i2c_address_;
-  /// The detected chip type
-  ChipType chip_type_ = ChipType::Unknown;
-
-  /// The error if the chip type does not match the expected values
-  static const __FlashStringHelper* invalid_chip_type_error_;
 };
 
-}  // namespace bme280
+}  // namespace hdc2080
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata

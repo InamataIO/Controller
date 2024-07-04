@@ -79,13 +79,11 @@ class AsPhMeterI2C : public peripherals::i2c::I2CAbstractPeripheral,
 
   // Temperature compensation
   float temperature_c_;
-  static const __FlashStringHelper* temperature_c_key_;
-  static const __FlashStringHelper* temperature_c_key_error_;
 
   static const __FlashStringHelper* sleep_code_;
 };
 
-}  // namespace as_rtd_meter
+}  // namespace as_ph_meter
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata

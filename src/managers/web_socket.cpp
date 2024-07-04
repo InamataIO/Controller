@@ -18,7 +18,7 @@ WebSocket::WebSocket(const WebSocket::Config& config, String&& root_cas)
       ota_update_callback_(config.ota_update_callback),
       root_cas_(root_cas) {
   if (core_domain_.isEmpty()) {
-    core_domain_ = F("core.staging.inamata.co");
+    core_domain_ = F("core.inamata.io");
     secure_url_ = true;
   }
   if (config.ws_token) {

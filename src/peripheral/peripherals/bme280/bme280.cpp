@@ -112,21 +112,6 @@ bool BME280::registered_ = PeripheralFactory::registerFactory(type(), factory);
 bool BME280::capability_get_values_ =
     capabilities::GetValues::registerType(type());
 
-const __FlashStringHelper* BME280::temperature_data_point_type_key_ =
-    FPSTR("temperature_data_point_type");
-const __FlashStringHelper* BME280::temperature_data_point_type_key_error_ =
-    FPSTR("Missing property: temperature_data_point_type (UUID)");
-
-const __FlashStringHelper* BME280::pressure_data_point_type_key_ =
-    FPSTR("pressure_data_point_type");
-const __FlashStringHelper* BME280::pressure_data_point_type_key_error_ =
-    FPSTR("Missing property: pressure_data_point_type (UUID)");
-
-const __FlashStringHelper* BME280::humidity_data_point_type_key_ =
-    FPSTR("humidity_data_point_type");
-const __FlashStringHelper* BME280::humidity_data_point_type_key_error_ =
-    FPSTR("Missing property: humidity_data_point_type (UUID)");
-
 const __FlashStringHelper* BME280::invalid_chip_type_error_ =
     FPSTR("Failed BME/P280 setup");
 

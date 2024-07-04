@@ -235,8 +235,6 @@ class AsEcMeterI2C : public peripherals::i2c::I2CAbstractPeripheral,
   // Calibration
   /// Calibration temperature
   float temperature_c_;
-  static const __FlashStringHelper* temperature_c_key_;
-  static const __FlashStringHelper* temperature_c_key_error_;
 
   /**
    * State transitions:
