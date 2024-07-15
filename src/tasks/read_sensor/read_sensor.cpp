@@ -6,16 +6,10 @@ namespace inamata {
 namespace tasks {
 namespace read_sensor {
 
-ReadSensor::ReadSensor(const ServiceGetters& services,
-                       const JsonObjectConst& parameters, Scheduler& scheduler)
-    : GetValuesTask(parameters, scheduler) {
+ReadSensor::ReadSensor(const ServiceGetters& services, Scheduler& scheduler,
+                       const Input& input)
+    : GetValuesTask(services, scheduler, input) {
   if (!isValid()) {
-    return;
-  }
-
-  web_socket_ = services.getWebSocket();
-  if (web_socket_ == nullptr) {
-    setInvalid(services.web_socket_nullptr_error_);
     return;
   }
 
@@ -29,7 +23,8 @@ ReadSensor::ReadSensor(const ServiceGetters& services,
     // Repeatedly run task to call handleMeasurement
     Task::setIterations(-1);
 
-    auto result = start_measurement_peripheral_->startMeasurement(parameters);
+    auto result = start_measurement_peripheral_->startMeasurement(
+        input.start_measurement_parameters);
     if (result.error.isError()) {
       setInvalid(result.error.toString());
       return;
@@ -47,6 +42,16 @@ const String& ReadSensor::getType() const { return type(); }
 const String& ReadSensor::type() {
   static const String name{"ReadSensor"};
   return name;
+}
+
+void ReadSensor::populateInput(const JsonObjectConst& parameters,
+                               Input& input) {
+  GetValuesTask::populateInput(parameters, input);
+
+  JsonObjectConst start_measurement_parameters = parameters["smp"];
+  if (!start_measurement_parameters.isNull()) {
+    input.start_measurement_parameters = start_measurement_parameters;
+  }
 }
 
 bool ReadSensor::TaskCallback() {
@@ -67,19 +72,19 @@ bool ReadSensor::TaskCallback() {
     }
   }
 
-  // Create the JSON doc
-  doc_out.clear();
-  JsonObject result_object = doc_out.to<JsonObject>();
-
-  // Insert the value units and peripheral UUID
-  ErrorResult error = packageValues(result_object);
-  if (error.isError()) {
-    setInvalid(error.toString());
+  // Get the values and check for error
+  peripheral::capabilities::GetValues::Result result = peripheral_->getValues();
+  if (result.error.isError()) {
+    setInvalid(result.error.toString());
     return false;
   }
 
-  // Send the result to the server
-  web_socket_->sendTelemetry(getTaskID(), result_object);
+  // Handle the output externally (LAC) or directly send it to the server
+  if (handle_output_) {
+    handle_output_(result, *this);
+  } else {
+    sendTelemetry(result);
+  }
   return false;
 }
 
@@ -88,7 +93,9 @@ bool ReadSensor::registered_ = TaskFactory::registerTask(type(), factory);
 BaseTask* ReadSensor::factory(const ServiceGetters& services,
                               const JsonObjectConst& parameters,
                               Scheduler& scheduler) {
-  return new ReadSensor(services, parameters, scheduler);
+  Input input;
+  populateInput(parameters, input);
+  return new ReadSensor(services, scheduler, input);
 }
 
 }  // namespace read_sensor

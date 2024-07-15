@@ -4,7 +4,6 @@
 #include <TaskSchedulerDeclarations.h>
 
 #include <functional>
-#include <set>
 
 #include "managers/logging.h"
 #include "managers/types.h"
@@ -14,29 +13,43 @@ namespace inamata {
 namespace tasks {
 
 class BaseTask : public Task {
- public:
   /**
-   * Constructor used by tasks created locally
+   * All tasks should derive from this task that connects to the scheduler
    *
-   * If the task ID is not defined, it is marked as a system task which won't
-   * be deleted by the task remover.
+   * The constructor of derived tasks should
+   *  - check input data and call setInvalid on errors
+   *  - enable themselves after checks (enable() / enableDelayed())
    *
-   * \param scheduler The scheduler that executes the tasks
-   * \param uuid Unique identifier created locally
+   * Local tasks are not registered on the server and will not send result
+   * messages on task ends or initialization failures. Local action chains
+   * should send this via a LAC result message while system tasks are ignored.
    */
-  BaseTask(Scheduler& scheduler, utils::UUID task_id = utils::UUID(nullptr));
+ public:
+  struct Input {
+    Input(utils::UUID atask_id = nullptr, bool alocal_task = false)
+        : task_id(atask_id), local_task(alocal_task) {}
+    virtual ~Input() = default;
+    utils::UUID task_id;
+    bool local_task;
+  };
 
   /**
-   * Constructor used when commanded by the server
+   * Common base task sets the input variables.
    *
    * \param scheduler The scheduler that executes the tasks
-   * \param parameters The JSON doc should contain the key with the task's UUID
+   * \param input Variables including task ID and local task
    */
-  BaseTask(Scheduler& scheduler, const JsonObjectConst& parameters);
+  BaseTask(Scheduler& scheduler, const Input& input);
 
   virtual ~BaseTask() = default;
 
   virtual const String& getType() const = 0;
+
+  /**
+   * @param[in] parameters The JSON object with the parameters
+   * @param[out] input The parsed parameters used by the constructor
+   */
+  static void populateInput(const JsonObjectConst& parameters, Input& input);
 
   /**
    * Called by the task scheduler when the task is enabled and checks if the
@@ -97,6 +110,14 @@ class BaseTask : public Task {
   virtual void OnTaskDisable();
 
   /**
+   * Calls base disable() but skips handling by task removal task
+   *
+   * Use this instead of disable() when you will delete the task yourself.
+   * This avoids sending a stop result and calling delete on the task.
+   */
+  void disableWithoutRemoval();
+
+  /**
    * Check if the task is in a valid state
    *
    * \return True if it is in a valid state
@@ -131,11 +152,20 @@ class BaseTask : public Task {
    */
   static void setTaskRemovalCallback(std::function<void(Task&)> callback);
 
+  static BaseTask* findTask(Scheduler& scheduler, utils::UUID task_id);
+
+  // Whether the task was started locally or by the server
+  bool local_task_ = false;
+  /// Function called on task disable (task end)
+  std::function<void()> on_task_disable_;
+
   static const __FlashStringHelper* peripheral_key_;
   static const __FlashStringHelper* peripheral_key_error_;
-  static const __FlashStringHelper* peripheral_not_found_error_;
   static const __FlashStringHelper* task_id_key_;
   static const __FlashStringHelper* task_id_key_error_;
+
+  static const __FlashStringHelper* start_command_key_;
+  static const __FlashStringHelper* stop_command_key_;
 
  protected:
   /**
@@ -154,19 +184,20 @@ class BaseTask : public Task {
    */
   void setInvalid(const String& error_message);
 
-  static String peripheralNotFoundError(const utils::UUID& uuid);
-
- private:
   /// Whether the task is in a valid or invalid state
   bool is_valid_ = true;
   /// The cause for being in an invalid state
   String error_message_;
+
+ private:
   /// The scheduler the task is bound to
   Scheduler& scheduler_;
   /// The task's identifier
   utils::UUID task_id_ = utils::UUID(nullptr);
   /// Add task to removal queue callback
   static std::function<void(Task&)> task_removal_callback_;
+  /// Skip deletion by task removal task
+  bool skip_task_removal_ = false;
 };
 
 }  // namespace tasks

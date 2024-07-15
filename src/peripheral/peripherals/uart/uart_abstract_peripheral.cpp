@@ -19,6 +19,11 @@ UARTAbstractPeripheral::UARTAbstractPeripheral(
 
   std::shared_ptr<Peripheral> peripheral =
       Services::getPeripheralController().getPeripheral(uart_adapter_uuid);
+  if (!peripheral) {
+    setInvalid(peripheralNotFoundError(uart_adapter_uuid));
+    return;
+  }
+
   if (peripheral->getType() == UARTAdapter::type() && peripheral->isValid()) {
     uart_adapter_ = std::static_pointer_cast<UARTAdapter>(peripheral);
   } else {

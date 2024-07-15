@@ -3,12 +3,8 @@
 namespace inamata {
 namespace tasks {
 
-InvalidTask::InvalidTask(Scheduler& scheduler) : BaseTask(scheduler) {
-  setInvalid();
-}
-
 InvalidTask::InvalidTask(Scheduler& scheduler, const String& error)
-    : BaseTask(scheduler) {
+    : BaseTask(scheduler, Input(nullptr, true)) {
   setInvalid(error);
 }
 

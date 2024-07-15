@@ -66,7 +66,7 @@ const String& DigitalIn::type() {
 capabilities::GetValues::Result DigitalIn::getValues() {
   bool value = bool(digitalRead(pin_));
   if (active_low_) {
-    value != value;
+    value = !value;
   }
   return {.values = {utils::ValueUnit{.value = static_cast<float>(value),
                                       .data_point_type = data_point_type_}}};

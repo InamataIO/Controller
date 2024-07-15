@@ -27,12 +27,19 @@ namespace poll_sensor {
  */
 class PollSensor : public get_values_task::GetValuesTask {
  public:
-  PollSensor(const ServiceGetters& services, const JsonObjectConst& parameters,
-             Scheduler& scheduler);
+  struct Input : public GetValuesTask::Input {
+    std::chrono::milliseconds interval{-1};
+    std::chrono::milliseconds duration{-1};
+  };
+
+  PollSensor(const ServiceGetters& services, Scheduler& scheduler,
+             const Input& input);
   virtual ~PollSensor() = default;
 
   const String& getType() const final;
   static const String& type();
+
+  static void populateInput(const JsonObjectConst& parameters, Input& input);
 
   bool TaskCallback() final;
 

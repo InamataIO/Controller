@@ -73,7 +73,7 @@ bool Network::tryFastConnect() {
       wifi_status = WiFi.begin();
     } else {
       // else start WiFi search and exit fast connect mode
-      TRACELN("FastConnect: No saved SSID");
+      TRACELN(F("FastConnect: No saved SSID"));
       connect_start_ = std::chrono::steady_clock::time_point::min();
       connect_mode_ = ConnectMode::kScanning;
       return false;

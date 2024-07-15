@@ -56,6 +56,7 @@ capabilities::Calibrate::Result SGP40::startCalibration(
   }
 
   driver_.setRhT(humidity, temperature);
+  return capabilities::Calibrate::Result();
 }
 
 capabilities::Calibrate::Result SGP40::handleCalibration() {

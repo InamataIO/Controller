@@ -16,6 +16,10 @@ I2CAbstractPeripheral::I2CAbstractPeripheral(const JsonObjectConst& parameter) {
 
   std::shared_ptr<Peripheral> peripheral =
       Services::getPeripheralController().getPeripheral(i2c_adapter_uuid);
+  if (!peripheral) {
+    setInvalid(peripheralNotFoundError(i2c_adapter_uuid));
+    return;
+  }
 
   // Since the UUID is specified externally, check the type
   if (peripheral->getType() == util::I2CAdapter::type() &&

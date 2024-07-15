@@ -8,15 +8,16 @@ namespace inamata {
 
 WebSocketsClient websocket_client;
 
-WebSocket::WebSocket(const WebSocket::Config& config, String&& root_cas)
+WebSocket::WebSocket(const WebSocket::Config& config)
     : core_domain_(config.core_domain),
       secure_url_(config.secure_url),
+      action_controller_callback_(config.action_controller_callback),
       get_peripheral_ids_(config.get_peripheral_ids),
       peripheral_controller_callback_(config.peripheral_controller_callback),
       get_task_ids_(config.get_task_ids),
       task_controller_callback_(config.task_controller_callback),
-      ota_update_callback_(config.ota_update_callback),
-      root_cas_(root_cas) {
+      lac_controller_callback_(config.lac_controller_callback),
+      ota_update_callback_(config.ota_update_callback) {
   if (core_domain_.isEmpty()) {
     core_domain_ = F("core.inamata.io");
     secure_url_ = true;
@@ -43,18 +44,20 @@ WebSocket::ConnectState WebSocket::connect() {
   if (!is_setup_) {
     TRACELN(F("Setting up"));
     is_setup_ = true;
-    if (last_connect_up_ == last_connect_up_.min()) {
-      last_connect_up_ = std::chrono::steady_clock::now();
-    }
     // WS token has to be set in LittleFS, EEPROM or via captive portal
     if (!isWsTokenSet()) {
       TRACELN(F("ws_token not set"));
       return ConnectState::kFailed;
     }
     if (secure_url_) {
-      websocket_client.beginSslWithCA(core_domain_.c_str(), 443,
-                                      controller_path_, getRootCas(),
-                                      ws_token_.c_str());
+#ifdef ESP32
+      websocket_client.beginSslWithBundle(
+          core_domain_.c_str(), 443, controller_path_, rootca_crt_bundle_start,
+          ws_token_.c_str());
+#else
+      websocket_client.beginSSL(core_domain_.c_str(), 443, controller_path_,
+                                nullptr, ws_token_.c_str());
+#endif
     } else {
       websocket_client.begin(core_domain_.c_str(), 8000, controller_path_,
                              ws_token_.c_str());
@@ -124,14 +127,25 @@ void WebSocket::resetConnectAttempt() {
 //   restartOnUnimplementedFunction();
 // }
 
-void WebSocket::sendTelemetry(const utils::UUID& task_id, JsonObject data) {
+void WebSocket::sendTelemetry(JsonObject data, const utils::UUID* task_id,
+                              const utils::UUID* lac_id) {
   data[WebSocket::type_key_] = WebSocket::telemetry_type_;
-  data[WebSocket::task_key_] = task_id.toString();
+  if (task_id && task_id->isValid()) {
+    data[WebSocket::task_key_] = task_id->toString();
+  }
+  if (lac_id && lac_id->isValid()) {
+    data[WebSocket::lac_key_] = lac_id->toString();
+  }
   sendJson(data);
 }
 
+void WebSocket::sendBootErrors() {
+  JsonObjectConst empty_message;
+  peripheral_controller_callback_(empty_message);
+}
+
 void WebSocket::sendRegister() {
-  doc_out.clear();
+  JsonDocument doc_out;
 
   // Use the register message type
   doc_out["type"] = "reg";
@@ -140,18 +154,20 @@ void WebSocket::sendRegister() {
   doc_out["version"] = firmware_version_;
 
   // Collect all added peripheral ids and write them to a JSON doc
-  std::vector<utils::UUID> peripheral_ids = get_peripheral_ids_();
-  if (!peripheral_ids.empty()) {
-    JsonArray peripherals = doc_out.createNestedArray(F("peripherals"));
-    for (const auto& peripheral_id : peripheral_ids) {
-      peripherals.add(peripheral_id.toString());
+  std::vector<utils::VersionedID> pvids = get_peripheral_ids_();
+  if (!pvids.empty()) {
+    JsonArray pvs = doc_out[F("pvs")].to<JsonArray>();
+    for (const auto& pvid : pvids) {
+      JsonObject pv = pvs.add<JsonObject>();
+      pv["id"] = pvid.id.toString();
+      pv["v"] = pvid.version;
     }
   }
 
   // Collect all running task ids and write them to a JSON doc
   std::vector<utils::UUID> task_ids = get_task_ids_();
   if (!task_ids.empty()) {
-    JsonArray tasks = doc_out.createNestedArray(F("tasks"));
+    JsonArray tasks = doc_out[F("tasks")].to<JsonArray>();
     for (const auto& task_id : task_ids) {
       if (task_id.isValid()) {
         tasks.add(task_id.toString());
@@ -163,7 +179,7 @@ void WebSocket::sendRegister() {
 }
 
 void WebSocket::sendError(const String& who, const String& message) {
-  doc_out.clear();
+  JsonDocument doc_out;
 
   // Use ther error message type
   doc_out["type"] = "err";
@@ -175,7 +191,7 @@ void WebSocket::sendError(const String& who, const String& message) {
 }
 
 void WebSocket::sendError(const ErrorResult& error, const String& request_id) {
-  doc_out.clear();
+  JsonDocument doc_out;
 
   // Use ther error message type
   doc_out["type"] = "err";
@@ -193,7 +209,11 @@ void WebSocket::sendError(const ErrorResult& error, const String& request_id) {
 }
 
 void WebSocket::sendDebug(const String& message) {
-  doc_out.clear();
+  TRACEF("message: %s\n", message.c_str());
+  if (!websocket_client.isConnected()) {
+    return;
+  }
+  JsonDocument doc_out;
 
   // Use ther error message type
   doc_out["type"] = "dbg";
@@ -204,16 +224,42 @@ void WebSocket::sendDebug(const String& message) {
   sendJson(doc_out);
 }
 
-void WebSocket::sendResults(JsonObjectConst results) { sendJson(doc_out); }
-
-void WebSocket::sendSystem(JsonObject data) {
-  data[WebSocket::type_key_] = WebSocket::system_type_;
-  sendJson(doc_out);
+void WebSocket::sendResults(JsonObjectConst results) {
+  TRACEKJSON("Res: ", results);
+  if (!websocket_client.isConnected()) {
+    return;
+  }
+  std::vector<char> buffer = std::vector<char>(measureJson(results) + 1);
+  size_t n = serializeJson(results, buffer.data(), buffer.size());
+  bool success = websocket_client.sendTXT(buffer.data(), n);
+  if (!success) {
+    Serial.print(F("Failed sending results: "));
+    Serial.println(results);
+  }
 }
 
-const char* WebSocket::getRootCas() const {
-  // If root_cas_ not loaded, use default root CA
-  return root_cas_.length() ? root_cas_.c_str() : default_root_ca;
+void WebSocket::addResultEntry(const String& uuid, const ErrorResult& error,
+                               const JsonArray& results) {
+  JsonObject result = results.add<JsonObject>();
+
+  // Save whether the task could be started or the reason for failing
+  if (error.isError()) {
+    result[uuid_key_] = uuid;
+    result[result_status_key_] = result_fail_name_;
+    result[result_detail_key_] = error.detail_;
+  } else {
+    result[uuid_key_] = uuid;
+    result[WebSocket::result_status_key_] = WebSocket::result_success_name_;
+  }
+}
+
+void WebSocket::sendSystem(JsonObject data) {
+  TRACEKJSON("Sys: ", data);
+  if (!websocket_client.isConnected()) {
+    return;
+  }
+  data[WebSocket::type_key_] = WebSocket::system_type_;
+  sendJson(data);
 }
 
 void WebSocket::setWsToken(const char* ws_token) {
@@ -231,8 +277,7 @@ void WebSocket::handleEvent(WStype_t type, uint8_t* payload, size_t length) {
   // Print class type before the printing the message type
   switch (type) {
     case WStype_DISCONNECTED: {
-      TRACELN(F(": Disconnected!"));
-      last_connect_up_ = std::chrono::steady_clock::now();
+      TRACELN(F("WS disconnected"));
     } break;
     case WStype_CONNECTED: {
       TRACEF("Connected to: %s\n", reinterpret_cast<char*>(payload));
@@ -258,18 +303,21 @@ void WebSocket::handleEvent(WStype_t type, uint8_t* payload, size_t length) {
 
 void WebSocket::handleData(const uint8_t* payload, size_t length) {
   // Deserialize the JSON object into allocated memory
-  doc_in.clear();
+  JsonDocument doc_in;
   const DeserializationError error = deserializeJson(doc_in, payload, length);
   if (error) {
     sendError(type(), String(F("Deserialize failed: ")) + error.c_str());
     return;
   }
 
-  // Pass the message to the peripheral and task handlers
-  peripheral_controller_callback_(doc_in.as<JsonObjectConst>());
-  task_controller_callback_(doc_in.as<JsonObjectConst>());
+  // Pass the message to the handlers
+  JsonObjectConst message = doc_in.as<JsonObjectConst>();
+  action_controller_callback_(message);
+  peripheral_controller_callback_(message);
+  task_controller_callback_(message);
+  lac_controller_callback_(message);
   if (ota_update_callback_) {
-    ota_update_callback_(doc_in.as<JsonObjectConst>());
+    ota_update_callback_(message);
   }
 }
 
@@ -278,7 +326,7 @@ void WebSocket::updateUpDownTime(const bool is_connected) {
     was_connected_ = is_connected;
     const auto now = std::chrono::steady_clock::now();
     if (is_connected) {
-      TRACELN("WS connected");
+      TRACELN(F("WS connected"));
       // Connection went up
       if (last_connect_down_ != std::chrono::steady_clock::time_point::min()) {
         // Only update if last_connect_down_ has been set
@@ -301,16 +349,14 @@ void WebSocket::sendUpDownTimeData() {
   // Only send after valid times have been recorded
   if (last_up_duration_ != std::chrono::steady_clock::duration::min() &&
       last_down_duration_ != std::chrono::steady_clock::duration::min()) {
-    doc_out.clear();
+    JsonDocument doc_out;
     if (last_up_duration_ != std::chrono::steady_clock::duration::min()) {
       // If the up duration is valid, print and send the data
       int64_t last_up_duration_s =
           std::chrono::duration_cast<std::chrono::seconds>(last_up_duration_)
               .count();
       TRACEF("Last WS up duration: %llds\n", last_up_duration_s);
-      doc_out[F("last_ws_up_duration_s")] =
-          std::chrono::duration_cast<std::chrono::seconds>(last_up_duration_)
-              .count();
+      doc_out[F("last_ws_up_duration_s")] = last_up_duration_s;
     }
     if (last_down_duration_ != std::chrono::steady_clock::duration::min()) {
       // If the down duration is valid, print and send the data
@@ -348,9 +394,19 @@ const char* WebSocket::secure_url_key_ = "secure_url";
 
 const __FlashStringHelper* WebSocket::request_id_key_ = FPSTR("request_id");
 const __FlashStringHelper* WebSocket::type_key_ = FPSTR("type");
+
 const __FlashStringHelper* WebSocket::result_type_ = FPSTR("result");
+const __FlashStringHelper* WebSocket::uuid_key_ = FPSTR("uuid");
+const __FlashStringHelper* WebSocket::result_status_key_ = FPSTR("status");
+const __FlashStringHelper* WebSocket::result_detail_key_ = FPSTR("detail");
+const __FlashStringHelper* WebSocket::result_success_name_ = FPSTR("success");
+const __FlashStringHelper* WebSocket::result_fail_name_ = FPSTR("fail");
+const __FlashStringHelper* WebSocket::result_state_key_ = FPSTR("state");
+
 const __FlashStringHelper* WebSocket::telemetry_type_ = FPSTR("tel");
+const __FlashStringHelper* WebSocket::action_key_ = FPSTR("action");
 const __FlashStringHelper* WebSocket::task_key_ = FPSTR("task");
 const __FlashStringHelper* WebSocket::system_type_ = FPSTR("sys");
+const __FlashStringHelper* WebSocket::lac_key_ = FPSTR("lac");
 
 }  // namespace inamata

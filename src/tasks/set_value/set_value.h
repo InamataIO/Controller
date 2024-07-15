@@ -14,14 +14,28 @@ namespace set_value {
 
 class SetValue : public BaseTask {
  public:
-  SetValue(const ServiceGetters& services, const JsonObjectConst& parameters,
-           Scheduler& scheduler);
+  /// Data used for local construction
+  struct Input : public BaseTask::Input {
+    virtual ~Input() = default;
+    utils::UUID peripheral_id{nullptr};
+    utils::ValueUnit value_unit = utils::ValueUnit();
+  };
+
+  SetValue(Scheduler& scheduler, const Input& input);
   virtual ~SetValue() = default;
 
   const String& getType() const final;
   static const String& type();
 
+  static void populateInput(const JsonObjectConst& parameters, Input& input);
+
   bool TaskCallback() final;
+
+  void sendTelemetry(utils::ValueUnit value_unit,
+                     const utils::UUID* lac_id = nullptr);
+
+  /// Allows LACs to intercept the read data
+  std::function<void(utils::ValueUnit&, SetValue&)> handle_output_;
 
  private:
   static bool registered_;

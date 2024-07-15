@@ -49,6 +49,16 @@ class Peripheral {
    */
   static int toPin(JsonVariantConst pin);
 
+  static String peripheralNotFoundError(const utils::UUID& uuid);
+
+  /// ID of the peripheral
+  utils::UUID id{nullptr};
+  /// Version tracking config changes. Incremented on each save / change
+  int version = -1;
+
+  static const __FlashStringHelper* uuid_key_;
+  static const __FlashStringHelper* uuid_key_error_;
+
  protected:
   /**
    * Mark the peripheral as invalid and should therefore not be used
@@ -99,6 +109,8 @@ class Peripheral {
   bool valid_ = true;
   /// The error message if an error occured
   String error_message_;
+
+  static const __FlashStringHelper* peripheral_not_found_error_;
 };
 
 }  // namespace peripheral

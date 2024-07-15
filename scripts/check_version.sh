@@ -6,6 +6,14 @@ set -eo pipefail
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
 ##############################################################################
+# Skip check on main branch
+
+if [[ $(git branch --show-current) = "main" ]]; then
+  echo "Skipping version check on main branch"
+  exit 0
+fi
+
+##############################################################################
 # Script to check if the version number was only incremented by 1
 
 git fetch origin main

@@ -9,7 +9,8 @@
 
 namespace inamata {
 
-OtaUpdater::OtaUpdater(Scheduler& scheduler) : BaseTask(scheduler) {}
+OtaUpdater::OtaUpdater(Scheduler& scheduler)
+    : BaseTask(scheduler, Input(nullptr, true)) {}
 
 const String& OtaUpdater::getType() const { return type(); }
 
@@ -73,12 +74,12 @@ void OtaUpdater::handleCallback(const JsonObjectConst& message) {
     // Get and set the CA if available
     std::shared_ptr<WebSocket> web_socket = services_.getWebSocket();
     if (web_socket == nullptr) {
-      TRACELN(
-          ErrorResult(type(), ServiceGetters::web_socket_nullptr_error_)
-              .toString());
+      TRACELN(ErrorResult(type(), ServiceGetters::web_socket_nullptr_error_)
+                  .toString());
       return;
     }
-    connected = client_.begin(url.as<const char*>(), web_socket->getRootCas());
+    wifi_client_.setCACertBundle(rootca_crt_bundle_start);
+    connected = client_.begin(wifi_client_, url.as<const char*>());
   } else {
     // Use an unencrypted connection
     connected = client_.begin(url.as<const char*>());
@@ -132,10 +133,10 @@ bool OtaUpdater::TaskCallback() {
       int percent = float(Update.progress()) / float(image_size_) * 100;
       if (last_percent_update < 0 || last_percent_update + 10 <= percent) {
         last_percent_update = percent;
-        String status = F("{done:");
-        status += last_percent_update;
-        status += F("%}");
-        sendResult(status_updating_, status);
+        String detail = F("{\"done\":\"");
+        detail += last_percent_update;
+        detail += F("%\"}");
+        sendResult(status_updating_, detail);
       }
     }
 
@@ -178,13 +179,12 @@ void OtaUpdater::sendResult(const __FlashStringHelper* status,
   // Get the server instance to send the error message
   std::shared_ptr<WebSocket> web_socket = services_.getWebSocket();
   if (web_socket == nullptr) {
-    TRACELN(
-        ErrorResult(type(), ServiceGetters::web_socket_nullptr_error_)
-            .toString());
+    TRACELN(ErrorResult(type(), ServiceGetters::web_socket_nullptr_error_)
+                .toString());
     return;
   }
   // Create the error message
-  doc_out.clear();
+  JsonDocument doc_out;
   doc_out[WebSocket::type_key_] = WebSocket::result_type_;
   // Favor request ID from parameters over class member. Ignore if none given
   if (request_id != nullptr) {
@@ -193,7 +193,7 @@ void OtaUpdater::sendResult(const __FlashStringHelper* status,
     doc_out[WebSocket::request_id_key_] = request_id_.c_str();
   }
 
-  JsonObject update_result = doc_out.createNestedObject(update_command_key_);
+  JsonObject update_result = doc_out[update_command_key_].to<JsonObject>();
   update_result[status_key_] = status;
   if (!detail.isEmpty()) {
     update_result[detail_key_] = detail.c_str();

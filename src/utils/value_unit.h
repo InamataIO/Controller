@@ -11,6 +11,8 @@ struct ValueUnit {
   float value;
   UUID data_point_type;
 
+  ValueUnit(float avalue = NAN, UUID adata_point_type = nullptr);
+
   /**
    * Error for mismatching units when ValueUnit has the wrong unit
    *

@@ -1,11 +1,12 @@
 #pragma once
 
+#include <TaskSchedulerDeclarations.h>
 #include <WString.h>
 
-#include <TaskSchedulerDeclarations.h>
-
-#include "managers/service_getters.h"
+#include "lac/lac_controller.h"
+#include "managers/action_controller.h"
 #include "managers/network.h"
+#include "managers/service_getters.h"
 #include "managers/web_socket.h"
 #ifdef ESP32
 #include "managers/ota_updater.h"
@@ -44,17 +45,19 @@ class Services {
   std::shared_ptr<Storage> getStorage();
   void setStorage(std::shared_ptr<Storage> storage);
 
+  static ActionController& getActionController();
   static peripheral::PeripheralController& getPeripheralController();
   static tasks::TaskController& getTaskController();
-  #ifdef ESP32
+  static lac::LacController& getLacController();
+#ifdef ESP32
   static OtaUpdater& getOtaUpdater();
-  #endif
+#endif
 
   static Scheduler& getScheduler();
 
   /**
    * Get callbacks to get the pointers to dynamic services (network and server)
-   * 
+   *
    * \return Struct with callbacks to get pointers to the services
    */
   ServiceGetters getGetters();
@@ -68,6 +71,8 @@ class Services {
   std::shared_ptr<Storage> storage_;
   /// Executes the active tasks
   static Scheduler scheduler_;
+  /// Handles commands with controller actions
+  static ActionController action_controller_;
   /// Creates peripherals with the registered peripheral factory callbacks
   static peripheral::PeripheralFactory peripheral_factory_;
   /// Handles server requests to create / delete peripherals
@@ -78,10 +83,12 @@ class Services {
   static tasks::TaskController task_controller_;
   /// Singleton to delete stopped tasks and inform the server
   static tasks::TaskRemovalTask task_removal_task_;
-  /// Singleton to perform OTA updates
-  #ifdef ESP32
+  /// Manages local action chains
+  static lac::LacController lac_controller_;
+/// Singleton to perform OTA updates
+#ifdef ESP32
   static OtaUpdater ota_updater_;
-  #endif
+#endif
 };
 
 }  // namespace inamata

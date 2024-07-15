@@ -22,7 +22,14 @@ std::shared_ptr<Peripheral> PeripheralFactory::createPeripheral(
 
   auto factory = getFactories().find(type);
   if (factory != getFactories().end()) {
-    return factory->second(services, parameter);
+    std::shared_ptr<Peripheral> peripheral =
+        factory->second(services, parameter);
+    peripheral->id = parameter[Peripheral::uuid_key_].as<const char*>();
+    JsonVariantConst version = parameter["version"];
+    if (!version.isNull()) {
+      peripheral->version = version.as<int>();
+    }
+    return peripheral;
   } else {
     return std::make_shared<InvalidPeripheral>(
         unknownTypeError(type.as<const char*>()));

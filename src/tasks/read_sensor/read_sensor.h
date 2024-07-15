@@ -2,6 +2,7 @@
 
 #include <ArduinoJson.h>
 
+#include <functional>
 #include <memory>
 
 #include "managers/service_getters.h"
@@ -20,6 +21,10 @@ namespace read_sensor {
  */
 class ReadSensor : public get_values_task::GetValuesTask {
  public:
+  struct Input : public GetValuesTask::Input {
+    virtual ~Input() = default;
+  };
+
   /**
    * Creates a peripheral to read peripheral values via the GetValues
    * capability.
@@ -31,12 +36,14 @@ class ReadSensor : public get_values_task::GetValuesTask {
    * \param parameters The JSON parameters to construct the task
    * \param scheduler The scheduler to which the task is assigned to
    */
-  ReadSensor(const ServiceGetters& services, const JsonObjectConst& parameters,
-             Scheduler& scheduler);
+  ReadSensor(const ServiceGetters& services, Scheduler& scheduler,
+             const Input& input);
   virtual ~ReadSensor() = default;
 
   const String& getType() const final;
   static const String& type();
+
+  static void populateInput(const JsonObjectConst& parameters, Input& input);
 
   /**
    * Handles the measurement process and then reads the values.
@@ -49,6 +56,11 @@ class ReadSensor : public get_values_task::GetValuesTask {
    */
   bool TaskCallback() final;
 
+  /// Allows LACs to intercept the read data
+  std::function<void(peripheral::capabilities::GetValues::Result&,
+                     tasks::get_values_task::GetValuesTask&)>
+      handle_output_;
+
  private:
   static bool registered_;
   static BaseTask* factory(const ServiceGetters& services,
@@ -56,8 +68,6 @@ class ReadSensor : public get_values_task::GetValuesTask {
                            Scheduler& scheduler);
   std::shared_ptr<peripheral::capabilities::StartMeasurement>
       start_measurement_peripheral_ = nullptr;
-
-  std::shared_ptr<WebSocket> web_socket_;
 };
 
 }  // namespace read_sensor

@@ -24,6 +24,12 @@ int Peripheral::toPin(JsonVariantConst pin) {
   return pin_number;
 }
 
+String Peripheral::peripheralNotFoundError(const utils::UUID& uuid) {
+  String error(peripheral_not_found_error_);
+  error += uuid.toString();
+  return error;
+}
+
 void Peripheral::setInvalid() { valid_ = false; }
 
 void Peripheral::setInvalid(const String& error_message) {
@@ -34,6 +40,12 @@ void Peripheral::setInvalid(const String& error_message) {
 String Peripheral::notAValidError(const utils::UUID& uuid, const String& type) {
   return uuid.toString() + F(" is not a valid ") + type;
 }
+
+const __FlashStringHelper* Peripheral::uuid_key_ = FPSTR("uuid");
+const __FlashStringHelper* Peripheral::uuid_key_error_ =
+    FPSTR("Missing property: uuid (uuid)");
+const __FlashStringHelper* Peripheral::peripheral_not_found_error_ =
+    FPSTR("Could not find peripheral: ");
 
 const __FlashStringHelper* Peripheral::data_point_type_key_ =
     FPSTR("data_point_type");

@@ -18,6 +18,10 @@ ADS1X15Input::ADS1X15Input(const JsonObjectConst& parameters) {
 
   std::shared_ptr<Peripheral> peripheral =
       Services::getPeripheralController().getPeripheral(ads1x15_adapter_uuid);
+  if (!peripheral) {
+    setInvalid(peripheralNotFoundError(ads1x15_adapter_uuid));
+    return;
+  }
 
   // Since the UUID is specified externally, check the type
   if (peripheral->getType() == ADS1X15Adapter::type() &&

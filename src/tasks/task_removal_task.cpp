@@ -12,7 +12,6 @@ namespace tasks {
 
 TaskRemovalTask::TaskRemovalTask(Scheduler& scheduler) : Task(&scheduler) {
   BaseTask::setTaskRemovalCallback(std::bind(&TaskRemovalTask::add, this, _1));
-  // scheduler.addTask(*this); // TODO: Is this a bug? Superfluous addTask call?
 }
 
 const String& TaskRemovalTask::type() {
@@ -35,23 +34,28 @@ bool TaskRemovalTask::Callback() {
     return true;
   }
 
-  doc_out.clear();
+  JsonDocument doc_out;
   doc_out[WebSocket::type_key_] = WebSocket::result_type_;
   JsonObject task_results =
-      doc_out.createNestedObject(TaskController::task_results_key_);
+      doc_out[TaskController::task_results_key_].to<JsonObject>();
   JsonArray stop_results =
-      task_results.createNestedArray(TaskController::stop_command_key_);
+      task_results[BaseTask::stop_command_key_].to<JsonArray>();
 
   for (auto it = tasks_.begin(); it != tasks_.end();) {
     Task* task = *it;
     BaseTask* base_task = dynamic_cast<BaseTask*>(task);
-    TRACEF("Deleting: %s\n", base_task->getType());
+    TRACEF("Deleting: %s (l: %i, s: %i, id: %s)\n", base_task->getType(),
+           base_task->local_task_, base_task->isSystemTask(),
+           base_task->getTaskID().toString().c_str());
 
-    // If it is not a system task, delete the task and free the memory
-    // System tasks have a static memory lifetime and should not be deleted
+    // - Local, system tasks have static memory and should not be deleted
+    // - Server started tasks should be deleted and sent to the server
+    // - Local, non-system tasks should be deleted but not sent to the server
     if (base_task && !base_task->isSystemTask()) {
-      TaskController::addResultEntry(base_task->getTaskID(),
-                                     base_task->getError(), stop_results);
+      if (!base_task->local_task_) {
+        String task_id = base_task->getTaskID().toString();
+        WebSocket::addResultEntry(task_id, base_task->getError(), stop_results);
+      }
       delete base_task;
     }
     it = tasks_.erase(it);
@@ -63,7 +67,7 @@ bool TaskRemovalTask::Callback() {
       web_socket->sendResults(doc_out.as<JsonObject>());
     } else {
       TRACELN(ErrorResult(type(), ServiceGetters::web_socket_nullptr_error_)
-                         .toString());
+                  .toString());
     }
   }
 

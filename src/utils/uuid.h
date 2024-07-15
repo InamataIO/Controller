@@ -83,5 +83,11 @@ class UUID : public Printable {
   std::array<uint8_t, 16> buffer_;
 };
 
+/// ID of peripheral/task/LAC and save version
+struct VersionedID {
+  UUID id;
+  int version;
+};
+
 }  // namespace utils
 }  // namespace inamata

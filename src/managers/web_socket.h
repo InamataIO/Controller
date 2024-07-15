@@ -31,10 +31,12 @@ class WebSocket {
   using CallbackMap = std::map<String, Callback>;
 
   struct Config {
-    std::function<std::vector<utils::UUID>()> get_peripheral_ids;
+    Callback action_controller_callback;
+    std::function<std::vector<utils::VersionedID>()> get_peripheral_ids;
     Callback peripheral_controller_callback;
     std::function<std::vector<utils::UUID>()> get_task_ids;
     Callback task_controller_callback;
+    Callback lac_controller_callback;
     Callback ota_update_callback;
     const char* core_domain;
     const char* ws_token;
@@ -49,7 +51,7 @@ class WebSocket {
    *
    * \param config Copies out the config values to perform its initialization
    */
-  WebSocket(const Config& config, String&& root_cas);
+  WebSocket(const Config& config);
   virtual ~WebSocket() = default;
 
   const String& type();
@@ -67,7 +69,9 @@ class WebSocket {
   // void send(const String& name, JsonDocument& doc);
   // void send(const String& name, const char* value, size_t length);
 
-  void sendTelemetry(const utils::UUID& uuid, JsonObject data);
+  void sendTelemetry(JsonObject data, const utils::UUID* task_id = nullptr,
+                     const utils::UUID* lac_id = nullptr);
+  void sendBootErrors();
   void sendRegister();
   void sendError(const String& who, const String& message);
   void sendError(const ErrorResult& error, const String& request_id = "");
@@ -75,9 +79,11 @@ class WebSocket {
   void sendDebug(const String& message);
 
   void sendResults(JsonObjectConst results);
+  static void addResultEntry(const String& uuid, const ErrorResult& error,
+                             const JsonArray& results);
+
   void sendSystem(JsonObject data);
 
-  const char* getRootCas() const;
   void setWsToken(const char* token);
   const bool isWsTokenSet() const;
 
@@ -90,10 +96,23 @@ class WebSocket {
 
   static const __FlashStringHelper* request_id_key_;
   static const __FlashStringHelper* type_key_;
+
   static const __FlashStringHelper* result_type_;
   static const __FlashStringHelper* telemetry_type_;
+  /// Controller action object in command messages
+  static const __FlashStringHelper* action_key_;
   static const __FlashStringHelper* task_key_;
   static const __FlashStringHelper* system_type_;
+  static const __FlashStringHelper* lac_key_;
+
+  // Keys and names used by result messages
+  static const __FlashStringHelper* uuid_key_;
+  static const __FlashStringHelper* result_status_key_;
+  static const __FlashStringHelper* result_detail_key_;
+  static const __FlashStringHelper* result_success_name_;
+  static const __FlashStringHelper* result_fail_name_;
+  /// Used by LACs to tell if they are running, installed or so
+  static const __FlashStringHelper* result_state_key_;
 
  private:
   /**
@@ -155,13 +174,14 @@ class WebSocket {
   std::chrono::steady_clock::duration last_down_duration_ =
       std::chrono::steady_clock::duration::min();
 
-  std::function<std::vector<utils::UUID>()> get_peripheral_ids_;
+  Callback action_controller_callback_;
+  std::function<std::vector<utils::VersionedID>()> get_peripheral_ids_;
   Callback peripheral_controller_callback_;
   std::function<std::vector<utils::UUID>()> get_task_ids_;
   Callback task_controller_callback_;
+  Callback lac_controller_callback_;
   Callback ota_update_callback_;
 
-  String root_cas_;
   String ws_token_;
   const char* controller_path_ = "/controller-ws/v1/";
 };

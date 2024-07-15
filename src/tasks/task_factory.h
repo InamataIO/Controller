@@ -48,6 +48,7 @@ class TaskFactory {
   /**
    * Start a Task object from a JSON object by passing it to the subfactories
    *
+   * @param services System services such as WebSocket and Storage
    * @param parameters JSON object with the parameters to start a task
    * @return True on success
    */

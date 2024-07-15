@@ -6,66 +6,55 @@ namespace inamata {
 namespace tasks {
 namespace alert_sensor {
 
-AlertSensor::AlertSensor(const ServiceGetters& services,
-                         const JsonObjectConst& parameters,
-                         Scheduler& scheduler)
-    : GetValuesTask(parameters, scheduler) {
+AlertSensor::AlertSensor(const ServiceGetters& services, Scheduler& scheduler,
+                         const Input& input)
+    : GetValuesTask(services, scheduler, input),
+      handle_output_(std::bind(&AlertSensor::sendAlert, this, _1)),
+      web_socket_(services.getWebSocket()),
+      trigger_type_(input.trigger_type),
+      threshold_(input.threshold),
+      data_point_type_id_(input.data_point_type_id),
+      trigger_count_limit_(input.trigger_count_limit) {
+  TRACEF("AlertSensor CSTR, tcl: %i\n", trigger_count_limit_);
   if (!isValid()) {
     return;
   }
 
-  web_socket_ = services.getWebSocket();
   if (web_socket_ == nullptr) {
     setInvalid(services.web_socket_nullptr_error_);
     return;
   }
 
-  // Get the type of trigger [rising, falling, either]
-  JsonVariantConst trigger_type = parameters[trigger_type_key_];
-  if (!trigger_type.is<const char*>()) {
+  if (trigger_type_ == TriggerType::kInvalid) {
     setInvalid(trigger_type_key_error_);
     return;
   }
-  setTriggerType(trigger_type.as<String>());
 
-  // Get the trigger threshold
-  JsonVariantConst threshold = parameters[threshold_key_];
-  if (!trigger_type.is<int>()) {
+  if (isnan(threshold_)) {
     setInvalid(threshold_key_error_);
     return;
   }
-  threshold_ = threshold;
 
-  // Optionally get the interval with which to poll the sensor [default: 100ms]
-  JsonVariantConst interval_ms = parameters[interval_ms_key_];
-  if (interval_ms.isNull()) {
-    setInterval(std::chrono::milliseconds(default_interval_).count());
-  } else if (interval_ms.is<unsigned int>()) {
-    setInterval(interval_ms);
-  } else {
-    setInvalid(interval_ms_key_error_);
-    return;
-  }
-
-  // Optionally get the duration for which to poll the sensor [default: forever]
-  JsonVariantConst duration_ms = parameters[duration_ms_key_];
-  if (duration_ms.isNull()) {
-    setIterations(TASK_FOREVER);
-  } else if (duration_ms.is<unsigned int>()) {
-    setIterations(duration_ms.as<unsigned int>() / getInterval());
-  } else {
-    setInvalid(duration_ms_key_error_);
-    return;
-  }
-
-  data_point_type_ =
-      utils::UUID(parameters[utils::ValueUnit::data_point_type_key]);
-  if (!data_point_type_.isValid()) {
+  if (!data_point_type_id_.isValid()) {
     setInvalid(utils::ValueUnit::data_point_type_key_error);
     return;
   }
 
+  if (input.interval <= std::chrono::milliseconds::zero()) {
+    setInvalid(interval_ms_key_error_);
+    return;
+  }
+  setInterval(std::chrono::milliseconds(input.interval).count());
+
+  if (input.duration < std::chrono::milliseconds::zero()) {
+    setIterations(TASK_FOREVER);
+  } else {
+    setIterations(std::chrono::milliseconds(input.duration).count() /
+                  getInterval());
+  }
+
   enable();
+  TRACELN(F("AlertSensor CSTR end"));
 }
 
 const String& AlertSensor::getType() const { return type(); }
@@ -73,6 +62,43 @@ const String& AlertSensor::getType() const { return type(); }
 const String& AlertSensor::type() {
   static const String name{"AlertSensor"};
   return name;
+}
+
+void AlertSensor::populateInput(const JsonObjectConst& parameters,
+                                Input& input) {
+  TRACELN(F("1"));
+  GetValuesTask::populateInput(parameters, input);
+
+  JsonVariantConst trigger_type = parameters[trigger_type_key_];
+  if (trigger_type.is<const char*>()) {
+    input.trigger_type = toTriggerType(trigger_type.as<const char*>());
+  }
+
+  JsonVariantConst threshold = parameters[threshold_key_];
+  if (threshold.is<float>()) {
+    input.threshold = threshold;
+  }
+
+  JsonVariantConst data_point_type_id =
+      parameters[utils::ValueUnit::data_point_type_key];
+  if (!data_point_type_id.isNull()) {
+    input.data_point_type_id = data_point_type_id;
+  }
+
+  JsonVariantConst interval_ms = parameters[interval_ms_key_];
+  if (interval_ms.is<float>()) {
+    input.interval = std::chrono::milliseconds(interval_ms.as<int64_t>());
+  }
+
+  JsonVariantConst duration_ms = parameters[duration_ms_key_];
+  if (duration_ms.is<float>()) {
+    input.duration = std::chrono::milliseconds(duration_ms.as<int64_t>());
+  }
+
+  JsonVariantConst trigger_count_limit = parameters[trigger_count_limit_key_];
+  if (trigger_count_limit.is<float>()) {
+    input.trigger_count_limit = trigger_count_limit.as<int32_t>();
+  }
 }
 
 bool AlertSensor::TaskCallback() {
@@ -84,26 +110,31 @@ bool AlertSensor::TaskCallback() {
 
   // Find the specified data point type. Uses first found. Error if none found
   auto match_unit = [&](const utils::ValueUnit& value_unit) {
-    return value_unit.data_point_type == data_point_type_;
+    return value_unit.data_point_type == data_point_type_id_;
   };
   const auto trigger_value_unit =
       std::find_if(result.values.cbegin(), result.values.cend(), match_unit);
   if (trigger_value_unit == result.values.end()) {
     setInvalid(String(F("Data point type not found: ")) +
-               data_point_type_.toString());
+               data_point_type_id_.toString());
     return false;
   }
 
+  TRACEF("value: %f\n", trigger_value_unit->value);
   // Check the flank type if it should trigger
   if (isRisingThreshold(trigger_value_unit->value)) {
     if (trigger_type_ == TriggerType::kRising ||
         trigger_type_ == TriggerType::kEither) {
-      sendAlert(TriggerType::kRising);
+      TRACELN(F("RISING"));
+      handle_output_(TriggerType::kRising);
+      incrementTriggerCount();
     }
   } else if (isFallingThreshold(trigger_value_unit->value)) {
     if (trigger_type_ == TriggerType::kFalling ||
         trigger_type_ == TriggerType::kEither) {
-      sendAlert(TriggerType::kFalling);
+      TRACELN(F("FALLING"));
+      handle_output_(TriggerType::kFalling);
+      incrementTriggerCount();
     }
   }
 
@@ -112,39 +143,39 @@ bool AlertSensor::TaskCallback() {
   return true;
 }
 
-bool AlertSensor::setTriggerType(const String& type) {
-  for (auto trigger_type_string : trigger_type_strings_) {
-    if (type == trigger_type_string.second) {
-      trigger_type_ = trigger_type_string.first;
-      return true;
+AlertSensor::TriggerType AlertSensor::toTriggerType(const char* type) {
+  for (uint8_t i = 0; i < trigger_type_name_.size(); i++) {
+    if (String(trigger_type_name_[i]) == type) {
+      return static_cast<TriggerType>(i + 1);
     }
   }
-
-  return false;
+  return TriggerType::kInvalid;
 }
 
-void AlertSensor::setTriggerType(const TriggerType type) {
-  trigger_type_ = type;
+const __FlashStringHelper* AlertSensor::fromTriggerType(
+    const TriggerType trigger_type) {
+  if (trigger_type != TriggerType::kInvalid) {
+    return trigger_type_name_[static_cast<int>(trigger_type)];
+  }
+  return nullptr;
 }
-
-AlertSensor::TriggerType AlertSensor::getTriggerType() { return trigger_type_; }
 
 bool AlertSensor::sendAlert(TriggerType trigger_type) {
   if (trigger_type == TriggerType::kRising ||
       trigger_type == TriggerType::kFalling) {
-    doc_out.clear();
+    JsonDocument doc_out;
     doc_out[threshold_key_] = threshold_;
 
-    auto trigger_type_string = trigger_type_strings_.find(trigger_type);
-    if (trigger_type_string != trigger_type_strings_.end()) {
-      doc_out[trigger_type_key_] = trigger_type_string->second;
+    const __FlashStringHelper* name = fromTriggerType(trigger_type);
+    if (name != nullptr) {
+      doc_out[trigger_type_key_] = name;
     } else {
       return false;
     }
 
     doc_out[peripheral_key_] = getPeripheralUUID().toString();
 
-    web_socket_->sendTelemetry(getTaskID(), doc_out.to<JsonObject>());
+    web_socket_->sendTelemetry(doc_out.to<JsonObject>(), &getTaskID());
     return true;
   }
 
@@ -152,11 +183,20 @@ bool AlertSensor::sendAlert(TriggerType trigger_type) {
 }
 
 bool AlertSensor::isRisingThreshold(const float value) {
-  return value > threshold_ && last_value_ < threshold_;
+  return value > threshold_ && last_value_ <= threshold_;
 }
 
 bool AlertSensor::isFallingThreshold(const float value) {
-  return value < threshold_ && last_value_ > threshold_;
+  return value < threshold_ && last_value_ >= threshold_;
+}
+
+void AlertSensor::incrementTriggerCount() {
+  if (trigger_count_limit_ > 0) {
+    trigger_count_++;
+    if (trigger_count_ >= trigger_count_limit_) {
+      disable();
+    }
+  }
 }
 
 bool AlertSensor::registered_ = TaskFactory::registerTask(type(), factory);
@@ -164,14 +204,19 @@ bool AlertSensor::registered_ = TaskFactory::registerTask(type(), factory);
 BaseTask* AlertSensor::factory(const ServiceGetters& services,
                                const JsonObjectConst& parameters,
                                Scheduler& scheduler) {
-  return new AlertSensor(services, parameters, scheduler);
+  Input input;
+  populateInput(parameters, input);
+  return new AlertSensor(services, scheduler, input);
 }
 
-const std::map<AlertSensor::TriggerType, const __FlashStringHelper*>
-    AlertSensor::trigger_type_strings_{
-        {TriggerType::kRising, FPSTR("rising")},
-        {TriggerType::kFalling, FPSTR("falling")},
-        {TriggerType::kEither, FPSTR("either")}};
+const std::array<const __FlashStringHelper*, 3>
+    AlertSensor::trigger_type_name_ = {FPSTR("rising"), FPSTR("falling"),
+                                       FPSTR("either")};
+
+const __FlashStringHelper* AlertSensor::trigger_count_limit_key_ =
+    FPSTR("trigger_count_limit");
+const __FlashStringHelper* AlertSensor::trigger_count_limit_key_error_ =
+    FPSTR("Missing property: trigger_count_limit (unsigned int)");
 
 }  // namespace alert_sensor
 }  // namespace tasks

@@ -3,16 +3,16 @@
 namespace inamata {
 namespace tasks {
 
-BaseTask::BaseTask(Scheduler& scheduler, utils::UUID task_id)
-    : Task(&scheduler), scheduler_(scheduler), task_id_(task_id) {}
+BaseTask::BaseTask(Scheduler& scheduler, const Input& input)
+    : Task(&scheduler),
+      local_task_(input.local_task),
+      scheduler_(scheduler),
+      task_id_(input.task_id) {}
 
-BaseTask::BaseTask(Scheduler& scheduler, const JsonObjectConst& parameters)
-    : Task(&scheduler), scheduler_(scheduler) {
-  // Get and set the UUID to identify the task with the server
-  task_id_ = utils::UUID(parameters[task_id_key_]);
-  if (!task_id_.isValid()) {
-    setInvalid(task_id_key_error_);
-    return;
+void BaseTask::populateInput(const JsonObjectConst& parameters, Input& input) {
+  JsonVariantConst uuid = parameters[task_id_key_];
+  if (!uuid.isNull()) {
+    input.task_id = uuid;
   }
 }
 
@@ -48,7 +48,13 @@ bool BaseTask::Callback() {
 }
 
 void BaseTask::OnDisable() {
+  if (on_task_disable_) {
+    on_task_disable_();
+  }
   OnTaskDisable();
+  if (skip_task_removal_) {
+    return;
+  }
   if (task_removal_callback_) {
     task_removal_callback_(*this);
   } else {
@@ -59,6 +65,11 @@ void BaseTask::OnDisable() {
 }
 
 void BaseTask::OnTaskDisable() {}
+
+void BaseTask::disableWithoutRemoval() {
+  skip_task_removal_ = true;
+  disable();
+}
 
 bool BaseTask::isValid() const { return is_valid_; }
 
@@ -78,6 +89,20 @@ void BaseTask::setTaskRemovalCallback(std::function<void(Task&)> callback) {
   task_removal_callback_ = callback;
 }
 
+BaseTask* BaseTask::findTask(Scheduler& scheduler, utils::UUID task_id) {
+  // Go through all tasks in the scheduler
+  for (Task* task = scheduler.iFirst; task; task = task->iNext) {
+    // Check if it is a base task
+    BaseTask* base_task = dynamic_cast<BaseTask*>(task);
+    // If the UUIDs match, return the task and end the search
+    if (base_task && base_task->getTaskID() == task_id) {
+      return base_task;
+    }
+  }
+
+  return nullptr;
+}
+
 void BaseTask::setInvalid() { is_valid_ = false; }
 
 void BaseTask::setInvalid(const String& error_message) {
@@ -85,20 +110,15 @@ void BaseTask::setInvalid(const String& error_message) {
   error_message_ = error_message;
 }
 
-String BaseTask::peripheralNotFoundError(const utils::UUID& uuid) {
-  String error(peripheral_not_found_error_);
-  error += uuid.toString();
-  return error;
-}
-
 const __FlashStringHelper* BaseTask::peripheral_key_ = FPSTR("peripheral");
 const __FlashStringHelper* BaseTask::peripheral_key_error_ =
     FPSTR("Missing property: peripheral (uuid)");
-const __FlashStringHelper* BaseTask::peripheral_not_found_error_ =
-    FPSTR("Could not find peripheral: ");
 const __FlashStringHelper* BaseTask::task_id_key_ = FPSTR("uuid");
 const __FlashStringHelper* BaseTask::task_id_key_error_ =
     FPSTR("Missing property: uuid (uuid)");
+
+const __FlashStringHelper* BaseTask::start_command_key_ = FPSTR("start");
+const __FlashStringHelper* BaseTask::stop_command_key_ = FPSTR("stop");
 
 std::function<void(Task&)> BaseTask::task_removal_callback_ = nullptr;
 

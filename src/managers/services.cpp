@@ -7,9 +7,11 @@ namespace inamata {
 Services::Services() {
   ServiceGetters getters = getGetters();
 
+  // TODO: why are getters passed by value? and not an object on the heap
   peripheral_controller_.setServices(getters);
   task_controller_.setServices(getters);
   task_removal_task_.setServices(getters);
+  lac_controller_.setServices(getters);
 #ifdef ESP32
   ota_updater_.setServices(getters);
 #endif
@@ -33,6 +35,8 @@ void Services::setStorage(std::shared_ptr<Storage> storage) {
   storage_ = storage;
 }
 
+ActionController& Services::getActionController() { return action_controller_; }
+
 peripheral::PeripheralController& Services::getPeripheralController() {
   return peripheral_controller_;
 }
@@ -40,6 +44,8 @@ peripheral::PeripheralController& Services::getPeripheralController() {
 tasks::TaskController& Services::getTaskController() {
   return task_controller_;
 }
+
+lac::LacController& Services::getLacController() { return lac_controller_; }
 
 #ifdef ESP32
 OtaUpdater& Services::getOtaUpdater() { return ota_updater_; }
@@ -56,6 +62,8 @@ ServiceGetters Services::getGetters() {
 
 Scheduler Services::scheduler_{};
 
+ActionController Services::action_controller_{};
+
 peripheral::PeripheralFactory Services::peripheral_factory_{};
 
 peripheral::PeripheralController Services::peripheral_controller_{
@@ -66,6 +74,8 @@ tasks::TaskFactory Services::task_factory_{scheduler_};
 tasks::TaskController Services::task_controller_{scheduler_, task_factory_};
 
 tasks::TaskRemovalTask Services::task_removal_task_{scheduler_};
+
+lac::LacController Services::lac_controller_{scheduler_};
 
 #ifdef ESP32
 OtaUpdater Services::ota_updater_{scheduler_};

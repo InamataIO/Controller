@@ -7,32 +7,34 @@ namespace inamata {
 namespace tasks {
 namespace set_value {
 
-SetValue::SetValue(const ServiceGetters& services,
-                   const JsonObjectConst& parameters, Scheduler& scheduler)
-    : BaseTask(scheduler, parameters) {
+SetValue::SetValue(Scheduler& scheduler, const Input& input)
+    : BaseTask(scheduler, input), value_unit_(input.value_unit) {
   // Abort if the base class failed initialization
   if (!isValid()) {
     return;
   }
 
-  web_socket_ = services.getWebSocket();
-  if (web_socket_ == nullptr) {
-    setInvalid(services.web_socket_nullptr_error_);
+  if (isnan(input.value_unit.value)) {
+    setInvalid(utils::ValueUnit::value_key_error);
     return;
   }
 
-  // Get the UUID to later find the pointer to the peripheral object
-  peripheral_id_ = parameters[peripheral_key_];
+  if (!input.value_unit.data_point_type.isValid()) {
+    setInvalid(utils::ValueUnit::data_point_type_key_error);
+    return;
+  }
+
+  peripheral_id_ = input.peripheral_id;
   if (!peripheral_id_.isValid()) {
     setInvalid(peripheral_key_error_);
     return;
   }
 
-  // Search for the peripheral for the given name
+  // Search for the peripheral for the given ID
   auto peripheral =
       Services::getPeripheralController().getPeripheral(peripheral_id_);
   if (!peripheral) {
-    setInvalid(peripheral_not_found_error_);
+    setInvalid(peripheral::Peripheral::peripheralNotFoundError(peripheral_id_));
     return;
   }
 
@@ -41,37 +43,9 @@ SetValue::SetValue(const ServiceGetters& services,
       std::dynamic_pointer_cast<peripheral::capabilities::SetValue>(peripheral);
   if (!peripheral_) {
     setInvalid(peripheral::capabilities::SetValue::invalidTypeError(
-        peripheral_id_, peripheral));
+        input.peripheral_id, peripheral));
     return;
   }
-
-  // Get the value
-  JsonVariantConst value = parameters[utils::ValueUnit::value_key];
-  if (!value.is<float>()) {
-    setInvalid(value_unit_.value_key_error);
-    return;
-  }
-
-  // Get the unit of the value
-  utils::UUID data_point_type(
-      parameters[utils::ValueUnit::data_point_type_key]);
-  if (!data_point_type.isValid()) {
-    setInvalid(value_unit_.data_point_type_key_error);
-    return;
-  }
-
-  // Save the ValueUnit
-  value_unit_ =
-      utils::ValueUnit{.value = value, .data_point_type = data_point_type};
-
-  // Send the set DPT as a telemetry message
-  JsonVariantConst send_data_point = parameters[send_data_point_key_];
-  if (send_data_point.is<bool>()) {
-    send_data_point_ = send_data_point;
-  } else {
-    send_data_point_ = true;
-  }
-
   enable();
 }
 
@@ -82,21 +56,54 @@ const String& SetValue::type() {
   return name;
 }
 
+void SetValue::populateInput(const JsonObjectConst& parameters, Input& input) {
+  BaseTask::populateInput(parameters, input);
+
+  JsonVariantConst peripheral_id = parameters[peripheral_key_];
+  if (!peripheral_id.isNull()) {
+    input.peripheral_id = peripheral_id;
+  }
+
+  JsonVariantConst value = parameters[utils::ValueUnit::value_key];
+  if (value.is<float>()) {
+    input.value_unit.value = value;
+  }
+
+  JsonVariantConst data_point_type_id =
+      parameters[utils::ValueUnit::data_point_type_key];
+  if (!data_point_type_id.isNull()) {
+    input.value_unit.data_point_type = data_point_type_id;
+  }
+}
+
 bool SetValue::TaskCallback() {
   peripheral_->setValue(value_unit_);
-  if (send_data_point_) {
-    doc_out.clear();
-    JsonObject telemetry_doc = doc_out.to<JsonObject>();
-    JsonArray value_units_doc =
-        telemetry_doc.createNestedArray(utils::ValueUnit::data_points_key);
-    JsonObject value_unit_object = value_units_doc.createNestedObject();
-    value_unit_object[utils::ValueUnit::value_key] = value_unit_.value;
-    value_unit_object[utils::ValueUnit::data_point_type_key] =
-        value_unit_.data_point_type.toString();
-    telemetry_doc[peripheral_key_] = peripheral_id_.toString();
-    web_socket_->sendTelemetry(getTaskID(), telemetry_doc);
+  if (handle_output_) {
+    handle_output_(value_unit_, *this);
+  } else {
+    if (send_data_point_) {
+      sendTelemetry(value_unit_);
+    }
   }
   return false;
+}
+
+void SetValue::sendTelemetry(utils::ValueUnit value_unit,
+                             const utils::UUID* lac_id) {
+  JsonDocument doc_out;
+  JsonObject telemetry_doc = doc_out.to<JsonObject>();
+  JsonArray value_units_doc =
+      telemetry_doc[utils::ValueUnit::data_points_key].to<JsonArray>();
+  JsonObject value_unit_object = value_units_doc.add<JsonObject>();
+  value_unit_object[utils::ValueUnit::value_key] = value_unit_.value;
+  value_unit_object[utils::ValueUnit::data_point_type_key] =
+      value_unit_.data_point_type.toString();
+  telemetry_doc[peripheral_key_] = peripheral_id_.toString();
+  if (lac_id) {
+    web_socket_->sendTelemetry(telemetry_doc, nullptr, lac_id);
+  } else {
+    web_socket_->sendTelemetry(telemetry_doc, &getTaskID());
+  }
 }
 
 bool SetValue::registered_ = TaskFactory::registerTask(type(), factory);
@@ -104,7 +111,9 @@ bool SetValue::registered_ = TaskFactory::registerTask(type(), factory);
 BaseTask* SetValue::factory(const ServiceGetters& services,
                             const JsonObjectConst& parameters,
                             Scheduler& scheduler) {
-  return new SetValue(services, parameters, scheduler);
+  Input input;
+  populateInput(parameters, input);
+  return new SetValue(scheduler, input);
 }
 
 const __FlashStringHelper* SetValue::send_data_point_key_ = FPSTR("send_dp");

@@ -6,7 +6,9 @@ namespace system_monitor {
 
 SystemMonitor::SystemMonitor(const ServiceGetters& services,
                              Scheduler& scheduler)
-    : BaseTask(scheduler), scheduler_(scheduler), services_(services) {
+    : BaseTask(scheduler, Input(nullptr, true)),
+      scheduler_(scheduler),
+      services_(services) {
   setIterations(TASK_FOREVER);
   Task::setInterval(std::chrono::milliseconds(default_interval_).count());
 }
@@ -54,7 +56,7 @@ bool SystemMonitor::TaskCallback() {
 #else
   stack_hwm = ESP.getFreeContStack();
   uint32_t heap_free;
-  uint16_t heap_max;
+  uint32_t heap_max;
   uint8_t heap_frag;
   ESP.getHeapStats(&heap_free, &heap_max, &heap_frag);
   free_bytes = heap_free;
@@ -62,7 +64,7 @@ bool SystemMonitor::TaskCallback() {
   heap_fragmentation = heap_frag;
 #endif
 
-  doc_out.clear();
+  JsonDocument doc_out;
   if (stack_hwm) {
     doc_out[F("stack_hwm_bytes")] = stack_hwm;
   }
@@ -95,7 +97,7 @@ bool SystemMonitor::TaskCallback() {
   return true;
 }
 
-const std::chrono::seconds SystemMonitor::default_interval_{30};
+const std::chrono::seconds SystemMonitor::default_interval_{60};
 
 }  // namespace system_monitor
 }  // namespace tasks

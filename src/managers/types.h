@@ -9,7 +9,9 @@ class ErrorResult {
   /**
    * No error present
    */
-  ErrorResult() {}
+  ErrorResult() = default;
+
+  virtual ~ErrorResult() = default;
 
   /**
    * Specify where the error occured and any details pertaining to it

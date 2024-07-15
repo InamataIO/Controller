@@ -41,23 +41,29 @@ class TaskController {
    */
   std::vector<utils::UUID> getTaskIDs();
 
- private:
   /**
    * Start a new task
    *
+   * @param services System services such as WebSocket and Storage
    * @param parameters JSON object with the parameters to start a task
    * @return True on success
    */
   ErrorResult startTask(const ServiceGetters& services,
                         const JsonObjectConst& parameters);
 
+ private:
   /**
    * Command a task to end
    *
-   * @param parameters JSON object with the parameters to start a task
+   * Tasks are only fully removed by the TaskRemovalTask. It will send a stop
+   * success result when it succeeds, so only report errors and success for
+   * tasks that were not found (idempotent behavior).
+   *
+   * @param parameters JSON object with the parameters to stop a task
+   * @param stop_results JSON array with stop results
    * @return True on success
    */
-  ErrorResult stopTask(const JsonObjectConst& parameters);
+  void stopTask(JsonObjectConst parameters, JsonArray stop_results);
 
   /**
    * Find the base task by UUID
@@ -69,12 +75,6 @@ class TaskController {
 
   const String& getTaskType(Task* task);
 
-  static void addResultEntry(const JsonVariantConst& uuid,
-                             const ErrorResult& error,
-                             const JsonArray& results);
-  static void addResultEntry(const utils::UUID& uuid, const ErrorResult& error,
-                             const JsonArray& results);
-
   Scheduler& scheduler_;
   TaskFactory& factory_;
   ServiceGetters services_;
@@ -84,12 +84,9 @@ class TaskController {
   static const __FlashStringHelper* stop_command_key_;
 
   static const __FlashStringHelper* task_results_key_;
-  static const __FlashStringHelper* result_status_key_;
-  static const __FlashStringHelper* result_detail_key_;
-  static const __FlashStringHelper* result_success_name_;
-  static const __FlashStringHelper* result_fail_name_;
 
   static const String task_type_system_task_;
+  static const __FlashStringHelper* task_not_found_error_;
 };
 }  // namespace tasks
 }  // namespace inamata

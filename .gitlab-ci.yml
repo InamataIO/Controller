@@ -43,7 +43,7 @@ stages:
 
 .esp32-s3-script:
   before_script: *before_script
-  script: platformio run -e esp32-s3-devkitc-1
+  script: platformio run -e esp32-s3-devkitc-1 -e voc-sensor-mk1 -e voc-sensor-mk1-dbg
   after_script: *after_script
 
 .esp8266-script:

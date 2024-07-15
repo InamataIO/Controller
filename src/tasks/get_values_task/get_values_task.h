@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include "managers/service_getters.h"
 #include "peripheral/capabilities/get_values.h"
 #include "tasks/base_task.h"
 #include "utils/uuid.h"
@@ -18,19 +19,40 @@ namespace get_values_task {
  */
 class GetValuesTask : public BaseTask {
  public:
-  GetValuesTask(const JsonObjectConst& parameters, Scheduler& scheduler);
+  struct Input : public BaseTask::Input {
+    virtual ~Input() = default;
+    utils::UUID peripheral_id{nullptr};
+    JsonDocument start_measurement_parameters;
+  };
+
+  GetValuesTask(const ServiceGetters& services, Scheduler& scheduler,
+                const Input& input);
   virtual ~GetValuesTask() = default;
 
   std::shared_ptr<peripheral::capabilities::GetValues> getPeripheral();
   const utils::UUID& getPeripheralUUID() const;
 
   /**
+   * @param[in] parameters The JSON object with the parameters
+   * @param[out] input The parsed parameters used by the constructor
+   */
+  static void populateInput(const JsonObjectConst& parameters, Input& input);
+
+  /**
+   * Send a telemetry message with the given GetValues result
+   *
+   * \param result Output of getValues from a GetValues peripheral
+   */
+  void sendTelemetry(peripheral::capabilities::GetValues::Result& result);
+
+  /**
    * Make a JSON object with the value units and UUID from the peripheral
    *
+   * \param result The measured values and data point types
    * \param telemetry The JSON object to add the value units and UUID to
-   * \return An object with the error, if one occured
    */
-  ErrorResult packageValues(JsonObject& telemetry);
+  void packageValues(peripheral::capabilities::GetValues::Result& result,
+                     JsonObject& telemetry);
 
   static const __FlashStringHelper* threshold_key_;
   static const __FlashStringHelper* threshold_key_error_;
@@ -39,11 +61,13 @@ class GetValuesTask : public BaseTask {
   static const __FlashStringHelper* interval_ms_key_;
   static const __FlashStringHelper* interval_ms_key_error_;
   static const __FlashStringHelper* duration_ms_key_;
-  static const __FlashStringHelper* duration_ms_key_error_;
+
+ protected:
+  std::shared_ptr<peripheral::capabilities::GetValues> peripheral_;
+  utils::UUID peripheral_id_;
 
  private:
-  std::shared_ptr<peripheral::capabilities::GetValues> peripheral_;
-  utils::UUID peripheral_uuid_;
+  std::shared_ptr<WebSocket> web_socket_;
 };
 
 }  // namespace get_values_task

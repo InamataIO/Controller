@@ -12,7 +12,6 @@
 #error Only ESP32 and ESP8266 supported
 #endif
 
-
 #include "managers/service_getters.h"
 #include "tasks/base_task.h"
 #include "utils/error_store.h"
@@ -85,6 +84,7 @@ class OtaUpdater : public tasks::BaseTask {
   int32_t image_size_ = 0;
   std::vector<uint8_t> buffer_;
 
+  WiFiClientSecure wifi_client_;
   HTTPClient client_;
 
   esp_http_client_config_t ota_http_config_;

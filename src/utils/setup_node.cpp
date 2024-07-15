@@ -1,5 +1,6 @@
 #include "setup_node.h"
 
+#include "managers/action_controller.h"
 #include "managers/web_socket.h"
 #include "tasks/connectivity/connectivity.h"
 #include "tasks/system_monitor/system_monitor.h"
@@ -9,7 +10,7 @@ namespace inamata {
 bool loadNetwork(Services& services, JsonObjectConst secrets) {
   JsonArrayConst wifi_aps_doc = secrets[F("wifi_aps")];
   TRACEF("Found %u APs in secrets\n", wifi_aps_doc.size());
-  
+
   std::vector<WiFiAP> wifi_aps;
   for (const JsonObjectConst i : wifi_aps_doc) {
     wifi_aps.emplace_back(WiFiAP{.ssid = i[F("ssid")].as<const char*>(),
@@ -30,27 +31,20 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
   JsonVariantConst core_domain = secrets[WebSocket::core_domain_key_];
   JsonVariantConst secure_url = secrets[WebSocket::secure_url_key_];
 
-  // Load the root certificate authority files for TLS encryption
-  String root_cas;
-  fs::File root_cas_file = LittleFS.open("/root_cas.pem", "r");
-  if (root_cas_file) {
-    root_cas.reserve(root_cas_file.size());
-    while (root_cas_file.available()) {
-      root_cas += char(root_cas_file.read());
-    }
-  }
-  root_cas_file.close();
-
   // Get the peripheral and task controllers
+  ActionController& action_controller = services.getActionController();
   peripheral::PeripheralController& peripheral_controller =
       services.getPeripheralController();
   tasks::TaskController& task_controller = services.getTaskController();
+  lac::LacController& lac_controller = services.getLacController();
 #ifdef ESP32
   OtaUpdater& ota_updater = services.getOtaUpdater();
 #endif
 
   // Create a websocket instance as the server interface
   WebSocket::Config config{
+      .action_controller_callback =
+          std::bind(&ActionController::handleCallback, &action_controller, _1),
       .get_peripheral_ids =
           std::bind(&peripheral::PeripheralController::getPeripheralIDs,
                     &peripheral_controller),
@@ -61,6 +55,8 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
           std::bind(&tasks::TaskController::getTaskIDs, &task_controller),
       .task_controller_callback = std::bind(
           &tasks::TaskController::handleCallback, &task_controller, _1),
+      .lac_controller_callback =
+          std::bind(&lac::LacController::handleCallback, &lac_controller, _1),
 #ifdef ESP32
       .ota_update_callback =
           std::bind(&OtaUpdater::handleCallback, &ota_updater, _1),
@@ -68,7 +64,7 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
       .core_domain = core_domain.as<const char*>(),
       .ws_token = ws_token.as<const char*>(),
       .secure_url = secure_url};
-  services.setWebSocket(std::make_shared<WebSocket>(config, std::move(root_cas)));
+  services.setWebSocket(std::make_shared<WebSocket>(config));
   return true;
 }
 
@@ -98,13 +94,43 @@ bool createSystemTasks(Services& services) {
   return true;
 }
 
+bool loadLocalPeripherals(Services& services) {
+  JsonDocument peripheral_doc;
+  ErrorResult error = services.getStorage()->loadPeripherals(peripheral_doc);
+  if (error.isError()) {
+    services.getStorage()->deletePeripherals();
+    // services.getStorage()->deleteTasks();
+    // services.getStorage()->deleteLacs();
+
+    // Return true avoids boot loop, but delete stored peris, tasks and LACs
+    return true;
+  }
+
+  for (auto peripheral : peripheral_doc.as<JsonArray>()) {
+    ErrorResult error = services.getPeripheralController().add(peripheral);
+    TRACEF("Loaded peri: %s\n",
+           peripheral[peripheral::Peripheral::uuid_key_].as<const char*>());
+    if (error.isError()) {
+      // TODO: Save error and send to server
+      Serial.println(error.toString());
+      services.getStorage()->deletePeripherals();
+      // services.getStorage()->deleteTasks();
+      // services.getStorage()->deleteLacs();
+
+      // Return false to reboot after stored peris, tasks and LACs are deleted
+      return false;
+    }
+  }
+  return true;
+}
+
 bool setupNode(Services& services) {
-  #ifdef ATHOM_PLUG_V2
+#ifdef ATHOM_PLUG_V2
   // TODO: Place in setup function or create default boot pin config
   const uint8_t relay_pin = 12;
   pinMode(relay_pin, OUTPUT);
   digitalWrite(relay_pin, HIGH);
-  #endif
+#endif
 
   // Enable serial communication and prints
   Serial.begin(115200);
@@ -113,21 +139,31 @@ bool setupNode(Services& services) {
 
   // Load and start subsystems that need secrets
   services.setStorage(std::make_shared<Storage>());
-  JsonVariantConst secrets = services.getStorage()->openSecrets();
-  bool success = loadNetwork(services, secrets);
-  if (!success) {
-    return false;
+  services.getStorage()->openFS();
+  bool success;
+  {
+    JsonDocument secrets_doc;
+    services.getStorage()->loadSecrets(secrets_doc);
+    success = loadNetwork(services, secrets_doc.as<JsonObjectConst>());
+    if (!success) {
+      return false;
+    }
+    success = loadWebsocket(services, secrets_doc.as<JsonObjectConst>());
+    if (!success) {
+      return false;
+    }
   }
-  success = loadWebsocket(services, secrets);
-  if (!success) {
-    return false;
-  }
-  services.getStorage()->closeSecrets(false);
 
   success = createSystemTasks(services);
   if (!success) {
     return false;
   }
+
+  success = loadLocalPeripherals(services);
+  if (!success) {
+    return false;
+  }
+
   return true;
 }
 

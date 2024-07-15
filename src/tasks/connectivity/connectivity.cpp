@@ -8,7 +8,7 @@ namespace connectivity {
 
 CheckConnectivity::CheckConnectivity(const ServiceGetters& services,
                                      Scheduler& scheduler)
-    : BaseTask(scheduler), services_(services) {
+    : BaseTask(scheduler, Input(nullptr, true)), services_(services) {
   Task::setIterations(TASK_FOREVER);
   Task::setInterval(
       std::chrono::milliseconds(check_connectivity_period).count());
@@ -153,7 +153,7 @@ void CheckConnectivity::setupCaptivePortal() {
 void CheckConnectivity::saveCaptivePortalWifi() {
   TRACELN(F("Save WiFi"));
 
-  // Save the WiFi credentials
+  // Save the WiFi credentials by updating or adding the new AP
   String ssid = wifi_manager_->getWiFiSSID(false);
   String wifi_password = wifi_manager_->getWiFiPass(false);
   TRACEF("Connected to %s:%s\n", ssid.c_str(), wifi_password.c_str());
@@ -170,7 +170,13 @@ void CheckConnectivity::saveCaptivePortalWifi() {
   }
   saved = false;
 
-  DynamicJsonDocument& secrets = services_.getStorage()->openSecrets();
+  // Load WiFi APs from FS and update or add new AP details
+  JsonDocument secrets_doc;
+  ErrorResult error = services_.getStorage()->loadSecrets(secrets_doc);
+  if (error.isError()) {
+    return;
+  }
+  JsonObject secrets = secrets_doc.as<JsonObject>();
   JsonArray wifi_aps = secrets[F("wifi_aps")].to<JsonArray>();
   for (JsonObject wifi_ap : wifi_aps) {
     if (wifi_ap[F("ssid")] == ssid) {
@@ -180,16 +186,21 @@ void CheckConnectivity::saveCaptivePortalWifi() {
     }
   }
   if (!saved) {
-    JsonObject wifi_ap = wifi_aps.createNestedObject();
+    JsonObject wifi_ap = wifi_aps.add<JsonObject>();
     wifi_ap[F("ssid")] = ssid;
     wifi_ap[F("password")] = wifi_password;
   }
-  services_.getStorage()->closeSecrets();
+  services_.getStorage()->storeSecrets(secrets);
 }
 
 void CheckConnectivity::saveCaptivePortalParameters() {
   TRACELN(F("Save parameters"));
-  DynamicJsonDocument& secrets = services_.getStorage()->openSecrets();
+  JsonDocument secrets_doc;
+  ErrorResult error = services_.getStorage()->loadSecrets(secrets_doc);
+  if (error.isError()) {
+    return;
+  }
+  JsonObject secrets = secrets_doc.as<JsonObject>();
 
   // Save the other parameters
   WiFiManagerParameter** parameters = wifi_manager_->getParameters();
@@ -213,7 +224,7 @@ void CheckConnectivity::saveCaptivePortalParameters() {
   }
 
   // Save the input parameters to FS or EEPROM
-  services_.getStorage()->closeSecrets();
+  services_.getStorage()->storeSecrets(secrets);
 }
 
 void CheckConnectivity::preOtaUpdateCallback() {

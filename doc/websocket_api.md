@@ -9,35 +9,24 @@
   type: "cmd",
   request_id: "...",
   peripheral: {
-    add: [
-      {
-        uuid: "",
-        ...
-      }
-    ],
-    remove: [
-      {
-        uuid: ""
-      }
-    ]
+    sync: [{ uuid: "", ... }],
+    add: [{ uuid: "", ... }],
+    remove: [{ uuid: "" }]
   },
   task: {
-    start: [
-      {
-        uuid: "",
-        ...
-      }
-    ],
-    stop: [
-      {
-        uuid: ""
-      }
-    ],
+    start: [{ uuid: "", ... } ],
+    stop: [{ uuid: "" }],
     status: True
   },
   update: {
     url: "",
     size: int
+  }
+  lac: {
+    start: { uuid: "", "routine": []},
+    stop: { uuid: ""},
+    install: { uuid: "", "routine": []},
+    uninstall: { uuid: ""}
   }
 }
 ```
@@ -67,54 +56,57 @@ The server translates `run_until` parameters for task start commands to `duratio
 ```
 {
   type: "result",
-  <request_id: "...">
+  <request_id: str>
   peripheral: {
-    add: [
+    <add, remove>: [
       {
-        uuid: "...",
+        uuid: UUID/str,
         status: <"success", "fail">,
-        <detail: "...">
+        <detail: str>
       }
     ],
-    remove: [
+  }
+  task: {
+    <start, stop>: [
       {
-        uuid: "...",
+        uuid: UUID/str,
         status: <"success", "fail">,
-        <detail: "...">
+        <detail: str>
+      }
+    ],
+  },
+  lac: {
+    <install, uninstall, start, stop>: [
+      {
+        uuid: UUID/str,
+        status: <"success", "fail">,
+        <detail: str>
+        state: <"none", "running", "install_run", "install_end", "install_fail">
+        version: int
       }
     ]
   }
-  task: {
-    start: [
-      {
-        uuid: "...",
-        status: <"success", "fail">,
-        <detail: "...">
-      }
-    ],
-    stop: [
-      {
-        uuid: "...",
-        status: <"success", "fail">,
-        <detail: "...">
-      }
-    ]
-  },
   update: {
-    status: <"fail", "updating", "finish">,
-    detail: "..."
+    status: <"fail", "updating", "finish", "success">,
+    detail: str
   }
 }
 ```
 
 ### Register
 
+Versioned peripherals will send the PVS (Peripheral VersionS) list with the
+peripheral ID and version. The lvs is the respective version list for LACs.
+
 ```
 {
   type: "reg",
-  <peripherals: [uuid, ...]>,
-  <tasks: [uuid, ...]>
-  version: "..."
+  <peripherals: [UUID/str, ...]>,
+  <pvs: [{id: UUID/str, v: int}, ...]>,
+  <tasks: [UUID/str, ...]>,
+  <lacs: [{uuid: UUID/str, state: <lac_state>, version: int, <detail: str>}]>,
+  <lvs: [{id: UUID/str, v: int}, ...]>,
+}
 ```
 
 ### System

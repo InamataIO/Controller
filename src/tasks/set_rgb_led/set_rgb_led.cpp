@@ -8,83 +8,42 @@ namespace inamata {
 namespace tasks {
 namespace set_rgb_led {
 
-SetRgbLed::SetRgbLed(const JsonObjectConst& parameters, Scheduler& scheduler)
-    : BaseTask(scheduler, parameters) {
+SetRgbLed::SetRgbLed(Scheduler& scheduler, const Input& input)
+    : BaseTask(scheduler, input) {
   if (!isValid()) {
     return;
   }
 
   // Get the UUID to later find the pointer to the peripheral object
-  peripheral_uuid_ = utils::UUID(parameters[peripheral_key_]);
-  if (!peripheral_uuid_.isValid()) {
+  if (!input.peripheral_id.isValid()) {
     setInvalid(peripheral_key_error_);
     return;
   }
 
   // Search for the peripheral for the given name
   auto peripheral =
-      Services::getPeripheralController().getPeripheral(peripheral_uuid_);
+      Services::getPeripheralController().getPeripheral(input.peripheral_id);
   if (!peripheral) {
-    setInvalid(peripheralNotFoundError(peripheral_uuid_));
+    setInvalid(
+        peripheral::Peripheral::peripheralNotFoundError(input.peripheral_id));
     return;
   }
 
-  // Check that the peripheral supports the GetValue interface capability
+  // Check that the peripheral supports the LedStrip interface capability
   peripheral_ =
       std::dynamic_pointer_cast<peripheral::capabilities::LedStrip>(peripheral);
   if (!peripheral_) {
     setInvalid(peripheral::capabilities::LedStrip::invalidTypeError(
-        peripheral_uuid_, peripheral));
+        input.peripheral_id, peripheral));
     return;
   }
 
-  // The color consists of red, green , blue and optionally white components
-  JsonVariantConst color = parameters[color_key_];
-  JsonVariantConst brightness = parameters[brightness_key_];
-
-  // XOR test. Either color or brightness may be set
-  if (color.isNull() != brightness.is<float>()) {
-    setInvalid(brightness_or_color_error_);
+  // Check the color to be set
+  if (!input.color.is_valid_) {
+    setInvalid(color_error_);
     return;
   }
-
-  // Limit the brightness range from 0 to 1
-  if (brightness.is<float>()) {
-    float brightness_clipped =
-        std::fmax(0, std::fmin(brightness.as<float>(), 1));
-    color_ = utils::Color::fromBrightness(brightness_clipped);
-  }
-
-  if (!color.isNull()) {
-    int color_red = toColor(color[red_key_]);
-    if (color_red < 0) {
-      setInvalid(red_key_error_);
-      return;
-    }
-
-    int color_green = toColor(color[green_key_]);
-    if (color_green < 0) {
-      setInvalid(green_key_error_);
-      return;
-    }
-
-    int color_blue = toColor(color[blue_key_]);
-    if (color_blue < 0) {
-      setInvalid(blue_key_error_);
-      return;
-    }
-
-    JsonVariantConst color_white = color[white_key_];
-    if (color_white.is<float>() && color_white >= 0 && color_white <= 255) {
-      color_ = utils::Color::fromRgbw(color_red, color_green, color_blue,
-                                      color_white);
-    } else if (color_white.isNull()) {
-      color_ = utils::Color::fromRgbw(color_red, color_green, color_blue);
-    } else {
-      setInvalid(white_key_error_);
-      return;
-    }
-  }
+  color_ = input.color;
 
   enable();
 }
@@ -96,12 +55,67 @@ const String& SetRgbLed::type() {
   return name;
 }
 
+void SetRgbLed::populateInput(const JsonObjectConst& parameters, Input& input) {
+  BaseTask::populateInput(parameters, input);
+
+  // Get the UUID to later find the pointer to the peripheral object
+  JsonVariantConst peripheral_id = parameters[peripheral_key_];
+  if (!peripheral_id.isNull()) {
+    input.peripheral_id = peripheral_id;
+  }
+
+  // The color consists of red, green , blue and optionally white components
+  JsonVariantConst rgb = parameters[rgb_key_];
+  JsonVariantConst color = parameters[color_key_];
+  JsonVariantConst brightness = parameters[brightness_key_];
+
+  // Limit the brightness range from 0 to 1
+  if (brightness.is<float>()) {
+    float brightness_clipped =
+        std::fmax(0, std::fmin(brightness.as<float>(), 1));
+    input.color = utils::Color::fromBrightness(brightness_clipped);
+  }
+
+  // Parse hex color (#)
+  if (color.is<const char*>()) {
+    input.color = utils::Color::fromHex(rgb.as<const char*>());
+  }
+
+  // Parse color object #AD03EF (RGB) or #DEADBEEF (RGBW)
+  if (!color.isNull()) {
+    int color_red = toColor(color[red_key_]);
+    if (color_red < 0) {
+      return;
+    }
+
+    int color_green = toColor(color[green_key_]);
+    if (color_green < 0) {
+      return;
+    }
+
+    int color_blue = toColor(color[blue_key_]);
+    if (color_blue < 0) {
+      return;
+    }
+
+    JsonVariantConst color_white = color[white_key_];
+    if (color_white.is<float>() && color_white >= 0 && color_white <= 255) {
+      input.color = utils::Color::fromRgbw(color_red, color_green, color_blue,
+                                           color_white);
+    } else if (color_white.isNull()) {
+      input.color = utils::Color::fromRgbw(color_red, color_green, color_blue);
+    } else {
+      return;
+    }
+  }
+}
+
 bool SetRgbLed::TaskCallback() {
   peripheral_->turnOn(color_);
   return false;
 }
 
-int SetRgbLed::toColor(JsonVariantConst color) const {
+int SetRgbLed::toColor(JsonVariantConst color) {
   if (!color.is<float>()) {
     return -1;
   }
@@ -117,25 +131,19 @@ bool SetRgbLed::registered_ = TaskFactory::registerTask(type(), factory);
 BaseTask* SetRgbLed::factory(const ServiceGetters& services,
                              const JsonObjectConst& parameters,
                              Scheduler& scheduler) {
-  return new SetRgbLed(parameters, scheduler);
+  Input input;
+  populateInput(parameters, input);
+  return new SetRgbLed(scheduler, input);
 }
 
+const __FlashStringHelper* SetRgbLed::rgb_key_ = F("rgb");
 const __FlashStringHelper* SetRgbLed::color_key_ = F("color");
 const __FlashStringHelper* SetRgbLed::brightness_key_ = F("brightness");
-const __FlashStringHelper* SetRgbLed::brightness_or_color_error_ =
-    F("Either set brightness (float) or color (object)");
+const __FlashStringHelper* SetRgbLed::color_error_ = F("Failed parsing color");
 const __FlashStringHelper* SetRgbLed::red_key_ = F("red");
-const __FlashStringHelper* SetRgbLed::red_key_error_ =
-    F("Missing property: color.red (unsigned uint8_t)");
 const __FlashStringHelper* SetRgbLed::green_key_ = F("green");
-const __FlashStringHelper* SetRgbLed::green_key_error_ =
-    F("Missing property: color.green (unsigned uint8_t)");
 const __FlashStringHelper* SetRgbLed::blue_key_ = F("blue");
-const __FlashStringHelper* SetRgbLed::blue_key_error_ =
-    F("Missing property: color.blue (unsigned uint8_t)");
 const __FlashStringHelper* SetRgbLed::white_key_ = F("white");
-const __FlashStringHelper* SetRgbLed::white_key_error_ =
-    F("Invalid optional property: color.white (unsigned uint8_t)");
 
 }  // namespace set_rgb_led
 }  // namespace tasks

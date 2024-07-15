@@ -57,6 +57,10 @@ size_t UUID::printTo(Print& p) const {
 }
 
 String UUID::toString() const {
+  if (!isValid()) {
+    return "";
+  }
+
   String uuid_str;
   uuid_str.reserve(36 + 1);  // Include NULL / terminator byte
 

@@ -6,9 +6,9 @@ namespace inamata {
 namespace tasks {
 namespace poll_sensor {
 
-PollSensor::PollSensor(const ServiceGetters& services,
-                       const JsonObjectConst& parameters, Scheduler& scheduler)
-    : GetValuesTask(parameters, scheduler) {
+PollSensor::PollSensor(const ServiceGetters& services, Scheduler& scheduler,
+                       const Input& input)
+    : GetValuesTask(services, scheduler, input), interval_(input.interval) {
   if (!isValid()) {
     return;
   }
@@ -20,31 +20,20 @@ PollSensor::PollSensor(const ServiceGetters& services,
   }
 
   // Get the interval with which to poll the sensor
-  JsonVariantConst interval_ms = parameters[interval_ms_key_];
-  if (!interval_ms.is<float>()) {
+  if (interval_ <= std::chrono::milliseconds::zero()) {
     setInvalid(interval_ms_key_error_);
     return;
   }
-  interval_ = std::chrono::milliseconds(interval_ms.as<int>());
 
   // Inifite iterations until end time
   Task::setIterations(-1);
 
   // Optionally get the duration for which to poll the sensor [default: forever]
-  JsonVariantConst duration_ms = parameters[duration_ms_key_];
-  if (duration_ms.is<float>()) {
-    // If the duration is zero or negative, disable on first run
-    if (duration_ms <= 0) {
-      setInvalid();
-      return;
-    }
+  if (input.duration > std::chrono::milliseconds::zero()) {
     run_until_ = std::chrono::steady_clock::now() +
-                 std::chrono::milliseconds(duration_ms.as<int>());
-  } else if (duration_ms.isNull()) {
-    run_until_ = std::chrono::steady_clock::time_point::max();
+                 std::chrono::milliseconds(input.duration);
   } else {
-    setInvalid(duration_ms_key_error_);
-    return;
+    run_until_ = std::chrono::steady_clock::time_point::max();
   }
 
   // Check if the peripheral supports the startMeasurement capability. Start a
@@ -54,7 +43,8 @@ PollSensor::PollSensor(const ServiceGetters& services,
       std::dynamic_pointer_cast<peripheral::capabilities::StartMeasurement>(
           getPeripheral());
   if (start_measurement_peripheral_) {
-    auto result = start_measurement_peripheral_->startMeasurement(parameters);
+    auto result = start_measurement_peripheral_->startMeasurement(
+        input.start_measurement_parameters);
     if (result.error.isError()) {
       setInvalid(result.error.toString());
       return;
@@ -72,6 +62,22 @@ const String& PollSensor::getType() const { return type(); }
 const String& PollSensor::type() {
   static const String name{"PollSensor"};
   return name;
+}
+
+void PollSensor::populateInput(const JsonObjectConst& parameters,
+                               Input& input) {
+  GetValuesTask::populateInput(parameters, input);
+
+  // Get the interval with which to poll the sensor
+  JsonVariantConst interval_ms = parameters[interval_ms_key_];
+  if (interval_ms.is<float>()) {
+    input.interval = std::chrono::milliseconds(interval_ms.as<int64_t>());
+  }
+
+  JsonVariantConst duration_ms = parameters[duration_ms_key_];
+  if (duration_ms.is<float>()) {
+    input.duration = std::chrono::milliseconds(duration_ms.as<int64_t>());
+  }
 }
 
 bool PollSensor::TaskCallback() {
@@ -92,21 +98,15 @@ bool PollSensor::TaskCallback() {
     }
   }
 
-  // Create a JSON doc on the heap
-  doc_out.clear();
-  JsonObject result_object = doc_out.to<JsonObject>();
-
-  // Read the peripheral's value units and its UUID and add them to the JSON doc
-  ErrorResult error = packageValues(result_object);
-
-  // Check if the values could be successfully read
-  if (error.isError()) {
-    setInvalid(error.toString());
+  // Get the values and check for error
+  peripheral::capabilities::GetValues::Result result = peripheral_->getValues();
+  if (result.error.isError()) {
+    setInvalid(result.error.toString());
     return false;
   }
 
-  // Send the value units and peripheral UUID to the server
-  web_socket_->sendTelemetry(getTaskID(), result_object);
+  // Directly send it to the server
+  sendTelemetry(result);
 
   // Check if to wait and run again or to end due to timeout
   if (run_until_ < std::chrono::steady_clock::now()) {
@@ -123,7 +123,9 @@ bool PollSensor::registered_ = TaskFactory::registerTask(type(), factory);
 BaseTask* PollSensor::factory(const ServiceGetters& services,
                               const JsonObjectConst& parameters,
                               Scheduler& scheduler) {
-  return new PollSensor(services, parameters, scheduler);
+  Input input;
+  populateInput(parameters, input);
+  return new PollSensor(services, scheduler, input);
 }
 
 }  // namespace poll_sensor

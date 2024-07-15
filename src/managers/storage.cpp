@@ -1,12 +1,14 @@
 #include "storage.h"
 
+#include "peripheral/peripheral.h"
+
 namespace inamata {
 
-#if defined(ENABLE_TRACE) && defined(ESP32)
+#if defined(ENABLE_TRACE)
 void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
   Serial.printf("Listing directory: %s\r\n", dirname);
 
-  File root = fs.open(dirname);
+  File root = fs.open(dirname, "r+");
   if (!root) {
     Serial.println("- failed to open directory");
     return;
@@ -50,115 +52,148 @@ void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
 }
 #endif
 
-DynamicJsonDocument& Storage::openSecrets() {
-  if (secrets_doc_.capacity() != 0) {
-    return secrets_doc_;
-  }
-
-#ifdef ESP32
+void Storage::openFS() {
   // Initialize the file system
+#ifdef ESP32
   if (!LittleFS.begin()) {
     if (!LittleFS.begin(true)) {
       TRACELN(F("Failed mounting LittleFS"));
-      return secrets_doc_;
     } else {
       TRACELN(F("Formatted LittleFS on fail"));
     }
-  } else {
-#if defined(ENABLE_TRACE) && defined(ESP32)
-    listDir(LittleFS, "/", 1);
-#endif
-    // Load a common config file for the subsystems
-    fs::File secrets_file = LittleFS.open(secrets_path_, "r+");
-    if (secrets_file) {
-      size_t file_size = secrets_file.size();
-      size_t doc_size =
-          file_size > min_doc_size_ ? file_size * 1.5 : min_doc_size_;
-      secrets_doc_ = DynamicJsonDocument(doc_size);
-      DeserializationError error = deserializeJson(secrets_doc_, secrets_file);
-      secrets_file.close();
-      if (error) {
-        TRACELN(F("Failed parsing secrets.json"));
-        closeSecrets(false);
-      }
-    } else {
-      TRACELN(F("Failed opening secrets.json"));
-    }
   }
 #else
-  EEPROM.begin(max_doc_size_);
-  size_t file_size;
-  // The first 4 bytes hold the size of the secrets.json file
-  for (int i = 0; i < 4; i++) {
-    *(reinterpret_cast<uint8_t*>(&file_size) + i) = EEPROM.read(i);
+  if (!LittleFS.begin()) {
+    TRACELN(F("Failed mounting LittleFS"));
   }
-  TRACEF("Size: %u\n", file_size);
-  // If size not plausible, set to minimum size and return empty doc
-  if (file_size > max_doc_size_) {
-    secrets_doc_ = DynamicJsonDocument(min_doc_size_);
-    TRACEF("Doc size: %u\n", secrets_doc_.capacity());
-    return secrets_doc_;
-  }
-  size_t doc_size = fileToDocSize(file_size);
-  secrets_doc_ = DynamicJsonDocument(doc_size);
-  EepromStream eepromStream(4, file_size);
-  deserializeJson(secrets_doc_, eepromStream);
-  EEPROM.end();
-#endif
-  return secrets_doc_;
-}
-
-void Storage::closeSecrets(bool save) {
-  if (save) {
-    saveSecrets();
-  }
-  secrets_doc_ = DynamicJsonDocument(0);
-}
-
-void Storage::saveSecrets() {
-#ifdef ESP32
-  fs::File secrets_file = LittleFS.open(secrets_path_, "w");
-  if (!secrets_file) {
-    TRACEF("Failed open (w): %s\n", secrets_path_);
-    return;
-  }
-
-  if (serializeJson(secrets_doc_, secrets_file) == 0) {
-    TRACELN(F("Failed to write secrets"));
-  }
-  secrets_file.close();
-  TRACELN(F("Saved secrets"));
-#else
-  size_t file_size = measureJson(secrets_doc_);
-  if (file_size > max_doc_size_ - 4) {
-    TRACELN(F("Secret file too large"));
-    return;
-  }
-  EEPROM.begin(file_size + 4);
-  TRACEF("file size: %u\n", file_size);
-  for (int i = 0; i < 4; i++) {
-    EEPROM.write(i, *(reinterpret_cast<uint8_t*>(&file_size) + i));
-  }
-  EepromStream eepromStream(4, file_size);
-  size_t bytes_written = serializeJson(secrets_doc_, eepromStream);
-  eepromStream.flush();
-  TRACEF("Saved bytes: %u\n", bytes_written);
 #endif
 #ifdef ENABLE_TRACE
-  serializeJson(secrets_doc_, Serial);
+  listDir(LittleFS, "/", 1);
 #endif
 }
 
-size_t Storage::fileToDocSize(size_t file_size) {
-  if (file_size < min_doc_size_) {
-    return min_doc_size_;
-  } else if (file_size > max_doc_size_) {
-    return max_doc_size_;
+void Storage::closeFS() { LittleFS.end(); }
+
+ErrorResult Storage::loadSecrets(JsonDocument& secrets_doc) {
+  // Load a common config file for the subsystems
+  fs::File secrets_file = LittleFS.open(secrets_path_, "r+");
+  if (secrets_file) {
+    DeserializationError error = deserializeJson(secrets_doc, secrets_file);
+    secrets_file.close();
+    if (error) {
+      TRACEF("Failed parsing secrets.json: %s\n", error.c_str());
+      return ErrorResult(type_, error.c_str());
+    }
   } else {
-    // Add 25% to document size
-    size_t doc_size = file_size + (file_size >> 2);
-    return min(doc_size, max_doc_size_);
+    TRACELN(F("Failed opening (r+) secrets.json"));
   }
+  return ErrorResult();
 }
+
+ErrorResult Storage::storeSecrets(JsonVariantConst secrets) {
+  fs::File secrets_file = LittleFS.open(secrets_path_, "w+");
+  if (!secrets_file) {
+    return ErrorResult(type_, F("Failed opening (w+) secrets.json"));
+  }
+
+  size_t bytes_written = serializeJson(secrets, secrets_file);
+  if (bytes_written == 0 && secrets.size()) {
+    return ErrorResult(type_, F("Failed to write secrets"));
+  }
+  secrets_file.close();
+#ifdef ENABLE_TRACE
+  serializeJson(secrets, Serial);
+#endif
+  return ErrorResult();
+}
+
+ErrorResult Storage::savePeripheral(const JsonObjectConst& peripheral) {
+  JsonDocument peripherals_doc;
+  ErrorResult error = loadPeripherals(peripherals_doc);
+  if (error.isError()) {
+    return error;
+  }
+
+  // Check if the peripheral already exists
+  uint8_t i = 0;
+  bool found = false;
+  const char* peripheral_id =
+      peripheral[peripheral::Peripheral::uuid_key_].as<const char*>();
+  JsonArray peripherals = peripherals_doc.as<JsonArray>();
+  for (JsonObject local_peri : peripherals) {
+    if (strcmp(local_peri[peripheral::Peripheral::uuid_key_].as<const char*>(),
+               peripheral_id) == 0) {
+      found = true;
+      break;
+    }
+    i++;
+  }
+
+  if (found) {
+    // Yes: Replace item in array
+    peripherals[i] = peripheral;
+  } else {
+    // No: Append to array
+    peripherals.add(peripheral);
+  }
+
+  return storePeripherals(peripherals);
+}
+
+ErrorResult Storage::loadPeripherals(JsonDocument& peripherals_doc) {
+  fs::File file = LittleFS.open(peripherals_path_, "r+");
+  if (file) {
+    DeserializationError error = deserializeJson(peripherals_doc, file);
+    Serial.print("Loaded peris: ");
+    serializeJson(peripherals_doc, Serial);
+    Serial.println();
+    file.close();
+    if (error) {
+      return ErrorResult(type_, F("Failed loading peripheral doc"));
+    }
+  }
+  return ErrorResult();
+}
+
+ErrorResult Storage::storePeripherals(JsonArrayConst peripherals) {
+  fs::File file = LittleFS.open(peripherals_path_, "w+");
+  if (!file) {
+    return ErrorResult(type_, F("Failed opening file"));
+  }
+
+  TRACELN(F("Saving param peris"));
+  size_t bytes_written = serializeJson(peripherals, file);
+  TRACEJSON(peripherals);
+
+  file.close();
+  if (bytes_written == 0 && peripherals.size()) {
+    return ErrorResult(type_, F("Failed to write"));
+  }
+  return ErrorResult();
+}
+
+void Storage::deletePeripherals() { LittleFS.remove(peripherals_path_); }
+
+void Storage::deletePeripheral(const char* peripheral_id) {
+  JsonDocument peripherals_doc;
+  ErrorResult error = loadPeripherals(peripherals_doc);
+  if (error.isError()) {
+    return;
+  }
+  JsonArray peripherals = peripherals_doc.as<JsonArray>();
+  for (JsonObject i : peripherals) {
+    if (strcmp(i[peripheral::Peripheral::uuid_key_].as<const char*>(),
+               peripheral_id) == 0) {
+      peripherals.remove(i);
+    }
+  }
+
+  storePeripherals(peripherals_doc.as<JsonArrayConst>());
+}
+
+const __FlashStringHelper* Storage::secrets_path_ = FPSTR("/secrets.json");
+const __FlashStringHelper* Storage::peripherals_path_ =
+    FPSTR("/peripherals.json");
+const __FlashStringHelper* Storage::type_ = FPSTR("storage");
 
 }  // namespace inamata

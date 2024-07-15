@@ -1,0 +1,43 @@
+{
+  "lac": {
+    "start": {
+      "uuid": "ecfdcac5-c3cb-4105-9b40-31489c5a0877",
+      "routine": [
+        {
+          "type": "ReadSensor",
+          "params": { "peripheral": "a976ea04-157a-421c-99ba-85619feca7f3" },
+          "out": [{ "type": "var", "name": "x", "dpt": "02aeba32-8c1a-4295-a89e-22661e4a6e01" }]
+        },
+        {
+          "type": "ReadSensor",
+          "params": { "peripheral": "cab236ce-4c65-4fd7-af8c-48825f156be1" },
+          "out": [{ "type": "var", "name": "y", "dpt": "4200cdd9-2871-4d98-93aa-00bde062c400" }]
+        },
+        {
+          "type": "Math",
+          "query": "x^2 + y",
+          "out": [{ "type": "var", "name": "z", "dpt": "7dbc5fee-fa1f-4c43-903d-02c7370f29f3" }]
+        },
+        {
+          "type": "If",
+          "query": "(z >= 100) && (z < 200)",
+          "then": [
+            {
+              "type": "SetRgbLed",
+              "params": { "peripheral": "978d9bad-3f2c-4078-ba6c-c556daa65ff9", "rgb": "#1EFF1E" }
+            }
+          ]
+        },
+        {
+          "type": "SetValue",
+          "source": { "type": "constant", "value": 1 },
+          "params": {
+            "peripheral": "4c8439ac-cfd4-4378-ad77-292fd9f02416",
+            "data_point_type": "c62a75b3-1a74-4df0-a24f-4e32c7476ff1"
+          },
+          "out": [{ "type": "telemetry" }]
+        }
+      ]
+    }
+  }
+}
