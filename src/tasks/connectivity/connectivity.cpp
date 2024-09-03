@@ -213,6 +213,7 @@ void CheckConnectivity::saveCaptivePortalParameters() {
       }
     } else if (strcmp(param->getID(), WebSocket::core_domain_key_) == 0) {
       secrets[WebSocket::core_domain_key_] = param->getValue();
+      web_socket_->core_domain_ = param->getValue();
     } else if (strcmp(param->getID(), WebSocket::secure_url_key_) == 0) {
       const char secure_url = *(param->getValue());
       if (secure_url == 'y' || secure_url == 'Y') {
