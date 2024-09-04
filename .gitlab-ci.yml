@@ -133,5 +133,6 @@ build:esp8266:
 build:tag-commit:
   extends: [.build-base]
   stage: build
+  artifacts: {}
   before_script: "git remote set-url origin ${CI_PROJECT_URL/gitlab.com/ci-build:${PROJECT_TOKEN}@gitlab.com}.git"
   script: "./scripts/tag_commit.sh"
