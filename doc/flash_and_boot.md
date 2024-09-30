@@ -16,17 +16,27 @@ For the ESP8266, the 2nd stage bootloader and partition tables are compiled into
 
 # File System
 
-LittleFS is the file system used by both platforms. During the flash process, secrets as well as the TLS certificate of the root CA as saved there. However, when performing an OTA update via a controller's own WiFi network, the certificate has to be included in the firmware.
+LittleFS (LFS) is the file system used by both platforms. During the flash process, secrets as well as locally synced peripherals, tasks and LACs are stored there.
 
-The TLS certificate is required as the WebSockets connection uses TLS encryption and verify the server's certificate. The current certificate is valid until 22.06.2036. Before this time point, an update mechanism has to be implemented to fetch the new certificate. A possible approach would be to handle this when a controller connects, to send a command to download a new cert.
+The TLS CA certificates are stored in the firmware as bundle for ESP32-based devices. As ESP8266 are not on the roadmap, they do not verify TLS CA certificates.
 
-The choice of where to store CA certs differs for the ESP32 and ESP8266. Option A is in the file system and load it into memory during boot or compiled into the firmware itself. The ESP32 [transparently maps](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/memory-types.html#drom-data-stored-in-flash) const char arrays from flash into memory through a cache, thereby not using DRAM (data RAM). The ESP8266 however will [place it into RAM](https://arduino-esp8266.readthedocs.io/en/latest/PROGMEM.html), unless PROGMEM / F() / FSPTR() are used. Since the WiFiClientSecure class only accepts a const char array (and not an F-String) for the certificate, it has to be loaded into RAM either way.
+The version of the current LFS library and disk are defined by the included [esp_littlefs](https://github.com/joltwallet/esp_littlefs) library. To determine the current versions, match
 
-However, the question of how to handle multiple certificates is open. This is required when the existing certificate expires or is revoked and has to be replaced by a new one. Approaches here can store multiple certificate files in the file system or combine them into a single file. The question of selecting between them is also open.
+- `ESP_LITTLEFS_VERSION_NUMBER` in `framework-arduinoespressif32/tools/sdk/esp32/include/esp_littlefs/include/esp_littlefs.h`
+- with the git-submodule include in `esp_littlefs/src/littlefs` of the GitHub repository.
+- The `LFS_VERSION` and `LFS_DISK_VERSION` defines are located in that version of `lfs.h` in the [littlefs GitHub porject](https://github.com/littlefs-project/littlefs).
+
+At the time of writing the constants were:
+
+- ESP_LITTLEFS_VERSION_NUMBER: "1.5.0"
+- LFS_VERSION: "0x00020005" = 2.5
+- LFS_DISK_VERSION: "0x00020000" = 2.0
+
+These versions are relevant in the [Inamata Flasher](https://github.com/InamataIO/Flasher/) that generates a LittleFS partition with the secrets. The disk version that is generated may not be newer than the disk version supported by the firmware.
 
 ## secrets.json
 
-The secrets configuration is stored on the flash either in `secrets.json` for ESP32's or the EEPROM section for ESP8266 variants. In ESP8266's the first 4 bytes are used for the size of the serialized JSON followed by the JSON itself. Below is an example of the secrets JSON.
+The secrets configuration is stored on the flash in `secrets.json` for both ESP32 and ESP8266 variants. Below is an example of the secrets JSON.
 
 ```
 {

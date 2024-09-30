@@ -76,7 +76,10 @@ void Storage::closeFS() { LittleFS.end(); }
 
 ErrorResult Storage::loadSecrets(JsonDocument& secrets_doc) {
   // Load a common config file for the subsystems
-  fs::File secrets_file = LittleFS.open(secrets_path_, "r+");
+  fs::File secrets_file = LittleFS.open(secrets_path_, "r+", true);
+  if (secrets_file.size() == 0) {
+    return ErrorResult();
+  }
   if (secrets_file) {
     DeserializationError error = deserializeJson(secrets_doc, secrets_file);
     secrets_file.close();
@@ -91,7 +94,7 @@ ErrorResult Storage::loadSecrets(JsonDocument& secrets_doc) {
 }
 
 ErrorResult Storage::storeSecrets(JsonVariantConst secrets) {
-  fs::File secrets_file = LittleFS.open(secrets_path_, "w+");
+  fs::File secrets_file = LittleFS.open(secrets_path_, "w+", true);
   if (!secrets_file) {
     return ErrorResult(type_, F("Failed opening (w+) secrets.json"));
   }
@@ -105,6 +108,93 @@ ErrorResult Storage::storeSecrets(JsonVariantConst secrets) {
   serializeJson(secrets, Serial);
 #endif
   return ErrorResult();
+}
+
+ErrorResult Storage::saveWiFiAP(const WiFiAP& wifi_ap) {
+  JsonDocument doc;
+  ErrorResult error = loadSecrets(doc);
+  if (error.isError()) {
+    return error;
+  }
+
+  // Save WiFi credentials to list of known APs
+  JsonVariant wifi_aps_value = doc[wifi_aps_key_];
+  JsonArray wifi_aps;
+  if (wifi_aps_value.isNull()) {
+    wifi_aps = doc[wifi_aps_key_].to<JsonArray>();
+  } else {
+    wifi_aps = wifi_aps_value.as<JsonArray>();
+  }
+
+  // Check if AP SSID already exists
+  JsonObject wifi_ap_obj;
+  for (JsonObject known_wifi_ap : wifi_aps) {
+    if (known_wifi_ap[wifi_ap_ssid_key_] == wifi_ap.ssid) {
+      wifi_ap_obj = known_wifi_ap;
+      break;
+    }
+  }
+  if (wifi_ap_obj.isNull()) {
+    wifi_ap_obj = wifi_aps.add<JsonObject>();
+  }
+
+  wifi_ap_obj[wifi_ap_ssid_key_] = wifi_ap.ssid;
+  wifi_ap_obj[wifi_ap_password_key_] = wifi_ap.password;
+
+  error = storeSecrets(doc);
+  return error;
+}
+
+ErrorResult Storage::saveWsUrl(const char* domain, const char* path,
+                               bool secure_url) {
+  JsonDocument doc;
+  ErrorResult error = loadSecrets(doc);
+  if (error.isError()) {
+    return error;
+  }
+
+  if (domain && strlen(path) >= 1) {
+    doc[core_domain_key_] = domain;
+  } else {
+    doc.remove(core_domain_key_);
+  }
+  if (path && strlen(path) >= 1) {
+    doc[ws_url_path_key_] = path;
+  } else {
+    doc.remove(ws_url_path_key_);
+  }
+  doc[secure_url_key_] = secure_url;
+
+  error = storeSecrets(doc);
+  return error;
+}
+
+ErrorResult Storage::deleteWsUrl() {
+  JsonDocument doc;
+  ErrorResult error = loadSecrets(doc);
+  if (error.isError()) {
+    return error;
+  }
+
+  doc.remove(core_domain_key_);
+  doc.remove(ws_url_path_key_);
+  doc.remove(secure_url_key_);
+
+  error = storeSecrets(doc);
+  return error;
+}
+
+ErrorResult Storage::saveAuthToken(const char* token) {
+  JsonDocument doc;
+  ErrorResult error = loadSecrets(doc);
+  if (error.isError()) {
+    return error;
+  }
+
+  doc[ws_token_key_] = token;
+
+  error = storeSecrets(doc);
+  return error;
 }
 
 ErrorResult Storage::savePeripheral(const JsonObjectConst& peripheral) {
@@ -141,7 +231,10 @@ ErrorResult Storage::savePeripheral(const JsonObjectConst& peripheral) {
 }
 
 ErrorResult Storage::loadPeripherals(JsonDocument& peripherals_doc) {
-  fs::File file = LittleFS.open(peripherals_path_, "r+");
+  fs::File file = LittleFS.open(peripherals_path_, "r+", true);
+  if (file.size() == 0) {
+    return ErrorResult();
+  }
   if (file) {
     DeserializationError error = deserializeJson(peripherals_doc, file);
     Serial.print("Loaded peris: ");
@@ -156,7 +249,7 @@ ErrorResult Storage::loadPeripherals(JsonDocument& peripherals_doc) {
 }
 
 ErrorResult Storage::storePeripherals(JsonArrayConst peripherals) {
-  fs::File file = LittleFS.open(peripherals_path_, "w+");
+  fs::File file = LittleFS.open(peripherals_path_, "w+", true);
   if (!file) {
     return ErrorResult(type_, F("Failed opening file"));
   }
@@ -190,6 +283,19 @@ void Storage::deletePeripheral(const char* peripheral_id) {
 
   storePeripherals(peripherals_doc.as<JsonArrayConst>());
 }
+
+const __FlashStringHelper* Storage::arduino_board_ = FPSTR(ARDUINO_BOARD);
+const __FlashStringHelper* Storage::device_type_name_ = FPSTR(DEVICE_TYPE_NAME);
+const __FlashStringHelper* Storage::device_type_id_ = FPSTR(DEVICE_TYPE_ID);
+
+const __FlashStringHelper* Storage::core_domain_key_ = FPSTR("core_domain");
+const __FlashStringHelper* Storage::ws_url_path_key_ = FPSTR("ws_url_path");
+const __FlashStringHelper* Storage::secure_url_key_ = FPSTR("secure_url");
+const __FlashStringHelper* Storage::ws_token_key_ = FPSTR("ws_token");
+
+const __FlashStringHelper* Storage::wifi_aps_key_ = FPSTR("wifi_aps");
+const __FlashStringHelper* Storage::wifi_ap_ssid_key_ = FPSTR("ssid");
+const __FlashStringHelper* Storage::wifi_ap_password_key_ = FPSTR("password");
 
 const __FlashStringHelper* Storage::secrets_path_ = FPSTR("/secrets.json");
 const __FlashStringHelper* Storage::peripherals_path_ =

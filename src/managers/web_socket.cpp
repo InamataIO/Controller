@@ -10,6 +10,7 @@ WebSocketsClient websocket_client;
 
 WebSocket::WebSocket(const WebSocket::Config& config)
     : core_domain_(config.core_domain),
+      ws_url_path_(config.ws_url_path),
       secure_url_(config.secure_url),
       action_controller_callback_(config.action_controller_callback),
       get_peripheral_ids_(config.get_peripheral_ids),
@@ -19,8 +20,11 @@ WebSocket::WebSocket(const WebSocket::Config& config)
       lac_controller_callback_(config.lac_controller_callback),
       ota_update_callback_(config.ota_update_callback) {
   if (core_domain_.isEmpty()) {
-    core_domain_ = F("core.inamata.io");
+    core_domain_ = default_core_domain_;
     secure_url_ = true;
+  }
+  if (ws_url_path_.isEmpty()) {
+    ws_url_path_ = default_ws_url_path_;
   }
   if (config.ws_token) {
     setWsToken(config.ws_token);
@@ -49,17 +53,19 @@ WebSocket::ConnectState WebSocket::connect() {
       TRACELN(F("ws_token not set"));
       return ConnectState::kFailed;
     }
+    TRACEF("Connecting: %s, %s, %d, %s\n", core_domain_.c_str(),
+           ws_url_path_.c_str(), secure_url_, ws_token_.c_str());
     if (secure_url_) {
 #ifdef ESP32
       websocket_client.beginSslWithBundle(
-          core_domain_.c_str(), 443, controller_path_, rootca_crt_bundle_start,
-          ws_token_.c_str());
+          core_domain_.c_str(), 443, ws_url_path_.c_str(),
+          rootca_crt_bundle_start, ws_token_.c_str());
 #else
-      websocket_client.beginSSL(core_domain_.c_str(), 443, controller_path_,
+      websocket_client.beginSSL(core_domain_.c_str(), 443, ws_url_path_.c_str(),
                                 nullptr, ws_token_.c_str());
 #endif
     } else {
-      websocket_client.begin(core_domain_.c_str(), 8000, controller_path_,
+      websocket_client.begin(core_domain_.c_str(), 8000, ws_url_path_.c_str(),
                              ws_token_.c_str());
     }
     websocket_client.onEvent(
@@ -99,33 +105,6 @@ WebSocket::ConnectState WebSocket::handle() {
 void WebSocket::resetConnectAttempt() {
   last_connect_start_ = last_connect_start_.min();
 }
-
-// void WebSocket::send(const String& name, double value) {
-//   restartOnUnimplementedFunction();
-// }
-// void WebSocket::send(const String& name, int value) {
-//   restartOnUnimplementedFunction();
-// }
-// void WebSocket::send(const String& name, bool value) {
-//   restartOnUnimplementedFunction();
-// }
-
-// void WebSocket::send(const String& name, JsonDocument& doc) {
-//   doc["type"] = "tel";
-//   doc["name"] = name;
-
-//   // Calculate the size of the resultant serialized JSON, create a buffer of
-//   // that size and serialize the JSON into that buffer.
-//   // Add extra byte for the null terminator
-//   std::vector<char> register_buf = std::vector<char>(measureJson(doc) + 1);
-//   size_t n = serializeJson(doc, register_buf.data(), register_buf.size());
-
-//   websocket_client.sendTXT(register_buf.data(), n);
-// }
-
-// void WebSocket::send(const String& name, const char* value, size_t length) {
-//   restartOnUnimplementedFunction();
-// }
 
 void WebSocket::sendTelemetry(JsonObject data, const utils::UUID* task_id,
                               const utils::UUID* lac_id) {
@@ -262,6 +241,27 @@ void WebSocket::sendSystem(JsonObject data) {
   sendJson(data);
 }
 
+void WebSocket::resetUrl() {
+  is_setup_ = false;
+  core_domain_ = default_core_domain_;
+  ws_url_path_ = default_ws_url_path_;
+  secure_url_ = true;
+}
+
+void WebSocket::setUrl(const char* domain, const char* path, bool secure_url) {
+  if (domain && strlen(path) >= 1) {
+    core_domain_ = domain;
+  } else {
+    core_domain_ = default_core_domain_;
+  }
+  if (path && strlen(path) >= 1) {
+    ws_url_path_ = path;
+  } else {
+    ws_url_path_ = default_ws_url_path_;
+  }
+  secure_url_ = secure_url;
+}
+
 void WebSocket::setWsToken(const char* ws_token) {
   is_setup_ = false;
   ws_token_.clear();
@@ -388,10 +388,6 @@ void WebSocket::restartOnUnimplementedFunction() {
 const __FlashStringHelper* WebSocket::firmware_version_ =
     FPSTR(FIRMWARE_VERSION);
 
-const char* WebSocket::core_domain_key_ = "core_domain";
-const char* WebSocket::ws_token_key_ = "ws_token";
-const char* WebSocket::secure_url_key_ = "secure_url";
-
 const __FlashStringHelper* WebSocket::request_id_key_ = FPSTR("request_id");
 const __FlashStringHelper* WebSocket::type_key_ = FPSTR("type");
 
@@ -408,5 +404,10 @@ const __FlashStringHelper* WebSocket::action_key_ = FPSTR("action");
 const __FlashStringHelper* WebSocket::task_key_ = FPSTR("task");
 const __FlashStringHelper* WebSocket::system_type_ = FPSTR("sys");
 const __FlashStringHelper* WebSocket::lac_key_ = FPSTR("lac");
+
+const __FlashStringHelper* WebSocket::default_core_domain_ =
+    FPSTR("core.inamata.io");
+const __FlashStringHelper* WebSocket::default_ws_url_path_ =
+    FPSTR("/controller-ws/v1/");
 
 }  // namespace inamata

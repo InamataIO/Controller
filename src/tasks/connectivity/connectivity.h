@@ -6,6 +6,7 @@
 #include <chrono>
 #include <limits>
 
+#include "managers/ble_improv.h"
 #include "managers/service_getters.h"
 #include "managers/web_socket.h"
 #include "tasks/base_task.h"
@@ -19,7 +20,7 @@ class CheckConnectivity : public BaseTask {
  public:
   enum class Mode {
     ConnectWiFi,
-    RunCaptivePortal,
+    ProvisionDevice,
   };
 
   CheckConnectivity(const ServiceGetters& services, Scheduler& scheduler);
@@ -62,6 +63,16 @@ class CheckConnectivity : public BaseTask {
    */
   void handleWebSocket();
 
+#ifdef PROV_IMPROV
+  enum class WiFiScanMode { kNone, kScanning, kFinished };
+
+  void handleBleServer();
+  void handleImprov();
+
+  std::unique_ptr<BleImprov> improv_;
+#endif
+
+#ifdef PROV_WIFI
   /**
    * Process captive portal loop
    */
@@ -87,18 +98,20 @@ class CheckConnectivity : public BaseTask {
    */
   void preOtaUpdateCallback();
 
-  ServiceGetters services_;
-  std::shared_ptr<Network> network_;
-  std::shared_ptr<WebSocket> web_socket_;
-
-  Mode mode_ = Mode::ConnectWiFi;
-  std::chrono::steady_clock::time_point mode_start_;
   std::unique_ptr<WiFiManager> wifi_manager_;
   std::unique_ptr<WiFiManagerParameter> ws_token_parameter_;
   static const __FlashStringHelper* ws_token_placeholder_;
   std::unique_ptr<WiFiManagerParameter> core_domain_parameter_;
   std::unique_ptr<WiFiManagerParameter> secure_url_parameter_;
   bool disable_captive_portal_timeout_ = false;
+#endif
+
+  ServiceGetters services_;
+  std::shared_ptr<Network> network_;
+  std::shared_ptr<WebSocket> web_socket_;
+
+  Mode mode_ = Mode::ConnectWiFi;
+  std::chrono::steady_clock::time_point mode_start_;
 
   /// Set true once WebSocket connects. Will not set false on disconnect. Avoids
   /// starting captive portal during normal operation. Only on boot

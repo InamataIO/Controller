@@ -28,5 +28,6 @@ static const std::chrono::milliseconds check_connectivity_period(100);
 // Connection Timeouts
 static const std::chrono::seconds wifi_connect_timeout(30);
 static const std::chrono::seconds web_socket_connect_timeout(30);
+static const std::chrono::minutes provision_timeout(5);
 
 }  // namespace inamata

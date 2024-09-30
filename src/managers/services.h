@@ -45,6 +45,9 @@ class Services {
   std::shared_ptr<Storage> getStorage();
   void setStorage(std::shared_ptr<Storage> storage);
 
+  std::shared_ptr<BleServer> getBleServer();
+  void setBleServer(std::shared_ptr<BleServer> ble_server);
+
   static ActionController& getActionController();
   static peripheral::PeripheralController& getPeripheralController();
   static tasks::TaskController& getTaskController();
@@ -69,6 +72,8 @@ class Services {
   std::shared_ptr<WebSocket> web_socket_;
   /// Handles FS / EEPROM storage
   std::shared_ptr<Storage> storage_;
+  /// Handles Low-Energy Bluetooth
+  std::shared_ptr<BleServer> ble_server_;
   /// Executes the active tasks
   static Scheduler scheduler_;
   /// Handles commands with controller actions

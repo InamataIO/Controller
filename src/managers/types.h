@@ -54,6 +54,13 @@ struct WiFiAP {
   String password;
   int16_t id;
   bool failed_connecting;
+
+  WiFiAP(const char* ssid = "", const char* password = "", int16_t id = -1,
+         bool failed_connecting = false)
+      : ssid(ssid),
+        password(password),
+        id(id),
+        failed_connecting(failed_connecting) {}
 };
 
 }  // namespace inamata

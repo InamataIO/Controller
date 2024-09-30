@@ -29,6 +29,37 @@ class Storage {
   ErrorResult storeSecrets(JsonVariantConst secrets);
 
   /**
+   * Save WiFi AP credentials to secret store
+   *
+   * \param wifi_ap The WiFi AP credentials to store
+   * \return If an error occured
+   */
+  ErrorResult saveWiFiAP(const WiFiAP& wifi_ap);
+
+  /**
+   * Set the components of the WebSocket server URL
+   *
+   * \param domain Domain incl. subdomain of the server to connect to
+   * \param path Path in the URL to send HTTP request to
+   * \param secure_url Whether to use TLS encryption
+   */
+  ErrorResult saveWsUrl(const char* domain, const char* path = nullptr,
+                        bool secure_url = true);
+
+  /**
+   * Delete components of stored WebSocket server URL
+   */
+  ErrorResult deleteWsUrl();
+
+  /**
+   * Save server auth token to secret store
+   *
+   * \param token The WiFi AP credentials to store
+   * \return If an error occured
+   */
+  ErrorResult saveAuthToken(const char* token);
+
+  /**
    * Load saved peripherals to JSON doc
    *
    * \return Error if one occured
@@ -61,6 +92,19 @@ class Storage {
    * \param peripheral_id The ID of the peripheral
    */
   void deletePeripheral(const char* peripheral_id);
+
+  static const __FlashStringHelper* arduino_board_;
+  static const __FlashStringHelper* device_type_name_;
+  static const __FlashStringHelper* device_type_id_;
+
+  static const __FlashStringHelper* core_domain_key_;
+  static const __FlashStringHelper* ws_url_path_key_;
+  static const __FlashStringHelper* secure_url_key_;
+  static const __FlashStringHelper* ws_token_key_;
+
+  static const __FlashStringHelper* wifi_aps_key_;
+  static const __FlashStringHelper* wifi_ap_ssid_key_;
+  static const __FlashStringHelper* wifi_ap_password_key_;
 
  private:
   static const __FlashStringHelper* secrets_path_;

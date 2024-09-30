@@ -23,6 +23,4 @@ void setup() {
   }
 }
 
-bool called = false;
-
 void loop() { scheduler.execute(); }

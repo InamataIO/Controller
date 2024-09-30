@@ -34,6 +34,10 @@ bool CheckConnectivity::OnTaskEnable() {
     setInvalid(services_.web_socket_nullptr_error_);
     return false;
   }
+  // If the network service has no known APs, jump directly to provisioning
+  if (network_->wifi_aps_.size() == 0) {
+    mode_ = Mode::ProvisionDevice;
+  }
 
   return Callback();
 }
@@ -42,17 +46,17 @@ bool CheckConnectivity::TaskCallback() {
   if (mode_ == Mode::ConnectWiFi) {
     Network::ConnectMode connect_mode = network_->connect();
     // Disable starting WiFi captive portal if the WebSocket connects once
-    if (connect_mode == Network::ConnectMode::kCyclePower &&
+    if (connect_mode == Network::ConnectMode::kPowerOff &&
         !web_socket_connected_since_boot_) {
-      setMode(Mode::RunCaptivePortal);
+      setMode(Mode::ProvisionDevice);
     }
     if (connect_mode == Network::ConnectMode::kConnected) {
       checkInternetTime();
       handleWebSocket();
     }
   } else {
-    if (std::chrono::steady_clock::now() - mode_start_ >
-        std::chrono::minutes(5)) {
+#ifdef PROV_WIFI
+    if (std::chrono::steady_clock::now() - mode_start_ > provision_timeout) {
       if (disable_captive_portal_timeout_) {
         TRACELN(F("Captive portal timeout reset"));
         mode_start_ = std::chrono::steady_clock::now();
@@ -62,6 +66,18 @@ bool CheckConnectivity::TaskCallback() {
       }
     }
     handleCaptivePortal();
+#endif
+#ifdef PROV_IMPROV
+    if (std::chrono::steady_clock::now() - mode_start_ > provision_timeout) {
+      TRACELN(F("Improv setup timed out"));
+      setMode(Mode::ConnectWiFi);
+    }
+    handleBleServer();
+    handleImprov();
+    if (improv_ && improv_->getState() == improv::STATE_STOPPED) {
+      setMode(Mode::ConnectWiFi);
+    }
+#endif
   }
 
   return true;
@@ -92,11 +108,75 @@ void CheckConnectivity::handleWebSocket() {
     if (web_socket_connected_since_boot_) {
       web_socket_->resetConnectAttempt();
     } else {
-      setMode(Mode::RunCaptivePortal);
+      setMode(Mode::ProvisionDevice);
     }
   }
 }
 
+void CheckConnectivity::setMode(Mode mode) {
+  // No actions if not changing mode
+  if (mode == mode_) {
+    return;
+  }
+
+  // Actions to run when leaving mode
+  if (mode_ == Mode::ProvisionDevice) {
+#ifdef PROV_IMPROV
+    improv_->stop();
+    improv_ = nullptr;
+    services_.getBleServer()->disable();
+#endif
+#ifdef PROV_WIFI
+#ifdef ESP32
+    wifi_manager_ = nullptr;
+    ws_token_parameter_ = nullptr;
+    core_domain_parameter_ = nullptr;
+    secure_url_parameter_ = nullptr;
+#else
+    std::chrono::steady_clock::time_point start_time =
+        std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start_time <
+           std::chrono::seconds(2)) {
+      wifi_manager_->process();
+    }
+    TRACELN(F("Restart to close WifiManager"));
+    ESP.restart();
+#endif
+#endif
+  }
+
+  mode_ = mode;
+  mode_start_ = std::chrono::steady_clock::now();
+
+  // Actions to run when entering mode
+  if (mode_ == Mode::ConnectWiFi) {
+    network_->setMode(Network::ConnectMode::kFastConnect);
+  }
+  if (mode == Mode::ProvisionDevice) {
+#ifdef PROV_WIFI
+    disable_captive_portal_timeout_ = false;
+#endif
+  }
+}
+
+#ifdef PROV_IMPROV
+void CheckConnectivity::handleBleServer() {
+  services_.getBleServer()->enable();
+}
+
+void CheckConnectivity::handleImprov() {
+  if (!services_.getBleServer()->isActive()) {
+    return;
+  }
+  if (!improv_) {
+    TRACELN(F("Creating BleImprov"));
+    improv_ = std::unique_ptr<BleImprov>(new BleImprov(services_));
+  }
+  improv_->handle();
+}
+#endif
+
+#ifdef PROV_WIFI
 void CheckConnectivity::handleCaptivePortal() {
   if (!wifi_manager_) {
     setupCaptivePortal();
@@ -125,24 +205,23 @@ void CheckConnectivity::setupCaptivePortal() {
   // Add WebSocket token param. If set, use placeholder to avoid secret leakage
   String ws_token_state =
       web_socket_->isWsTokenSet() ? ws_token_placeholder_ : F("");
-  ws_token_parameter_ =
-      std::unique_ptr<WiFiManagerParameter>(new WiFiManagerParameter(
-          WebSocket::ws_token_key_, WebSocket::ws_token_key_,
-          ws_token_state.c_str(), 64));
+  ws_token_parameter_ = std::unique_ptr<WiFiManagerParameter>(
+      new WiFiManagerParameter(Storage::ws_token_key_, Storage::ws_token_key_,
+                               ws_token_state.c_str(), 64));
   wifi_manager_->addParameter(ws_token_parameter_.get());
 
   // Add core domain param. Set default or config loaded from secrets.json
   core_domain_parameter_ =
       std::unique_ptr<WiFiManagerParameter>(new WiFiManagerParameter(
-          WebSocket::core_domain_key_, WebSocket::core_domain_key_,
+          Storage::core_domain_key_, Storage::core_domain_key_,
           web_socket_->core_domain_.c_str(), 32));
   wifi_manager_->addParameter(core_domain_parameter_.get());
 
   // Add boolean secure url param. "y" is true, "n" is false
   const char* secure_url_state = web_socket_->secure_url_ ? "y" : "n";
   secure_url_parameter_ = std::unique_ptr<WiFiManagerParameter>(
-      new WiFiManagerParameter(WebSocket::secure_url_key_,
-                               "Use TLS? y=yes, n=no", secure_url_state, 1));
+      new WiFiManagerParameter(Storage::secure_url_key_, "Use TLS? y=yes, n=no",
+                               secure_url_state, 1));
   wifi_manager_->addParameter(secure_url_parameter_.get());
 
   String ssid(wifi_portal_ssid);
@@ -206,9 +285,9 @@ void CheckConnectivity::saveCaptivePortalParameters() {
   WiFiManagerParameter** parameters = wifi_manager_->getParameters();
   for (int i = 0; i < wifi_manager_->getParametersCount(); i++) {
     WiFiManagerParameter* param = parameters[i];
-    if (strcmp(param->getID(), WebSocket::ws_token_key_) == 0) {
+    if (strcmp(param->getID(), Storage::ws_token_key_) == 0) {
       if (String(ws_token_placeholder_) != param->getValue()) {
-        secrets[WebSocket::ws_token_key_] = param->getValue();
+        secrets[Storage::ws_token_key_] = param->getValue();
         web_socket_->setWsToken(param->getValue());
       }
     } else if (strcmp(param->getID(), WebSocket::core_domain_key_) == 0) {
@@ -217,9 +296,9 @@ void CheckConnectivity::saveCaptivePortalParameters() {
     } else if (strcmp(param->getID(), WebSocket::secure_url_key_) == 0) {
       const char secure_url = *(param->getValue());
       if (secure_url == 'y' || secure_url == 'Y') {
-        secrets[WebSocket::secure_url_key_] = true;
+        secrets[Storage::secure_url_key_] = true;
       } else if (secure_url == 'n' || secure_url == 'N') {
-        secrets[WebSocket::secure_url_key_] = false;
+        secrets[Storage::secure_url_key_] = false;
       }
     }
   }
@@ -231,46 +310,12 @@ void CheckConnectivity::saveCaptivePortalParameters() {
 void CheckConnectivity::preOtaUpdateCallback() {
   disable_captive_portal_timeout_ = true;
 }
-
-void CheckConnectivity::setMode(Mode mode) {
-  // No actions if not changing mode
-  if (mode == mode_) {
-    return;
-  }
-
-  // Actions to run when leaving mode
-  if (mode_ == Mode::RunCaptivePortal) {
-#ifdef ESP32
-    wifi_manager_ = nullptr;
-    ws_token_parameter_ = nullptr;
-    core_domain_parameter_ = nullptr;
-    secure_url_parameter_ = nullptr;
-#else
-    std::chrono::steady_clock::time_point start_time =
-        std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start_time <
-           std::chrono::seconds(2)) {
-      wifi_manager_->process();
-    }
-    TRACELN(F("Restart to close WifiManager"));
-    ESP.restart();
 #endif
-  }
 
-  mode_ = mode;
-  mode_start_ = std::chrono::steady_clock::now();
-
-  // Actions to run when entering mode
-  if (mode_ == Mode::ConnectWiFi) {
-    network_->setMode(Network::ConnectMode::kFastConnect);
-  }
-  if (mode == Mode::RunCaptivePortal) {
-    disable_captive_portal_timeout_ = false;
-  }
-}
-
+#ifdef PROV_WIFI
 const __FlashStringHelper* CheckConnectivity::ws_token_placeholder_ =
     FPSTR("<token set>");
+#endif
 
 }  // namespace connectivity
 }  // namespace tasks

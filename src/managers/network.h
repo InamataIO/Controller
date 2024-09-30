@@ -41,7 +41,9 @@ class Network {
     /// Try to connect to hidden and known WiFi networks
     kHiddenConnect,
     /// Cycle the WiFi modem's power to reset state
-    kCyclePower
+    kCyclePower,
+    /// Power off the wifi
+    kPowerOff
   };
 
   /**
@@ -75,10 +77,10 @@ class Network {
 
   /**
    * Updates clock from NTP server
-   * 
+   *
    * Not sure if WiFiClientSecure checks the validity date of the certificate.
    * Setting clock just to be sure...
-   * 
+   *
    * @param timeout Time after which the update should timeout
    * @return True if the time was updated
    */
@@ -94,7 +96,20 @@ class Network {
    */
   static bool sortRssi(const WiFiAP& lhs, const WiFiAP& rhs);
 
+  /**
+   * Start a WiFi AP scan and set timeout
+   */
+  void startWiFiScan();
+
+  /**
+   * Return the current WiFi scan state or timeout error
+   *
+   * \return >= 0 network count, -1 scanning, -2 not running, -3 timed out
+   */
+  int16_t getWiFiScanState();
+
   std::vector<WiFiAP> wifi_aps_;
+  String controller_name_;
 
  private:
   /**
@@ -133,7 +148,6 @@ class Network {
   bool tryCyclePower();
 
   std::vector<WiFiAP>::iterator current_wifi_ap_;
-  String controller_name_;
 
   ConnectMode connect_mode_ = ConnectMode::kFastConnect;
   std::chrono::steady_clock::time_point connect_start_ =

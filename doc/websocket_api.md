@@ -21,12 +21,15 @@
   update: {
     url: "",
     size: int
-  }
+  },
   lac: {
     start: { uuid: "", "routine": []},
     stop: { uuid: ""},
     install: { uuid: "", "routine": []},
     uninstall: { uuid: ""}
+  },
+  behavior: {
+    set: { ... }
   }
 }
 ```
@@ -48,6 +51,26 @@ The server translates `run_until` parameters for task start commands to `duratio
       data_point_type: "..."
     }
   ]
+}
+```
+
+### Limit Event
+
+Events can be start (str), continue (con) and end (end). If time is not
+specified, the server sets the current time. The fixed peripheral ID (fp_id)
+and fixed data point type ID (fdpt_id) are mapped to peripherals and DPTs of
+that organization on the server. The controller limit ID (limit_id) is set as
+a response to the register message.
+
+```
+{
+  type: "lim",
+  <time: "...",>
+  value: float,
+  event: <"str", "con", "end">,
+  limit_id: UUID/str,
+  fp_id: UUID/str,
+  fdpt_id: UUID/str
 }
 ```
 
@@ -98,6 +121,11 @@ The server translates `run_until` parameters for task start commands to `duratio
 Versioned peripherals will send the PVS (Peripheral VersionS) list with the
 peripheral ID and version. The lvs is the respective version list for LACs.
 
+For fixed devices, the behavior ID (bid), behavior version (bv) and fixed
+peripherals (fps) are sent instead. These list the fixed ID (fid) of the
+peripherals and their fixed data point types (fdpts). The device field is a
+well-known controller type.
+
 ```
 {
   type: "reg",
@@ -106,6 +134,12 @@ peripheral ID and version. The lvs is the respective version list for LACs.
   <tasks: [UUID/str, ...]>,
   <lacs: [{uuid: UUID/str, state: <lac_state>, version: int, <detail: str>}]>,
   <lvs: [{id: UUID/str, v: int}, ...]>,
+  <
+  device: UUID/str,
+  bid: UUID/str,
+  bv: int,
+  fps: [{fid: UUID/str, fdpts: [{fid: UUID/str, <prefix: str>}]}],
+  >
 }
 ```
 

@@ -35,6 +35,12 @@ void Services::setStorage(std::shared_ptr<Storage> storage) {
   storage_ = storage;
 }
 
+std::shared_ptr<BleServer> Services::getBleServer() { return ble_server_; }
+
+void Services::setBleServer(std::shared_ptr<BleServer> ble_server) {
+  ble_server_ = ble_server;
+}
+
 ActionController& Services::getActionController() { return action_controller_; }
 
 peripheral::PeripheralController& Services::getPeripheralController() {
@@ -56,7 +62,8 @@ Scheduler& Services::getScheduler() { return scheduler_; }
 ServiceGetters Services::getGetters() {
   ServiceGetters getters(std::bind(&Services::getNetwork, this),
                          std::bind(&Services::getWebSocket, this),
-                         std::bind(&Services::getStorage, this));
+                         std::bind(&Services::getStorage, this),
+                         std::bind(&Services::getBleServer, this));
   return getters;
 }
 

@@ -39,6 +39,7 @@ class WebSocket {
     Callback lac_controller_callback;
     Callback ota_update_callback;
     const char* core_domain;
+    const char* ws_url_path;
     const char* ws_token;
     bool secure_url;
   };
@@ -63,12 +64,6 @@ class WebSocket {
    */
   void resetConnectAttempt();
 
-  // void send(const String& name, double value);
-  // void send(const String& name, int value);
-  // void send(const String& name, bool value);
-  // void send(const String& name, JsonDocument& doc);
-  // void send(const String& name, const char* value, size_t length);
-
   void sendTelemetry(JsonObject data, const utils::UUID* task_id = nullptr,
                      const utils::UUID* lac_id = nullptr);
   void sendBootErrors();
@@ -84,15 +79,16 @@ class WebSocket {
 
   void sendSystem(JsonObject data);
 
+  void resetUrl();
+  void setUrl(const char* domain, const char* path = nullptr,
+              bool secure_url = true);
   void setWsToken(const char* token);
   const bool isWsTokenSet() const;
 
   static const __FlashStringHelper* firmware_version_;
   String core_domain_;
-  static const char* core_domain_key_;
+  String ws_url_path_;
   bool secure_url_;
-  static const char* secure_url_key_;
-  static const char* ws_token_key_;
 
   static const __FlashStringHelper* request_id_key_;
   static const __FlashStringHelper* type_key_;
@@ -183,7 +179,8 @@ class WebSocket {
   Callback ota_update_callback_;
 
   String ws_token_;
-  const char* controller_path_ = "/controller-ws/v1/";
+  static const __FlashStringHelper* default_core_domain_;
+  static const __FlashStringHelper* default_ws_url_path_;
 };
 
 }  // namespace inamata

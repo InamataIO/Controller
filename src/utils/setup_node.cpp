@@ -8,17 +8,19 @@
 namespace inamata {
 
 bool loadNetwork(Services& services, JsonObjectConst secrets) {
-  JsonArrayConst wifi_aps_doc = secrets[F("wifi_aps")];
+  JsonArrayConst wifi_aps_doc = secrets[Storage::wifi_aps_key_];
   TRACEF("Found %u APs in secrets\n", wifi_aps_doc.size());
 
   std::vector<WiFiAP> wifi_aps;
   for (const JsonObjectConst i : wifi_aps_doc) {
-    wifi_aps.emplace_back(WiFiAP{.ssid = i[F("ssid")].as<const char*>(),
-                                 .password = i[F("password")].as<const char*>(),
-                                 .id = -1,
-                                 .failed_connecting = false});
+    wifi_aps.emplace_back(i[Storage::wifi_ap_ssid_key_].as<const char*>(),
+                          i[Storage::wifi_ap_password_key_].as<const char*>(),
+                          -1, false);
   }
   String controller_name = secrets[F("name")].as<const char*>();
+  if (controller_name.isEmpty()) {
+    controller_name = Storage::device_type_name_;
+  }
   services.setNetwork(std::make_shared<Network>(wifi_aps, controller_name));
   return true;
 }
@@ -27,9 +29,10 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
   using namespace std::placeholders;
 
   // Get the required data from the secrets file
-  JsonVariantConst ws_token = secrets[WebSocket::ws_token_key_];
-  JsonVariantConst core_domain = secrets[WebSocket::core_domain_key_];
-  JsonVariantConst secure_url = secrets[WebSocket::secure_url_key_];
+  JsonVariantConst ws_token = secrets[Storage::ws_token_key_];
+  JsonVariantConst core_domain = secrets[Storage::core_domain_key_];
+  JsonVariantConst ws_url_path = secrets[Storage::ws_url_path_key_];
+  JsonVariantConst secure_url = secrets[Storage::secure_url_key_];
 
   // Get the peripheral and task controllers
   ActionController& action_controller = services.getActionController();
@@ -62,6 +65,7 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
           std::bind(&OtaUpdater::handleCallback, &ota_updater, _1),
 #endif
       .core_domain = core_domain.as<const char*>(),
+      .ws_url_path = ws_url_path.as<const char*>(),
       .ws_token = ws_token.as<const char*>(),
       .secure_url = secure_url};
   services.setWebSocket(std::make_shared<WebSocket>(config));
@@ -153,6 +157,9 @@ bool setupNode(Services& services) {
       return false;
     }
   }
+
+  // Create the BLE server
+  services.setBleServer(std::make_shared<BleServer>());
 
   success = createSystemTasks(services);
   if (!success) {

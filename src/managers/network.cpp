@@ -34,6 +34,13 @@ Network::ConnectMode Network::connect() {
   if (!connected && connect_mode_ == ConnectMode::kCyclePower) {
     connected = tryCyclePower();
   }
+  if (!connected && connect_mode_ == ConnectMode::kPowerOff) {
+    wifi_mode_t wifi_mode = WiFi.getMode();
+    if (wifi_mode != WIFI_OFF || wifi_mode != WIFI_MODE_NULL) {
+      TRACELN("Turning WiFi off");
+      WiFi.mode(WIFI_OFF);
+    }
+  }
   return connected ? ConnectMode::kConnected : connect_mode_;
 }
 
@@ -106,15 +113,7 @@ bool Network::tryFastConnect() {
 
 bool Network::tryScanning() {
   if (scan_start_ == std::chrono::steady_clock::time_point::min()) {
-    Serial.println(F("WiFi: Scan start"));
-    // If first run of WiFi scan
-    scan_start_ = std::chrono::steady_clock::now();
-    // Clean previous scan
-    WiFi.scanDelete();
-    // Remove previous WiFi SSID/password
-    WiFi.disconnect();
-    // Start wifi scan in async mode
-    WiFi.scanNetworks(true);
+    startWiFiScan();
   }
   int8_t scan_result = WiFi.scanComplete();
   std::chrono::steady_clock::duration scan_duration =
@@ -176,6 +175,29 @@ bool Network::tryScanning() {
   return false;
 }
 
+void Network::startWiFiScan() {
+  TRACELN(F("WiFi: Scan start"));
+  // If first run of WiFi scan
+  scan_start_ = std::chrono::steady_clock::now();
+  // Clean previous scan
+  WiFi.scanDelete();
+  // Remove previous WiFi SSID/password
+  WiFi.disconnect();
+  // Start wifi scan in async mode
+  WiFi.scanNetworks(true);
+}
+
+int16_t Network::getWiFiScanState() {
+  int16_t scan_result = WiFi.scanComplete();
+  std::chrono::steady_clock::duration scan_duration =
+      std::chrono::steady_clock::now() - scan_start_;
+  if (scan_duration > scan_timeout_) {
+    TRACELN(F("WiFi: Scan timed out"));
+    return -3;
+  }
+  return scan_result;
+}
+
 bool Network::tryMultiConnect() {
   if (current_wifi_ap_ == wifi_aps_.end() || current_wifi_ap_->id == -1) {
     // On reaching the last or last known AP, try connecting to hidden APs
@@ -234,8 +256,9 @@ bool Network::tryMultiConnect() {
 
 bool Network::tryHiddenConnect() {
   if (current_wifi_ap_ == wifi_aps_.end()) {
-    // On reaching the last AP, cycle modem power before returning to scan mode
-    connect_mode_ = ConnectMode::kCyclePower;
+    // On reaching the last AP, cycle modem power before returning to scan
+    // mode
+    connect_mode_ = ConnectMode::kPowerOff;
     return false;
   }
 
