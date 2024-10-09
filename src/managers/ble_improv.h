@@ -106,6 +106,12 @@ class BleImprov : public NimBLECharacteristicCallbacks {
 
   ServiceGetters services_;
 
+  // RPC frame bytes of length n:
+  // 1: Command type
+  // 2: Data length
+  // 3 to n-1: Data bytes
+  // n: Checksum
+  // https://www.improv-wifi.com/ble/
   std::vector<uint8_t> rpc_data_;
 
   // Whether GET_WIFI_NETWORKS command is active

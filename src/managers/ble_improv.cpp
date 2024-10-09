@@ -24,7 +24,6 @@ void BleImprov::handle() {
 
   // Handle incoming RPC data
   if (!rpc_data_.empty()) {
-    TRACELN(F("Process data"));
     processRpcData();
   }
 
@@ -172,24 +171,32 @@ void BleImprov::setupService() {
 }
 
 void BleImprov::processRpcData() {
+#ifdef ENABLE_TRACE
+  TRACEF(F("BLE RPC Data: "), "");
+  for (uint8_t i : rpc_data_) {
+    Serial.print(i >> 4, HEX);
+    Serial.print(i & 0x0F, HEX);
+    Serial.print(" ");
+  }
+  Serial.println();
+#endif
+  // Length byte is second one (prevent OOB memory access)
   if (rpc_data_.size() < 2) {
-    // Length byte is second one (prevent OOB memory access)
     return;
   }
   uint8_t length = rpc_data_[1];
+  // Wait for whole data frame (3 RPC control bytes)
   if (rpc_data_.size() - 3 < length) {
-    // Wait for whole data frame
     return;
   } else if (rpc_data_.size() - 3 != length) {
     TRACELN("RPC data longer than length");
+    setError(improv::ERROR_INVALID_RPC);
     rpc_data_.clear();
     return;
   }
 
   setError(improv::ERROR_NONE);
   improv::ImprovCommand command = improv::parse_improv_data(rpc_data_);
-  TRACEF("Processing: %d (%d:%d)\n", command.command, command.ssid.length(),
-         command.password.length());
 
   // Handle the command and then clear RPC data
   switch (command.command) {
@@ -211,9 +218,14 @@ void BleImprov::processRpcData() {
       wifi_connect_start_ = std::chrono::steady_clock::now();
       setState(improv::STATE_PROVISIONING);
     } break;
-    case improv::IDENTIFY:
+    case improv::IDENTIFY: {
       identify_start_ = std::chrono::steady_clock::now();
-      break;
+      std::vector<uint8_t> data = improv::build_rpc_response(
+          improv::GET_DEVICE_INFO, std::vector<String>());
+      ble_rpc_response_char_->setValue(data);
+      ble_rpc_response_char_->notify();
+      TRACELN(F("Identifying"));
+    } break;
     case improv::GET_DEVICE_INFO:
       sendDeviceInfoResponse();
       break;
