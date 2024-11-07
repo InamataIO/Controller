@@ -25,8 +25,7 @@ PollSensor::PollSensor(const ServiceGetters& services, Scheduler& scheduler,
     return;
   }
 
-  // Inifite iterations until end time
-  Task::setIterations(-1);
+  Task::setIterations(TASK_FOREVER);
 
   // Optionally get the duration for which to poll the sensor [default: forever]
   if (input.duration > std::chrono::milliseconds::zero()) {

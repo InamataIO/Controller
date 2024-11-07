@@ -2,7 +2,9 @@
 
 namespace inamata {
 
-void ActionController::setServices(ServiceGetters services) {}
+void ActionController::setServices(ServiceGetters services) {
+  services_ = services;
+}
 
 void ActionController::handleCallback(const JsonObjectConst& message) {
   JsonVariantConst action = message[WebSocket::action_key_];

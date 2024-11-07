@@ -75,11 +75,7 @@ void Storage::openFS() {
 void Storage::closeFS() { LittleFS.end(); }
 
 ErrorResult Storage::loadSecrets(JsonDocument& secrets_doc) {
-  // Load a common config file for the subsystems
-  fs::File secrets_file = LittleFS.open(secrets_path_, "r+", true);
-  if (secrets_file.size() == 0) {
-    return ErrorResult();
-  }
+  fs::File secrets_file = LittleFS.open(secrets_path_, "r");
   if (secrets_file) {
     DeserializationError error = deserializeJson(secrets_doc, secrets_file);
     secrets_file.close();
@@ -88,7 +84,7 @@ ErrorResult Storage::loadSecrets(JsonDocument& secrets_doc) {
       return ErrorResult(type_, error.c_str());
     }
   } else {
-    TRACELN(F("Failed opening (r+) secrets.json"));
+    TRACELN(F("Failed opening (r) secrets.json"));
   }
   return ErrorResult();
 }
@@ -100,6 +96,7 @@ ErrorResult Storage::storeSecrets(JsonVariantConst secrets) {
   }
 
   size_t bytes_written = serializeJson(secrets, secrets_file);
+  TRACEF("Saved secrets: %d : %d\n", bytes_written, measureJson(secrets));
   if (bytes_written == 0 && secrets.size()) {
     return ErrorResult(type_, F("Failed to write secrets"));
   }
@@ -284,6 +281,35 @@ void Storage::deletePeripheral(const char* peripheral_id) {
   storePeripherals(peripherals_doc.as<JsonArrayConst>());
 }
 
+ErrorResult Storage::loadBehavior(JsonDocument& behavior_doc) {
+  fs::File file = LittleFS.open(behavior_path_, "r+");
+  if (file) {
+    DeserializationError error = deserializeJson(behavior_doc, file);
+    TRACEKJSON("Behav: ", behavior_doc);
+    file.close();
+    if (error) {
+      return ErrorResult(type_, F("Failed loading behavior doc"));
+    }
+  }
+  return ErrorResult();
+}
+
+ErrorResult Storage::storeBehavior(const JsonObjectConst& behavior) {
+  fs::File file = LittleFS.open(behavior_path_, "w+");
+  if (!file) {
+    return ErrorResult(type_, F("Failed opening file"));
+  }
+  size_t bytes_written = serializeJson(behavior, file);
+  TRACEKJSON("Behav: ", behavior);
+  file.close();
+  if (bytes_written == 0 && !behavior.isNull()) {
+    return ErrorResult(type_, F("Failed to write"));
+  }
+  return ErrorResult();
+}
+
+void Storage::deleteBehavior() { LittleFS.remove(behavior_path_); }
+
 const __FlashStringHelper* Storage::arduino_board_ = FPSTR(ARDUINO_BOARD);
 const __FlashStringHelper* Storage::device_type_name_ = FPSTR(DEVICE_TYPE_NAME);
 const __FlashStringHelper* Storage::device_type_id_ = FPSTR(DEVICE_TYPE_ID);
@@ -300,6 +326,7 @@ const __FlashStringHelper* Storage::wifi_ap_password_key_ = FPSTR("password");
 const __FlashStringHelper* Storage::secrets_path_ = FPSTR("/secrets.json");
 const __FlashStringHelper* Storage::peripherals_path_ =
     FPSTR("/peripherals.json");
+const __FlashStringHelper* Storage::behavior_path_ = FPSTR("/behavior.json");
 const __FlashStringHelper* Storage::type_ = FPSTR("storage");
 
 }  // namespace inamata

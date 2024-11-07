@@ -23,11 +23,13 @@ class BaseTask : public Task {
    * Local tasks are not registered on the server and will not send result
    * messages on task ends or initialization failures. Local action chains
    * should send this via a LAC result message while system tasks are ignored.
+   *
+   * System tasks should not set a task ID.
    */
  public:
   struct Input {
-    Input(utils::UUID atask_id = nullptr, bool alocal_task = false)
-        : task_id(atask_id), local_task(alocal_task) {}
+    Input(utils::UUID task_id = nullptr, bool local_task = false)
+        : task_id(task_id), local_task(local_task) {}
     virtual ~Input() = default;
     utils::UUID task_id;
     bool local_task;
@@ -160,6 +162,7 @@ class BaseTask : public Task {
   std::function<void()> on_task_disable_;
 
   static const __FlashStringHelper* peripheral_key_;
+  static const __FlashStringHelper* fixed_peripheral_key_;
   static const __FlashStringHelper* peripheral_key_error_;
   static const __FlashStringHelper* task_id_key_;
   static const __FlashStringHelper* task_id_key_error_;

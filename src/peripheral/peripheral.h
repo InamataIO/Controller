@@ -51,6 +51,13 @@ class Peripheral {
 
   static String peripheralNotFoundError(const utils::UUID& uuid);
 
+  /**
+   * Generate "<UUID> not a valid <type>" error
+   *
+   * \return Error string with UUID and type
+   */
+  static String notAValidError(const utils::UUID& uuid, const String& type);
+
   /// ID of the peripheral
   utils::UUID id{nullptr};
   /// Version tracking config changes. Incremented on each save / change
@@ -77,13 +84,6 @@ class Peripheral {
    * \param error_message The reason for being marked invalid
    */
   void setInvalid(const String& error_message);
-
-  /**
-   * Generate "<UUID> not a valid <type>" error
-   *
-   * \return Error string with UUID and type
-   */
-  static String notAValidError(const utils::UUID& uuid, const String& type);
 
   // Common parameter keys can be reused
   static const __FlashStringHelper* data_point_type_key_;

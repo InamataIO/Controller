@@ -30,4 +30,13 @@ static const std::chrono::seconds wifi_connect_timeout(30);
 static const std::chrono::seconds web_socket_connect_timeout(30);
 static const std::chrono::minutes provision_timeout(5);
 
+#ifdef DEVICE_TYPE_VOC_SENSOR_MK1
+#define BEHAVIOR_BASED
+const bool behavior_based = true;
+#endif
+
+#ifndef BEHAVIOR_BASED
+const bool behavior_based = false;
+#endif
+
 }  // namespace inamata

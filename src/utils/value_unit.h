@@ -32,6 +32,7 @@ struct ValueUnit {
   static const __FlashStringHelper* value_key;
   static const __FlashStringHelper* value_key_error;
   static const __FlashStringHelper* data_point_type_key;
+  static const __FlashStringHelper* fixed_data_point_type_key;
   static const __FlashStringHelper* data_point_type_key_error;
   static const __FlashStringHelper* data_points_key;
 

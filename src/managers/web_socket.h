@@ -32,6 +32,8 @@ class WebSocket {
 
   struct Config {
     Callback action_controller_callback;
+    Callback behavior_controller_callback;
+    std::function<void(JsonObject)> set_behavior_register_data;
     std::function<std::vector<utils::VersionedID>()> get_peripheral_ids;
     Callback peripheral_controller_callback;
     std::function<std::vector<utils::UUID>()> get_task_ids;
@@ -66,6 +68,7 @@ class WebSocket {
 
   void sendTelemetry(JsonObject data, const utils::UUID* task_id = nullptr,
                      const utils::UUID* lac_id = nullptr);
+  void sendLimitEvent(JsonObject data);
   void sendBootErrors();
   void sendRegister();
   void sendError(const String& who, const String& message);
@@ -85,6 +88,13 @@ class WebSocket {
   void setWsToken(const char* token);
   const bool isWsTokenSet() const;
 
+  /**
+   * Checks if the WebSocket connected to the server
+   *
+   * @return true if connected
+   */
+  bool isConnected();
+
   static const __FlashStringHelper* firmware_version_;
   String core_domain_;
   String ws_url_path_;
@@ -93,10 +103,13 @@ class WebSocket {
   static const __FlashStringHelper* request_id_key_;
   static const __FlashStringHelper* type_key_;
 
+  static const __FlashStringHelper* limit_event_type_;
   static const __FlashStringHelper* result_type_;
   static const __FlashStringHelper* telemetry_type_;
+
   /// Controller action object in command messages
   static const __FlashStringHelper* action_key_;
+  static const __FlashStringHelper* behavior_key_;
   static const __FlashStringHelper* task_key_;
   static const __FlashStringHelper* system_type_;
   static const __FlashStringHelper* lac_key_;
@@ -111,13 +124,6 @@ class WebSocket {
   static const __FlashStringHelper* result_state_key_;
 
  private:
-  /**
-   * Checks if the WebSocket connected to the server
-   *
-   * @return true if connected
-   */
-  bool isConnected();
-
   /**
    * Perform setup and check if connect timeout has been reached
    *
@@ -147,8 +153,6 @@ class WebSocket {
    */
   void sendJson(JsonVariantConst doc);
 
-  void restartOnUnimplementedFunction();
-
   bool is_setup_ = false;
 
   /// Whether the WebSocket was connected during the last check
@@ -171,6 +175,8 @@ class WebSocket {
       std::chrono::steady_clock::duration::min();
 
   Callback action_controller_callback_;
+  Callback behavior_controller_callback_;
+  std::function<void(JsonObject)> set_behavior_register_data_;
   std::function<std::vector<utils::VersionedID>()> get_peripheral_ids_;
   Callback peripheral_controller_callback_;
   std::function<std::vector<utils::UUID>()> get_task_ids_;

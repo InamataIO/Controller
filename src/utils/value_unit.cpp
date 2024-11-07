@@ -20,6 +20,8 @@ const __FlashStringHelper* ValueUnit::value_key_error =
 
 const __FlashStringHelper* ValueUnit::data_point_type_key =
     FPSTR("data_point_type");
+const __FlashStringHelper* ValueUnit::fixed_data_point_type_key =
+    FPSTR("fdpt_id");
 const __FlashStringHelper* ValueUnit::data_point_type_key_error =
     FPSTR("Missing property: data_point_type (String)");
 

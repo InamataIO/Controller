@@ -2,7 +2,9 @@
 
 #include "managers/action_controller.h"
 #include "managers/web_socket.h"
+#include "peripheral/fixed.h"
 #include "tasks/connectivity/connectivity.h"
+#include "tasks/fixed/config.h"
 #include "tasks/system_monitor/system_monitor.h"
 
 namespace inamata {
@@ -36,6 +38,7 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
 
   // Get the peripheral and task controllers
   ActionController& action_controller = services.getActionController();
+  BehaviorController& behavior_controller = services.getBehaviorController();
   peripheral::PeripheralController& peripheral_controller =
       services.getPeripheralController();
   tasks::TaskController& task_controller = services.getTaskController();
@@ -48,6 +51,10 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
   WebSocket::Config config{
       .action_controller_callback =
           std::bind(&ActionController::handleCallback, &action_controller, _1),
+      .behavior_controller_callback = std::bind(
+          &BehaviorController::handleCallback, &behavior_controller, _1),
+      .set_behavior_register_data = std::bind(
+          &BehaviorController::setRegisterData, &behavior_controller, _1),
       .get_peripheral_ids =
           std::bind(&peripheral::PeripheralController::getPeripheralIDs,
                     &peripheral_controller),
@@ -110,7 +117,10 @@ bool loadLocalPeripherals(Services& services) {
     return true;
   }
 
-  for (auto peripheral : peripheral_doc.as<JsonArray>()) {
+  JsonArray peripherals = peripheral_doc.isNull()
+                              ? peripheral_doc.to<JsonArray>()
+                              : peripheral_doc.as<JsonArray>();
+  for (JsonVariantConst peripheral : peripherals) {
     ErrorResult error = services.getPeripheralController().add(peripheral);
     TRACEF("Loaded peri: %s\n",
            peripheral[peripheral::Peripheral::uuid_key_].as<const char*>());
@@ -128,14 +138,23 @@ bool loadLocalPeripherals(Services& services) {
   return true;
 }
 
-bool setupNode(Services& services) {
-#ifdef ATHOM_PLUG_V2
-  // TODO: Place in setup function or create default boot pin config
-  const uint8_t relay_pin = 12;
-  pinMode(relay_pin, OUTPUT);
-  digitalWrite(relay_pin, HIGH);
-#endif
+bool loadFixedPeripherals(Services& services) {
+  JsonDocument peripherals_doc;
+  DeserializationError error =
+      deserializeJson(peripherals_doc, peripheral::fixed::config);
+  for (auto peripheral : peripherals_doc.as<JsonArray>()) {
+    ErrorResult error = services.getPeripheralController().add(peripheral);
+    TRACEF("Loaded peri: %s\n",
+           peripheral[peripheral::Peripheral::uuid_key_].as<const char*>());
+    if (error.isError()) {
+      return false;
+    }
+  }
 
+  return true;
+}
+
+bool setupNode(Services& services) {
   // Enable serial communication and prints
   Serial.begin(115200);
   Serial.print(F("Fimware version: "));
@@ -148,11 +167,13 @@ bool setupNode(Services& services) {
   {
     JsonDocument secrets_doc;
     services.getStorage()->loadSecrets(secrets_doc);
-    success = loadNetwork(services, secrets_doc.as<JsonObjectConst>());
+    JsonObject secrets = secrets_doc.isNull() ? secrets_doc.to<JsonObject>()
+                                              : secrets_doc.as<JsonObject>();
+    success = loadNetwork(services, secrets);
     if (!success) {
       return false;
     }
-    success = loadWebsocket(services, secrets_doc.as<JsonObjectConst>());
+    success = loadWebsocket(services, secrets);
     if (!success) {
       return false;
     }
@@ -160,17 +181,28 @@ bool setupNode(Services& services) {
 
   // Create the BLE server
   services.setBleServer(std::make_shared<BleServer>());
+  if (peripheral::fixed::config != nullptr) {
+    success = loadFixedPeripherals(services);
+  } else {
+    success = loadLocalPeripherals(services);
+  }
+  if (!success) {
+    return false;
+  }
+
+  if (peripheral::fixed::config != nullptr) {
+    JsonDocument behavior_doc;
+    services.getStorage()->loadBehavior(behavior_doc);
+    JsonObjectConst behavior_config = behavior_doc.as<JsonObjectConst>();
+    Services::getBehaviorController().handleConfig(behavior_config);
+    tasks::fixed::startFixedTasks(services.getGetters(),
+                                  services.getScheduler(), behavior_config);
+  }
 
   success = createSystemTasks(services);
   if (!success) {
     return false;
   }
-
-  success = loadLocalPeripherals(services);
-  if (!success) {
-    return false;
-  }
-
   return true;
 }
 

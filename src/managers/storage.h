@@ -93,6 +93,10 @@ class Storage {
    */
   void deletePeripheral(const char* peripheral_id);
 
+  ErrorResult loadBehavior(JsonDocument& behavior);
+  ErrorResult storeBehavior(const JsonObjectConst& behavior);
+  void deleteBehavior();
+
   static const __FlashStringHelper* arduino_board_;
   static const __FlashStringHelper* device_type_name_;
   static const __FlashStringHelper* device_type_id_;
@@ -109,6 +113,7 @@ class Storage {
  private:
   static const __FlashStringHelper* secrets_path_;
   static const __FlashStringHelper* peripherals_path_;
+  static const __FlashStringHelper* behavior_path_;
   static const __FlashStringHelper* type_;
 };
 

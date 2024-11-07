@@ -31,6 +31,10 @@
   behavior: {
     set: { ... }
   }
+  behav: {
+    set: { bid: "", update: int, ... },
+    clear: { uuid: "" }
+  }
 }
 ```
 
@@ -71,6 +75,14 @@ a response to the register message.
   limit_id: UUID/str,
   fp_id: UUID/str,
   fdpt_id: UUID/str
+}
+```
+
+### Behavior
+
+```
+{
+  type: ""
 }
 ```
 
@@ -178,3 +190,29 @@ In order to stop a task, send its ID to the stop topic.
 | parameter | content               |
 | --------- | --------------------- |
 | id        | unique ID of the task |
+
+
+## Behavior
+
+### VOC Sensor MK1
+
+#### Alert
+
+```
+{
+  "voc_limit_1": {
+    "limit_id": UUID/str,
+    "limit": float,
+    <"delay_s": float,>
+    "fp_id": UUID/str,
+    "fdpt_id": UUID/str,
+  },
+  "voc_limit_2": {
+    "limit_id": UUID/str,
+    "limit": float,
+    <"delay_s": float,>
+    "fp_id": UUID/str,
+    "fdpt_id": UUID/str,
+  }
+}
+```

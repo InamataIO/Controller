@@ -5,6 +5,7 @@
 
 #include "lac/lac_controller.h"
 #include "managers/action_controller.h"
+#include "managers/behavior_controller.h"
 #include "managers/network.h"
 #include "managers/service_getters.h"
 #include "managers/web_socket.h"
@@ -49,6 +50,7 @@ class Services {
   void setBleServer(std::shared_ptr<BleServer> ble_server);
 
   static ActionController& getActionController();
+  static BehaviorController& getBehaviorController();
   static peripheral::PeripheralController& getPeripheralController();
   static tasks::TaskController& getTaskController();
   static lac::LacController& getLacController();
@@ -76,8 +78,11 @@ class Services {
   std::shared_ptr<BleServer> ble_server_;
   /// Executes the active tasks
   static Scheduler scheduler_;
+
   /// Handles commands with controller actions
   static ActionController action_controller_;
+  /// Handles commands for behavior
+  static BehaviorController behavior_controller_;
   /// Creates peripherals with the registered peripheral factory callbacks
   static peripheral::PeripheralFactory peripheral_factory_;
   /// Handles server requests to create / delete peripherals

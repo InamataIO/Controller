@@ -40,6 +40,9 @@ class SGP40 : public peripherals::i2c::I2CAbstractPeripheral,
   capabilities::Calibrate::Result startCalibration(
       const JsonObjectConst& parameters) final;
 
+  capabilities::Calibrate::Result startCalibration(const float humidity,
+                                                   const float temperature_c);
+
   /**
    * Complete calibration callback
    */

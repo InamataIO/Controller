@@ -56,12 +56,6 @@ class OtaUpdater : public tasks::BaseTask {
   void OnTaskDisable();
 
  private:
-  /**
-   *
-   * \return Returns true on success
-   */
-  ErrorResult connectToServer(const String& url);
-
   void sendResult(const __FlashStringHelper* status, const String& error = "",
                   const char* request_id = nullptr);
 

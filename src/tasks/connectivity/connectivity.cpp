@@ -253,6 +253,7 @@ void CheckConnectivity::saveCaptivePortalWifi() {
   JsonDocument secrets_doc;
   ErrorResult error = services_.getStorage()->loadSecrets(secrets_doc);
   if (error.isError()) {
+    TRACELN(error.toString());
     return;
   }
   JsonObject secrets = secrets_doc.as<JsonObject>();
@@ -269,7 +270,10 @@ void CheckConnectivity::saveCaptivePortalWifi() {
     wifi_ap[F("ssid")] = ssid;
     wifi_ap[F("password")] = wifi_password;
   }
-  services_.getStorage()->storeSecrets(secrets);
+  error = services_.getStorage()->storeSecrets(secrets);
+  if (error.isError()) {
+    TRACELN(error.toString());
+  }
 }
 
 void CheckConnectivity::saveCaptivePortalParameters() {
@@ -277,9 +281,11 @@ void CheckConnectivity::saveCaptivePortalParameters() {
   JsonDocument secrets_doc;
   ErrorResult error = services_.getStorage()->loadSecrets(secrets_doc);
   if (error.isError()) {
+    TRACELN(error.toString());
     return;
   }
-  JsonObject secrets = secrets_doc.as<JsonObject>();
+  JsonObject secrets = secrets_doc.isNull() ? secrets_doc.to<JsonObject>()
+                                            : secrets_doc.as<JsonObject>();
 
   // Save the other parameters
   WiFiManagerParameter** parameters = wifi_manager_->getParameters();
@@ -296,15 +302,20 @@ void CheckConnectivity::saveCaptivePortalParameters() {
     } else if (strcmp(param->getID(), WebSocket::secure_url_key_) == 0) {
       const char secure_url = *(param->getValue());
       if (secure_url == 'y' || secure_url == 'Y') {
-        secrets[Storage::secure_url_key_] = true;
+        secrets[WebSocket::secure_url_key_] = true;
+        web_socket_->secure_url_ = true;
       } else if (secure_url == 'n' || secure_url == 'N') {
-        secrets[Storage::secure_url_key_] = false;
+        secrets[WebSocket::secure_url_key_] = false;
+        web_socket_->secure_url_ = false;
       }
     }
   }
 
   // Save the input parameters to FS or EEPROM
-  services_.getStorage()->storeSecrets(secrets);
+  error = services_.getStorage()->storeSecrets(secrets);
+  if (error.isError()) {
+    TRACELN(error.toString());
+  }
 }
 
 void CheckConnectivity::preOtaUpdateCallback() {

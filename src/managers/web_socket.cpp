@@ -13,6 +13,8 @@ WebSocket::WebSocket(const WebSocket::Config& config)
       ws_url_path_(config.ws_url_path),
       secure_url_(config.secure_url),
       action_controller_callback_(config.action_controller_callback),
+      behavior_controller_callback_(config.behavior_controller_callback),
+      set_behavior_register_data_(config.set_behavior_register_data),
       get_peripheral_ids_(config.get_peripheral_ids),
       peripheral_controller_callback_(config.peripheral_controller_callback),
       get_task_ids_(config.get_task_ids),
@@ -46,8 +48,9 @@ WebSocket::ConnectState WebSocket::connect() {
   // Configure the WebSocket interface with the server, TLS certificate and the
   // reconnect interval
   if (!is_setup_) {
-    TRACELN(F("Setting up"));
     is_setup_ = true;
+    TRACEF("Connect: %s:%d%s : %s\n", core_domain_.c_str(),
+           secure_url_ ? 443 : 8000, ws_url_path_.c_str(), ws_token_.c_str());
     // WS token has to be set in LittleFS, EEPROM or via captive portal
     if (!isWsTokenSet()) {
       TRACELN(F("ws_token not set"));
@@ -118,6 +121,11 @@ void WebSocket::sendTelemetry(JsonObject data, const utils::UUID* task_id,
   sendJson(data);
 }
 
+void WebSocket::sendLimitEvent(JsonObject data) {
+  data[WebSocket::type_key_] = WebSocket::limit_event_type_;
+  sendJson(data);
+}
+
 void WebSocket::sendBootErrors() {
   JsonObjectConst empty_message;
   peripheral_controller_callback_(empty_message);
@@ -125,28 +133,33 @@ void WebSocket::sendBootErrors() {
 
 void WebSocket::sendRegister() {
   JsonDocument doc_out;
+  JsonObject register_obj = doc_out.to<JsonObject>();
 
   // Use the register message type
-  doc_out["type"] = "reg";
+  register_obj["type"] = "reg";
 
   // Set the firmware version number
-  doc_out["version"] = firmware_version_;
+  register_obj["version"] = firmware_version_;
 
   // Collect all added peripheral ids and write them to a JSON doc
-  std::vector<utils::VersionedID> pvids = get_peripheral_ids_();
-  if (!pvids.empty()) {
-    JsonArray pvs = doc_out[F("pvs")].to<JsonArray>();
-    for (const auto& pvid : pvids) {
-      JsonObject pv = pvs.add<JsonObject>();
-      pv["id"] = pvid.id.toString();
-      pv["v"] = pvid.version;
+  if (behavior_based) {
+    set_behavior_register_data_(register_obj);
+  } else {
+    std::vector<utils::VersionedID> pvids = get_peripheral_ids_();
+    if (!pvids.empty()) {
+      JsonArray pvs = register_obj[F("pvs")].to<JsonArray>();
+      for (const auto& pvid : pvids) {
+        JsonObject pv = pvs.add<JsonObject>();
+        pv["id"] = pvid.id.toString();
+        pv["v"] = pvid.version;
+      }
     }
   }
 
   // Collect all running task ids and write them to a JSON doc
   std::vector<utils::UUID> task_ids = get_task_ids_();
   if (!task_ids.empty()) {
-    JsonArray tasks = doc_out[F("tasks")].to<JsonArray>();
+    JsonArray tasks = register_obj[F("tasks")].to<JsonArray>();
     for (const auto& task_id : task_ids) {
       if (task_id.isValid()) {
         tasks.add(task_id.toString());
@@ -154,7 +167,7 @@ void WebSocket::sendRegister() {
     }
   }
 
-  sendJson(doc_out);
+  sendJson(register_obj);
 }
 
 void WebSocket::sendError(const String& who, const String& message) {
@@ -313,6 +326,9 @@ void WebSocket::handleData(const uint8_t* payload, size_t length) {
   // Pass the message to the handlers
   JsonObjectConst message = doc_in.as<JsonObjectConst>();
   action_controller_callback_(message);
+  if (behavior_controller_callback_) {
+    behavior_controller_callback_(message);
+  }
   peripheral_controller_callback_(message);
   task_controller_callback_(message);
   lac_controller_callback_(message);
@@ -379,19 +395,12 @@ void WebSocket::sendJson(JsonVariantConst doc) {
   websocket_client.sendTXT(buffer.data(), n);
 }
 
-void WebSocket::restartOnUnimplementedFunction() {
-  TRACELN(F("Unimplemented Function"));
-  delay(10000);
-  abort();
-}
-
 const __FlashStringHelper* WebSocket::firmware_version_ =
     FPSTR(FIRMWARE_VERSION);
 
 const __FlashStringHelper* WebSocket::request_id_key_ = FPSTR("request_id");
 const __FlashStringHelper* WebSocket::type_key_ = FPSTR("type");
 
-const __FlashStringHelper* WebSocket::result_type_ = FPSTR("result");
 const __FlashStringHelper* WebSocket::uuid_key_ = FPSTR("uuid");
 const __FlashStringHelper* WebSocket::result_status_key_ = FPSTR("status");
 const __FlashStringHelper* WebSocket::result_detail_key_ = FPSTR("detail");
@@ -399,8 +408,12 @@ const __FlashStringHelper* WebSocket::result_success_name_ = FPSTR("success");
 const __FlashStringHelper* WebSocket::result_fail_name_ = FPSTR("fail");
 const __FlashStringHelper* WebSocket::result_state_key_ = FPSTR("state");
 
+const __FlashStringHelper* WebSocket::limit_event_type_ = FPSTR("lim");
+const __FlashStringHelper* WebSocket::result_type_ = FPSTR("result");
 const __FlashStringHelper* WebSocket::telemetry_type_ = FPSTR("tel");
+
 const __FlashStringHelper* WebSocket::action_key_ = FPSTR("action");
+const __FlashStringHelper* WebSocket::behavior_key_ = FPSTR("behav");
 const __FlashStringHelper* WebSocket::task_key_ = FPSTR("task");
 const __FlashStringHelper* WebSocket::system_type_ = FPSTR("sys");
 const __FlashStringHelper* WebSocket::lac_key_ = FPSTR("lac");

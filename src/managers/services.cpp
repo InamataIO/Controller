@@ -7,7 +7,8 @@ namespace inamata {
 Services::Services() {
   ServiceGetters getters = getGetters();
 
-  // TODO: why are getters passed by value? and not an object on the heap
+  action_controller_.setServices(getters);
+  behavior_controller_.setServices(getters);
   peripheral_controller_.setServices(getters);
   task_controller_.setServices(getters);
   task_removal_task_.setServices(getters);
@@ -43,6 +44,10 @@ void Services::setBleServer(std::shared_ptr<BleServer> ble_server) {
 
 ActionController& Services::getActionController() { return action_controller_; }
 
+BehaviorController& Services::getBehaviorController() {
+  return behavior_controller_;
+}
+
 peripheral::PeripheralController& Services::getPeripheralController() {
   return peripheral_controller_;
 }
@@ -70,6 +75,8 @@ ServiceGetters Services::getGetters() {
 Scheduler Services::scheduler_{};
 
 ActionController Services::action_controller_{};
+
+BehaviorController Services::behavior_controller_{};
 
 peripheral::PeripheralFactory Services::peripheral_factory_{};
 
