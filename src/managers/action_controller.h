@@ -18,12 +18,19 @@ class ActionController {
    */
   void handleCallback(const JsonObjectConst& message);
 
+  void identify();
+  void setIdentifyCallback(std::function<void()> callback);
+  void clearIdentifyCallback();
+
  private:
   /// The server to which to reply to
   ServiceGetters services_;
 
+  std::function<void()> identify_callback_;
+
   static const __FlashStringHelper* action_restart_;
   static const __FlashStringHelper* action_clear_stored_resources_;
+  static const __FlashStringHelper* action_identify_;
 };
 
 }  // namespace inamata

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ArduinoJson.h>
+#include <Bounce2.h>
 
 #include "managers/service_getters.h"
 #include "peripheral/capabilities/get_values.h"
@@ -14,7 +15,9 @@ namespace digital_in {
 /**
  * Peripheral to control a GPIO output
  */
-class DigitalIn : public Peripheral, public capabilities::GetValues {
+class DigitalIn : public Peripheral,
+                  public capabilities::GetValues,
+                  public Debouncer {
  public:
   DigitalIn(const JsonObjectConst& parameters);
   virtual ~DigitalIn() = default;
@@ -30,7 +33,11 @@ class DigitalIn : public Peripheral, public capabilities::GetValues {
    */
   capabilities::GetValues::Result getValues() final;
 
+  bool readState();
+
  private:
+  bool readCurrentState();
+
   static std::shared_ptr<Peripheral> factory(const ServiceGetters& services,
                                              const JsonObjectConst& parameter);
   static bool registered_;

@@ -1,8 +1,6 @@
 #include "web_socket.h"
 
-#ifdef ESP32
 #include <esp_tls.h>
-#endif
 
 namespace inamata {
 
@@ -38,6 +36,12 @@ const String& WebSocket::type() {
   return name;
 }
 
+void WebSocket::setSentMessageCallback(std::function<void()> callback) {
+  sent_message_callback_ = callback;
+}
+
+void WebSocket::clearSentMessageCallback() { sent_message_callback_ = nullptr; }
+
 bool WebSocket::isConnected() {
   const bool is_connected = websocket_client.isConnected();
   updateUpDownTime(is_connected);
@@ -59,14 +63,9 @@ WebSocket::ConnectState WebSocket::connect() {
     TRACEF("Connecting: %s, %s, %d, %s\n", core_domain_.c_str(),
            ws_url_path_.c_str(), secure_url_, ws_token_.c_str());
     if (secure_url_) {
-#ifdef ESP32
       websocket_client.beginSslWithBundle(
           core_domain_.c_str(), 443, ws_url_path_.c_str(),
           rootca_crt_bundle_start, ws_token_.c_str());
-#else
-      websocket_client.beginSSL(core_domain_.c_str(), 443, ws_url_path_.c_str(),
-                                nullptr, ws_token_.c_str());
-#endif
     } else {
       websocket_client.begin(core_domain_.c_str(), 8000, ws_url_path_.c_str(),
                              ws_token_.c_str());
@@ -119,6 +118,30 @@ void WebSocket::sendTelemetry(JsonObject data, const utils::UUID* task_id,
     data[WebSocket::lac_key_] = lac_id->toString();
   }
   sendJson(data);
+}
+
+void WebSocket::packageTelemetry(const std::vector<utils::ValueUnit>& values,
+                                 const utils::UUID& peripheral_id,
+                                 const bool is_fixed, JsonObject& telemetry) {
+  // Create an array for the value units and get them from the peripheral
+  JsonArray value_units_doc =
+      telemetry[utils::ValueUnit::data_points_key].to<JsonArray>();
+
+  // Create a JSON object representation for each value unit in the array
+  const __FlashStringHelper* dpt_key =
+      is_fixed ? utils::ValueUnit::fixed_data_point_type_key
+               : utils::ValueUnit::data_point_type_key;
+  for (const auto& value_unit : values) {
+    JsonObject value_unit_object = value_units_doc.add<JsonObject>();
+    value_unit_object[utils::ValueUnit::value_key] = value_unit.value;
+    value_unit_object[dpt_key] = value_unit.data_point_type.toString();
+  }
+
+  // Add the peripheral UUID to the result. Fixed peripherals use a different
+  // key to allow the server to map to the generated peripheral
+  const __FlashStringHelper* peripheral_key =
+      is_fixed ? fixed_peripheral_key_ : telemetry_peripheral_key_;
+  telemetry[peripheral_key] = peripheral_id.toString();
 }
 
 void WebSocket::sendLimitEvent(JsonObject data) {
@@ -201,7 +224,6 @@ void WebSocket::sendError(const ErrorResult& error, const String& request_id) {
 }
 
 void WebSocket::sendDebug(const String& message) {
-  TRACEF("message: %s\n", message.c_str());
   if (!websocket_client.isConnected()) {
     return;
   }
@@ -217,17 +239,10 @@ void WebSocket::sendDebug(const String& message) {
 }
 
 void WebSocket::sendResults(JsonObjectConst results) {
-  TRACEKJSON("Res: ", results);
   if (!websocket_client.isConnected()) {
     return;
   }
-  std::vector<char> buffer = std::vector<char>(measureJson(results) + 1);
-  size_t n = serializeJson(results, buffer.data(), buffer.size());
-  bool success = websocket_client.sendTXT(buffer.data(), n);
-  if (!success) {
-    Serial.print(F("Failed sending results: "));
-    Serial.println(results);
-  }
+  sendJson(results);
 }
 
 void WebSocket::addResultEntry(const String& uuid, const ErrorResult& error,
@@ -246,7 +261,6 @@ void WebSocket::addResultEntry(const String& uuid, const ErrorResult& error,
 }
 
 void WebSocket::sendSystem(JsonObject data) {
-  TRACEKJSON("Sys: ", data);
   if (!websocket_client.isConnected()) {
     return;
   }
@@ -371,7 +385,6 @@ void WebSocket::sendUpDownTimeData() {
       int64_t last_up_duration_s =
           std::chrono::duration_cast<std::chrono::seconds>(last_up_duration_)
               .count();
-      TRACEF("Last WS up duration: %llds\n", last_up_duration_s);
       doc_out[F("last_ws_up_duration_s")] = last_up_duration_s;
     }
     if (last_down_duration_ != std::chrono::steady_clock::duration::min()) {
@@ -379,7 +392,6 @@ void WebSocket::sendUpDownTimeData() {
       int64_t last_down_duration_s =
           std::chrono::duration_cast<std::chrono::seconds>(last_down_duration_)
               .count();
-      TRACEF("Last WS down duration: %llds\n", last_down_duration_s);
       doc_out[F("last_ws_down_duration_s")] =
           std::chrono::duration_cast<std::chrono::seconds>(last_down_duration_)
               .count();
@@ -392,7 +404,14 @@ void WebSocket::sendJson(JsonVariantConst doc) {
   std::vector<char> buffer = std::vector<char>(measureJson(doc) + 1);
   size_t n = serializeJson(doc, buffer.data(), buffer.size());
   TRACELN(buffer.data());
-  websocket_client.sendTXT(buffer.data(), n);
+  bool success = websocket_client.sendTXT(buffer.data(), n);
+  if (!success) {
+    TRACELN(F("Failed sending"));
+  } else {
+    if (sent_message_callback_) {
+      sent_message_callback_();
+    }
+  }
 }
 
 const __FlashStringHelper* WebSocket::firmware_version_ =
@@ -400,6 +419,10 @@ const __FlashStringHelper* WebSocket::firmware_version_ =
 
 const __FlashStringHelper* WebSocket::request_id_key_ = FPSTR("request_id");
 const __FlashStringHelper* WebSocket::type_key_ = FPSTR("type");
+
+const __FlashStringHelper* WebSocket::telemetry_peripheral_key_ =
+    FPSTR("peripheral");
+const __FlashStringHelper* WebSocket::fixed_peripheral_key_ = FPSTR("fp_id");
 
 const __FlashStringHelper* WebSocket::uuid_key_ = FPSTR("uuid");
 const __FlashStringHelper* WebSocket::result_status_key_ = FPSTR("status");
@@ -422,5 +445,9 @@ const __FlashStringHelper* WebSocket::default_core_domain_ =
     FPSTR("core.inamata.io");
 const __FlashStringHelper* WebSocket::default_ws_url_path_ =
     FPSTR("/controller-ws/v1/");
+
+const __FlashStringHelper* WebSocket::limit_id_key_ = FPSTR("limit_id");
+const __FlashStringHelper* WebSocket::fixed_peripheral_id_key_ = FPSTR("fp_id");
+const __FlashStringHelper* WebSocket::fixed_dpt_id_key_ = FPSTR("fdpt_id");
 
 }  // namespace inamata

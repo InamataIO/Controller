@@ -61,7 +61,6 @@ void IfAction::populateConfig(const JsonObjectConst& json, Config& config,
       action.input = std::unique_ptr<tasks::BaseTask::Input>(input);
       Action::parseOuts(action_config["out"], action);
 
-#ifdef ESP32
     } else if (action_type == tasks::set_rgb_led::SetRgbLed::type()) {
       // Set RGB LED task
       action.type = Action::Type::SetRgbLed;
@@ -70,7 +69,6 @@ void IfAction::populateConfig(const JsonObjectConst& json, Config& config,
       tasks::set_rgb_led::SetRgbLed::populateInput(action_config["params"],
                                                    *input);
       action.input = std::unique_ptr<tasks::BaseTask::Input>(input);
-#endif
 
     } else {
       // Unknown action

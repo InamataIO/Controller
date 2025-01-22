@@ -110,10 +110,6 @@ void BaseTask::setInvalid(const String& error_message) {
   error_message_ = error_message;
 }
 
-const __FlashStringHelper* BaseTask::peripheral_key_ = FPSTR("peripheral");
-const __FlashStringHelper* BaseTask::fixed_peripheral_key_ = FPSTR("fp_id");
-const __FlashStringHelper* BaseTask::peripheral_key_error_ =
-    FPSTR("Missing property: peripheral (uuid)");
 const __FlashStringHelper* BaseTask::task_id_key_ = FPSTR("uuid");
 const __FlashStringHelper* BaseTask::task_id_key_error_ =
     FPSTR("Missing property: uuid (uuid)");

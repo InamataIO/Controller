@@ -23,7 +23,7 @@ DigitalOut::DigitalOut(const ServiceGetters& services,
   }
   pin_ = pin;
 
-  data_point_type_ = utils::UUID(parameters[data_point_type_key_]);
+  data_point_type_ = getDataPointType(parameters);
   if (!data_point_type_.isValid()) {
     setInvalid(data_point_type_key_error_);
     return;
@@ -50,12 +50,8 @@ DigitalOut::DigitalOut(const ServiceGetters& services,
   pinMode(pin_, OUTPUT);
   // If specified set the initial state
   if (!initial_state.isNull()) {
-    // Respect active low logic. If true, invert state
-    if (active_low_) {
-      digitalWrite(pin_, !initial_state.as<bool>());
-    } else {
-      digitalWrite(pin_, initial_state.as<bool>());
-    }
+    state_ = initial_state;
+    setOutput();
   }
 }
 
@@ -76,7 +72,28 @@ void DigitalOut::setValue(utils::ValueUnit value_unit) {
   // Limit the value between 0 and 1 and then round to the nearest integer.
   // Finally, set the pin value
   float clamped_value = std::fmax(0, std::fmin(value_unit.value, 1));
-  bool state = std::lround(clamped_value);
+  state_ = std::lround(clamped_value);
+
+  setOutput();
+}
+
+void DigitalOut::setOverride(bool state) {
+  override_state_ = state;
+  setOutput();
+}
+
+void DigitalOut::clearOverride() {
+  override_state_ = -1;
+  setOutput();
+}
+
+bool DigitalOut::getState() { return state_; }
+
+void DigitalOut::setOutput() {
+  bool state = state_;
+  if (override_state_ != -1) {
+    state = override_state_;
+  }
 
   // Respect active low logic. If true, invert state
   if (active_low_) {

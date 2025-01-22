@@ -7,11 +7,10 @@
 #include "managers/action_controller.h"
 #include "managers/behavior_controller.h"
 #include "managers/network.h"
-#include "managers/service_getters.h"
-#include "managers/web_socket.h"
-#ifdef ESP32
 #include "managers/ota_updater.h"
-#endif
+#include "managers/service_getters.h"
+#include "managers/ui_controller.h"
+#include "managers/web_socket.h"
 #include "peripheral/peripheral_controller.h"
 #include "peripheral/peripheral_factory.h"
 #include "tasks/task_controller.h"
@@ -54,9 +53,7 @@ class Services {
   static peripheral::PeripheralController& getPeripheralController();
   static tasks::TaskController& getTaskController();
   static lac::LacController& getLacController();
-#ifdef ESP32
   static OtaUpdater& getOtaUpdater();
-#endif
 
   static Scheduler& getScheduler();
 
@@ -95,10 +92,10 @@ class Services {
   static tasks::TaskRemovalTask task_removal_task_;
   /// Manages local action chains
   static lac::LacController lac_controller_;
-/// Singleton to perform OTA updates
-#ifdef ESP32
+  // /// Manages UI (buttons and LEDs)
+  // static UiController ui_controller_;
+  /// Singleton to perform OTA updates
   static OtaUpdater ota_updater_;
-#endif
 };
 
 }  // namespace inamata

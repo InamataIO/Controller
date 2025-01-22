@@ -30,6 +30,10 @@ String Peripheral::peripheralNotFoundError(const utils::UUID& uuid) {
   return error;
 }
 
+String Peripheral::notAValidError(const utils::UUID& uuid, const String& type) {
+  return uuid.toString() + F(" is not a valid ") + type;
+}
+
 void Peripheral::setInvalid() { valid_ = false; }
 
 void Peripheral::setInvalid(const String& error_message) {
@@ -37,8 +41,16 @@ void Peripheral::setInvalid(const String& error_message) {
   error_message_ = error_message;
 }
 
-String Peripheral::notAValidError(const utils::UUID& uuid, const String& type) {
-  return uuid.toString() + F(" is not a valid ") + type;
+utils::UUID Peripheral::getDataPointType(const JsonObjectConst& parameters) {
+  JsonVariantConst dpt_variant = parameters[data_point_type_short_key_];
+  if (!dpt_variant.isNull()) {
+    return utils::UUID(dpt_variant);
+  }
+  dpt_variant = parameters[data_point_type_key_];
+  if (!dpt_variant.isNull()) {
+    return utils::UUID(dpt_variant);
+  }
+  return utils::UUID(nullptr);
 }
 
 const __FlashStringHelper* Peripheral::uuid_key_ = FPSTR("uuid");
@@ -47,10 +59,12 @@ const __FlashStringHelper* Peripheral::uuid_key_error_ =
 const __FlashStringHelper* Peripheral::peripheral_not_found_error_ =
     FPSTR("Could not find peripheral: ");
 
+const __FlashStringHelper* Peripheral::data_point_type_short_key_ =
+    FPSTR("dpt");
 const __FlashStringHelper* Peripheral::data_point_type_key_ =
     FPSTR("data_point_type");
 const __FlashStringHelper* Peripheral::data_point_type_key_error_ =
-    FPSTR("Missing property: data_point_type (UUID)");
+    FPSTR("Missing property: data_point_type OR dpt (UUID)");
 const __FlashStringHelper* Peripheral::temperature_data_point_type_key_ =
     FPSTR("temperature_data_point_type");
 const __FlashStringHelper* Peripheral::temperature_data_point_type_key_error_ =
@@ -77,6 +91,19 @@ const __FlashStringHelper* Peripheral::temperature_c_key_error_ =
 const __FlashStringHelper* Peripheral::humidity_rh_key_ = FPSTR("humidity_rh");
 const __FlashStringHelper* Peripheral::humidity_rh_key_error_ =
     FPSTR("Wrong property: humidity_rh (float)");
+
+const __FlashStringHelper* Peripheral::variant_key_ = FPSTR("variant");
+const __FlashStringHelper* Peripheral::variant_key_error_ =
+    FPSTR("Missing property: variant (str)");
+
+const __FlashStringHelper* Peripheral::rx_key_ = FPSTR("rx");
+const __FlashStringHelper* Peripheral::tx_key_ = FPSTR("tx");
+const __FlashStringHelper* Peripheral::dere_key_ = FPSTR("dere");
+const __FlashStringHelper* Peripheral::baud_rate_key_ = FPSTR("baud_rate");
+const __FlashStringHelper* Peripheral::config_key_ = FPSTR("config");
+const __FlashStringHelper* Peripheral::modbus_client_adapter_key_ =
+    FPSTR("adapter");
+const __FlashStringHelper* Peripheral::config_error_ = FPSTR("Invalid config");
 
 }  // namespace peripheral
 }  // namespace inamata

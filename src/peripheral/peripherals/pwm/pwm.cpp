@@ -1,4 +1,3 @@
-#ifdef ESP32
 #include "pwm.h"
 
 #include "peripheral/peripheral_factory.h"
@@ -21,8 +20,7 @@ Pwm::Pwm(const ServiceGetters& services, const JsonObjectConst& parameters) {
     return;
   }
 
-  data_point_type_ =
-      utils::UUID(parameters[utils::ValueUnit::data_point_type_key]);
+  data_point_type_ = getDataPointType(parameters);
   if (!data_point_type_.isValid()) {
     setInvalid(utils::ValueUnit::data_point_type_key_error);
     return;
@@ -128,5 +126,3 @@ std::bitset<16> Pwm::busy_channels_;
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata
-
-#endif

@@ -87,20 +87,11 @@ bool AnalogIn::registered_ =
 bool AnalogIn::capability_get_values_ =
     capabilities::GetValues::registerType(type());
 
-#ifdef ESP32
 const std::array<uint8_t, 8> AnalogIn::valid_pins_ = {
     32, 33, 34, 35, 36, 37, 38, 39,
 };
 const __FlashStringHelper* AnalogIn::invalid_pin_error_ =
     FPSTR("Pin # not valid (only ADC1: 32 - 39)");
-#elif ESP8266
-const std::array<uint8_t, 1> AnalogIn::valid_pins_ = {16};
-const __FlashStringHelper* AnalogIn::invalid_pin_error_ =
-    FPSTR("Pin # not valid (only 16)");
-#else
-const std::array<uint8_t, 1> AnalogIn::valid_pins_ = {-1};
-const __FlashStringHelper* AnalogIn::invalid_pin_error_ = FPSTR("");
-#endif
 
 }  // namespace analog_in
 }  // namespace peripherals

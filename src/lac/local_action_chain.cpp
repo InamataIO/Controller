@@ -67,7 +67,6 @@ LocalActionChain::LocalActionChain(const ServiceGetters& services,
       action.input = std::unique_ptr<tasks::BaseTask::Input>(input);
       Action::parseOuts(action_config["out"], action);
 
-#ifdef ESP32
     } else if (action_type == tasks::set_rgb_led::SetRgbLed::type()) {
       // Set RGB LED task
       action.type = Action::Type::SetRgbLed;
@@ -76,7 +75,6 @@ LocalActionChain::LocalActionChain(const ServiceGetters& services,
       tasks::set_rgb_led::SetRgbLed::populateInput(action_config["params"],
                                                    *input);
       action.input = std::unique_ptr<tasks::BaseTask::Input>(input);
-#endif
 
     } else if (action_type == MathAction::type()) {
       // Math action
@@ -134,11 +132,9 @@ bool LocalActionChain::TaskCallback() {
     case Action::Type::SetValue:
       handleSetValue(*action);
       break;
-#ifdef ESP32
     case Action::Type::SetRgbLed:
       handleSetRgbLed(*action);
       break;
-#endif
     case Action::Type::Math:
       handleMath(*action);
       break;
@@ -219,7 +215,6 @@ void LocalActionChain::handleSetValue(Action& action) {
   }
 }
 
-#ifdef ESP32
 void LocalActionChain::handleSetRgbLed(Action& action) {
   // If nullptr, start task
   if (!action.input->task_id.isValid()) {
@@ -241,7 +236,6 @@ void LocalActionChain::handleSetRgbLed(Action& action) {
     TRACELN(F("Created SetRGB"));
   }
 }
-#endif
 
 void LocalActionChain::handleReadButton(Action& action) {}
 

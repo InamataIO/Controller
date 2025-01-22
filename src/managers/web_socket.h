@@ -10,7 +10,9 @@
 
 #include "configuration.h"
 #include "managers/logging.h"
+#include "managers/types.h"
 #include "utils/uuid.h"
+#include "utils/value_unit.h"
 
 namespace inamata {
 
@@ -68,6 +70,18 @@ class WebSocket {
 
   void sendTelemetry(JsonObject data, const utils::UUID* task_id = nullptr,
                      const utils::UUID* lac_id = nullptr);
+  /**
+   * Make a JSON object with the value units and UUID from the peripheral
+   *
+   * \param[in] values The measured values and data point types
+   * \param[in] peripheral_id The ID of the peripheral that returned the values
+   * \param[in] is_fixed Whether fixed peripheral and DPT IDs are used
+   * \param[out] telemetry The JSON object to add the value units and UUID to
+   */
+  static void packageTelemetry(const std::vector<utils::ValueUnit>& values,
+                               const utils::UUID& peripheral_id,
+                               const bool is_fixed, JsonObject& telemetry);
+
   void sendLimitEvent(JsonObject data);
   void sendBootErrors();
   void sendRegister();
@@ -87,6 +101,9 @@ class WebSocket {
               bool secure_url = true);
   void setWsToken(const char* token);
   const bool isWsTokenSet() const;
+
+  void setSentMessageCallback(std::function<void()> callback);
+  void clearSentMessageCallback();
 
   /**
    * Checks if the WebSocket connected to the server
@@ -114,6 +131,10 @@ class WebSocket {
   static const __FlashStringHelper* system_type_;
   static const __FlashStringHelper* lac_key_;
 
+  // Keys used in telemetry messages
+  static const __FlashStringHelper* telemetry_peripheral_key_;
+  static const __FlashStringHelper* fixed_peripheral_key_;
+
   // Keys and names used by result messages
   static const __FlashStringHelper* uuid_key_;
   static const __FlashStringHelper* result_status_key_;
@@ -122,6 +143,11 @@ class WebSocket {
   static const __FlashStringHelper* result_fail_name_;
   /// Used by LACs to tell if they are running, installed or so
   static const __FlashStringHelper* result_state_key_;
+
+  // Limit keys
+  static const __FlashStringHelper* limit_id_key_;
+  static const __FlashStringHelper* fixed_peripheral_id_key_;
+  static const __FlashStringHelper* fixed_dpt_id_key_;
 
  private:
   /**
@@ -183,6 +209,8 @@ class WebSocket {
   Callback task_controller_callback_;
   Callback lac_controller_callback_;
   Callback ota_update_callback_;
+
+  std::function<void()> sent_message_callback_;
 
   String ws_token_;
   static const __FlashStringHelper* default_core_domain_;

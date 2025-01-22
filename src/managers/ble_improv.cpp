@@ -36,11 +36,9 @@ void BleImprov::handle() {
     case improv::STATE_AWAITING_AUTHORIZATION:
       // TODO: Implement button auth
       setState(improv::STATE_AUTHORIZED);
-      // TODO: implement check identify
       break;
     case improv::STATE_AUTHORIZED:
       // TODO: handle auth timeout
-      // TODO: implement check identify
       break;
     case improv::STATE_PROVISIONING:
       // TODO: set indicator
@@ -157,8 +155,7 @@ void BleImprov::setupService() {
   ble_capabilities_char_ = ble_improv_service_->createCharacteristic(
       NimBLEUUID::fromString(improv::CAPABILITIES_UUID), NIMBLE_PROPERTY::READ);
   uint8_t capabilities = 0x00;
-  // TODO: Handle adding identify capability
-  // capabilities |= improv::CAPABILITY_IDENTIFY;
+  capabilities |= improv::CAPABILITY_IDENTIFY;
   ble_capabilities_char_->setValue(capabilities);
 
   ble_improv_service_->start();
@@ -212,19 +209,22 @@ void BleImprov::processRpcData() {
       wl_status_t wl_status =
           WiFi.begin(wifi_ap_.ssid.c_str(), wifi_ap_.password.c_str());
       if (wl_status == WL_CONNECT_FAILED) {
+        TRACELN(F("Failed starting WiFi setup"));
         setError(improv::ERROR_UNABLE_TO_CONNECT);
         break;
       }
+      TRACEF("Connecting to: %s - %s\n", command.ssid.c_str(),
+             command.password.c_str());
       wifi_connect_start_ = std::chrono::steady_clock::now();
       setState(improv::STATE_PROVISIONING);
+      Services::getActionController().identify();
     } break;
     case improv::IDENTIFY: {
-      identify_start_ = std::chrono::steady_clock::now();
-      std::vector<uint8_t> data = improv::build_rpc_response(
-          improv::GET_DEVICE_INFO, std::vector<String>());
+      std::vector<uint8_t> data =
+          improv::build_rpc_response(improv::IDENTIFY, std::vector<String>());
       ble_rpc_response_char_->setValue(data);
       ble_rpc_response_char_->notify();
-      TRACELN(F("Identifying"));
+      Services::getActionController().identify();
     } break;
     case improv::GET_DEVICE_INFO:
       sendDeviceInfoResponse();
@@ -370,8 +370,14 @@ void BleImprov::sendDeviceTypeResponse() {
 }
 
 void BleImprov::startGetWifiNetworks() {
+  if (scan_wifi_aps_) {
+    TRACELN("Already scanning WiFi");
+    return;
+  }
   TRACELN(F("Starting WiFi scan"));
   scan_wifi_aps_ = true;
+  WiFi.scanDelete();
+  WiFi.disconnect();
   WiFi.scanNetworks(true);
 }
 

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <TaskSchedulerDeclarations.h>
+#ifdef PROV_WIFI
 #include <WiFiManager.h>
+#endif
 
 #include <chrono>
 #include <limits>
@@ -30,12 +32,6 @@ class CheckConnectivity : public BaseTask {
   static const String& type();
 
  private:
-  enum class TimeCheckResult {
-    kNoCheck,
-    kUpdated,
-    kUpdateFailed,
-  };
-
   bool OnTaskEnable() final;
   bool TaskCallback() final;
 
@@ -47,14 +43,9 @@ class CheckConnectivity : public BaseTask {
   void setMode(Mode mode);
 
   /**
-   * Performs time synchronization when necessary
-   *
-   * Attempts to perform time synchronization with an NTP server. If it fails,
-   * restart.
-   *
-   * \return True if all is ok
+   * Reinits time sync (NTP) service every day
    */
-  TimeCheckResult checkInternetTime();
+  void handleClockSync();
 
   /**
    * Performs WebSocket processing and ensure connected state

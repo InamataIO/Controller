@@ -1,4 +1,3 @@
-#ifdef ESP32
 #include "capacitive_sensor.h"
 
 #include "peripheral/peripheral_factory.h"
@@ -38,7 +37,8 @@ capabilities::GetValues::Result CapacitiveSensor::getValues() {
               .data_point_type = data_point_type_}}};
 }
 
-const __FlashStringHelper* CapacitiveSensor::sense_pin_key_ = FPSTR("sense_pin");
+const __FlashStringHelper* CapacitiveSensor::sense_pin_key_ =
+    FPSTR("sense_pin");
 const __FlashStringHelper* CapacitiveSensor::sense_pin_key_error_ =
     FPSTR("Missing property: sense_pin (unsigned int)");
 
@@ -57,5 +57,3 @@ bool CapacitiveSensor::capability_get_value_ =
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata
-
-#endif

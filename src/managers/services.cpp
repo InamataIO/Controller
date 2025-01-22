@@ -13,9 +13,7 @@ Services::Services() {
   task_controller_.setServices(getters);
   task_removal_task_.setServices(getters);
   lac_controller_.setServices(getters);
-#ifdef ESP32
   ota_updater_.setServices(getters);
-#endif
 }
 
 std::shared_ptr<Network> Services::getNetwork() { return network_; }
@@ -58,9 +56,7 @@ tasks::TaskController& Services::getTaskController() {
 
 lac::LacController& Services::getLacController() { return lac_controller_; }
 
-#ifdef ESP32
 OtaUpdater& Services::getOtaUpdater() { return ota_updater_; }
-#endif
 
 Scheduler& Services::getScheduler() { return scheduler_; }
 
@@ -91,8 +87,8 @@ tasks::TaskRemovalTask Services::task_removal_task_{scheduler_};
 
 lac::LacController Services::lac_controller_{scheduler_};
 
-#ifdef ESP32
 OtaUpdater Services::ota_updater_{scheduler_};
-#endif
+
+// UiController Services::ui_controller_{scheduler_};
 
 }  // namespace inamata

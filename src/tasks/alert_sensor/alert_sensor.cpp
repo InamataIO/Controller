@@ -15,7 +15,6 @@ AlertSensor::AlertSensor(const ServiceGetters& services, Scheduler& scheduler,
       threshold_(input.threshold),
       data_point_type_id_(input.data_point_type_id),
       trigger_count_limit_(input.trigger_count_limit) {
-  TRACEF("AlertSensor CSTR, tcl: %i\n", trigger_count_limit_);
   if (!isValid()) {
     return;
   }
@@ -54,7 +53,6 @@ AlertSensor::AlertSensor(const ServiceGetters& services, Scheduler& scheduler,
   }
 
   enable();
-  TRACELN(F("AlertSensor CSTR end"));
 }
 
 const String& AlertSensor::getType() const { return type(); }
@@ -66,7 +64,6 @@ const String& AlertSensor::type() {
 
 void AlertSensor::populateInput(const JsonObjectConst& parameters,
                                 Input& input) {
-  TRACELN(F("1"));
   GetValuesTask::populateInput(parameters, input);
 
   JsonVariantConst trigger_type = parameters[trigger_type_key_];
@@ -120,19 +117,16 @@ bool AlertSensor::TaskCallback() {
     return false;
   }
 
-  TRACEF("value: %f\n", trigger_value_unit->value);
   // Check the flank type if it should trigger
   if (isRisingThreshold(trigger_value_unit->value)) {
     if (trigger_type_ == TriggerType::kRising ||
         trigger_type_ == TriggerType::kEither) {
-      TRACELN(F("RISING"));
       handle_output_(TriggerType::kRising);
       incrementTriggerCount();
     }
   } else if (isFallingThreshold(trigger_value_unit->value)) {
     if (trigger_type_ == TriggerType::kFalling ||
         trigger_type_ == TriggerType::kEither) {
-      TRACELN(F("FALLING"));
       handle_output_(TriggerType::kFalling);
       incrementTriggerCount();
     }
@@ -173,7 +167,8 @@ bool AlertSensor::sendAlert(TriggerType trigger_type) {
       return false;
     }
 
-    doc_out[peripheral_key_] = getPeripheralUUID().toString();
+    doc_out[WebSocket::telemetry_peripheral_key_] =
+        getPeripheralUUID().toString();
 
     web_socket_->sendTelemetry(doc_out.to<JsonObject>(), &getTaskID());
     return true;

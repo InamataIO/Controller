@@ -1,0 +1,325 @@
+// 5313 NPD SSN-E117-VOC-CO2-C1
+/* Relay out x 4
+   4-20mA out
+   RS485
+   Buzzer
+   Touch
+*/
+
+#include <Arduino.h>
+#include <LittleFS.h>
+#include <WiFi.h>
+#include <Wire.h>
+
+#include "DFRobot_GP8302.h"
+// #include <ModbusMaster.h>
+
+DFRobot_GP8302 module1;
+
+#define SDA_PIN 4
+#define SCL_PIN 5
+
+#define RS485_RXD 18
+#define RS485_TXD 17
+#define RS485_FC 21
+
+#define TOUCH1 39  // Direct GPIO
+#define TOUCH2 40
+
+#define LED1 8
+#define LED2 16
+#define LED3 15
+#define LED4 7
+#define LED5 6
+#define NET 42
+
+#define OUTPUT1 11  // Direct GPIO
+#define OUTPUT2 12
+#define OUTPUT3 13
+#define OUTPUT4 14
+
+#define BUZZER 10
+
+int prev_stat1 = 0;
+int prev_stat2 = 0;
+
+// ModbusMaster node;
+
+void preTransmission() { digitalWrite(RS485_FC, 1); }
+
+void postTransmission() { digitalWrite(RS485_FC, 0); }
+
+void touch_control();
+
+void indicator_test();
+
+void I2C_SCAN();
+
+void flash_test();
+
+void setup() {
+  Serial.begin(115200);
+
+  delay(2000);
+
+  Serial.println("5313 NPD SSN-E117-VOC-CO2-C1");
+
+  pinMode(RS485_FC, OUTPUT);
+  Serial1.begin(9600, SERIAL_8N1, RS485_RXD, RS485_TXD);
+
+  // Initialize Modbus Master Functions
+  // node.begin(5, Serial1);  // Slave ID as 5
+  // node.preTransmission(preTransmission);
+  // node.postTransmission(postTransmission);
+
+  Wire.begin(SDA_PIN, SCL_PIN);
+
+  pinMode(TOUCH1, INPUT);
+  pinMode(TOUCH2, INPUT);
+
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
+  pinMode(LED3, OUTPUT);
+  pinMode(LED4, OUTPUT);
+  pinMode(LED5, OUTPUT);
+  pinMode(NET, OUTPUT);
+
+  pinMode(OUTPUT1, OUTPUT);
+  pinMode(OUTPUT2, OUTPUT);
+  pinMode(OUTPUT3, OUTPUT);
+  pinMode(OUTPUT4, OUTPUT);
+
+  pinMode(BUZZER, OUTPUT);
+
+  digitalWrite(BUZZER, HIGH);
+  delay(100);
+  digitalWrite(BUZZER, LOW);
+
+  flash_test();
+
+  indicator_test();
+
+  I2C_SCAN();
+  delay(1000);
+
+  // Initialize module1 with specified I2C pins
+  uint8_t status1 =
+      module1.begin(SCL_PIN, SDA_PIN);  // I2C scl and sda pins redefine
+  if (status1 != 0) {
+    Serial.print("Module 1 initialization failed. Error code: ");
+    Serial.println(status1);
+    Serial.println("Error Code: ");
+    Serial.println("\t1: _scl or _sda pin is invalid.");
+    Serial.println(
+        "\t2: Device not found, please check if the device is connected.");
+    while (1) yield();
+  }
+  Serial.println("Module 1 initialized.");
+}
+
+void loop() {
+  uint8_t value;
+  uint8_t result;
+  // value = node.readHoldingRegisters(0x40001, 4);
+
+  // Serial.print("\n");
+  // Serial.print(" TEMP : ");
+  // Serial.print(node.getResponseBuffer(0x00) / 10);
+  // Serial.print(" HUMID : ");
+  // Serial.print(node.getResponseBuffer(0x01));
+  // Serial.print(" VOC : ");
+  // Serial.print(node.getResponseBuffer(0x02));
+  // Serial.print(" CO2 : ");
+  // Serial.print(node.getResponseBuffer(0x03));
+  // Serial.print("\n");
+
+  // result = node.writeSingleCoil(0x0002, digitalRead(TOUCH1));
+  Serial.print(digitalRead(TOUCH1));
+
+  delay(500);
+}
+
+void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
+  Serial.printf("Listing directory: %s\r\n", dirname);
+
+  File root = fs.open(dirname, "r+");
+  if (!root) {
+    Serial.println("- failed to open directory");
+    return;
+  }
+  if (!root.isDirectory()) {
+    Serial.println(" - not a directory");
+    return;
+  }
+
+  File file = root.openNextFile();
+  while (file) {
+    if (file.isDirectory()) {
+      Serial.print("  DIR : ");
+
+      Serial.print(file.name());
+      time_t t = file.getLastWrite();
+      struct tm* tmstruct = localtime(&t);
+      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n",
+                    (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1,
+                    tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min,
+                    tmstruct->tm_sec);
+
+      if (levels) {
+        listDir(fs, file.name(), levels - 1);
+      }
+    } else {
+      Serial.print("  FILE: ");
+      Serial.print(file.name());
+      Serial.print("  SIZE: ");
+
+      Serial.print(file.size());
+      time_t t = file.getLastWrite();
+      struct tm* tmstruct = localtime(&t);
+      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n",
+                    (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1,
+                    tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min,
+                    tmstruct->tm_sec);
+    }
+    file = root.openNextFile();
+  }
+}
+
+void flash_test() {
+  // Initialize the file system
+  if (!LittleFS.begin()) {
+    if (!LittleFS.begin(true)) {
+      Serial.println("Failed mounting LittleFS");
+    } else {
+      Serial.println("Formatted LittleFS on fail");
+    }
+  }
+  listDir(LittleFS, "/", 1);
+}
+
+void c_out_module1() {
+  uint16_t dac = module1.output(8);  // Control the DAC module to output
+  // 5mA and return the DAC value
+  Serial.print("Module 1 DAC value: ");
+  Serial.println(dac);
+}
+
+void touch_control() {
+  Serial.print("Touch 1 : ");
+  Serial.println(digitalRead(TOUCH1));
+  if ((digitalRead(TOUCH1) == 1) && (prev_stat1 == 0)) {
+    prev_stat1 = 1;
+    digitalWrite(LED1, HIGH);
+    delay(500);
+  } else if ((digitalRead(TOUCH1) == 1) && (prev_stat1 == 1)) {
+    prev_stat1 = 0;
+    digitalWrite(LED1, LOW);
+    delay(500);
+  }
+
+  Serial.print("Touch 2 : ");
+  Serial.println(digitalRead(TOUCH2));
+  if ((digitalRead(TOUCH2) == 1) && (prev_stat2 == 0)) {
+    prev_stat2 = 1;
+    digitalWrite(LED2, HIGH);
+    delay(500);
+  } else if ((digitalRead(TOUCH2) == 1) && (prev_stat2 == 1)) {
+    prev_stat2 = 0;
+    digitalWrite(LED2, LOW);
+    delay(500);
+  }
+}
+
+void I2C_SCAN() {
+  byte error, address;
+  int deviceCount = 0;
+
+  Serial.println("Scanning...");
+
+  for (address = 1; address < 127; address++) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+
+    if (error == 0) {
+      Serial.print("I2C device found at address 0x");
+      if (address < 16) {
+        Serial.print("0");
+      }
+      Serial.print(address, HEX);
+      Serial.println("  !");
+
+      deviceCount++;
+      delay(1);  // Wait for a moment to avoid overloading the I2C bus
+    } else if (error == 4) {
+      Serial.print("Unknown error at address 0x");
+      if (address < 16) {
+        Serial.print("0");
+      }
+      Serial.println(address, HEX);
+    }
+  }
+
+  if (deviceCount == 0) {
+    Serial.println("No I2C devices found\n");
+  } else {
+    Serial.println("Scanning complete\n");
+  }
+}
+
+void indicator_test() {
+  digitalWrite(NET, HIGH);
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, LOW);
+  digitalWrite(LED3, LOW);
+  digitalWrite(LED4, LOW);
+  digitalWrite(LED5, LOW);
+  delay(1000);
+
+  digitalWrite(NET, LOW);
+  digitalWrite(LED1, HIGH);
+  digitalWrite(LED2, LOW);
+  digitalWrite(LED3, LOW);
+  digitalWrite(LED4, LOW);
+  digitalWrite(LED5, LOW);
+  delay(1000);
+
+  digitalWrite(NET, LOW);
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, HIGH);
+  digitalWrite(LED3, LOW);
+  digitalWrite(LED4, LOW);
+  digitalWrite(LED5, LOW);
+  delay(1000);
+
+  digitalWrite(NET, LOW);
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, LOW);
+  digitalWrite(LED3, HIGH);
+  digitalWrite(LED4, LOW);
+  digitalWrite(LED5, LOW);
+  delay(1000);
+
+  digitalWrite(NET, LOW);
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, LOW);
+  digitalWrite(LED3, LOW);
+  digitalWrite(LED4, HIGH);
+  digitalWrite(LED5, LOW);
+  delay(1000);
+
+  digitalWrite(NET, LOW);
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, LOW);
+  digitalWrite(LED3, LOW);
+  digitalWrite(LED4, LOW);
+  digitalWrite(LED5, HIGH);
+  delay(1000);
+
+  digitalWrite(NET, LOW);
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, LOW);
+  digitalWrite(LED3, LOW);
+  digitalWrite(LED4, LOW);
+  digitalWrite(LED5, LOW);
+  delay(1000);
+}

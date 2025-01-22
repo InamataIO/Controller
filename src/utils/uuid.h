@@ -35,6 +35,14 @@ class UUID : public Printable {
 
   virtual ~UUID() = default;
 
+  /**
+   * Construct the UUID from the given __FlashStringHelper*
+   *
+   * \param uuid The UUID in string form (Hex 8-4-4-4-12)
+   * \return True if it is a valid UUID string
+   */
+  static UUID fromFSH(const __FlashStringHelper* uuid);
+
   bool operator<(const UUID& rhs) const;
   bool operator>(const UUID& rhs) const;
   bool operator<=(const UUID& rhs) const;
@@ -64,7 +72,7 @@ class UUID : public Printable {
    * \param uuid The UUID in string form (Hex 8-4-4-4-12)
    * \return True if it is a valid UUID string
    */
-  bool fromString(const char* uuid);
+  bool parseString(const char* uuid);
 
   /**
    * Clears the UUID and makes it invalid
@@ -80,7 +88,7 @@ class UUID : public Printable {
 
  private:
   /// The internal binary buffer holding the UUID
-  std::array<uint8_t, 16> buffer_;
+  std::array<uint8_t, 16> buffer_{0};
 };
 
 /// ID of peripheral/task/LAC and save version

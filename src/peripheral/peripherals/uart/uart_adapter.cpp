@@ -90,6 +90,57 @@ void UARTAdapter::setupESP32(int rx_pin, int tx_pin, const char* config_chars,
                              int baud_rate) {}
 #endif
 
+int UARTAdapter::parseUARTConfig(const char* config_chars) {
+  int config_bits = 0;
+  if (!config_chars || strlen(config_chars) != 3) {
+    config_bits = SERIAL_8N1;
+  } else {
+    const char data_bits = config_chars[0];
+    switch (data_bits) {
+      case '5':
+        config_bits |= UART_DATA_5_BITS;
+        break;
+      case '6':
+        config_bits |= UART_DATA_6_BITS;
+        break;
+      case '7':
+        config_bits |= UART_DATA_7_BITS;
+        break;
+      case '8':
+        config_bits |= UART_DATA_8_BITS;
+        break;
+      default:
+        return -1;
+    }
+    const char parity = config_chars[1];
+    switch (parity) {
+      case 'N':
+        config_bits |= UART_PARITY_DISABLE;
+        break;
+      case 'E':
+        config_bits |= UART_PARITY_EVEN;
+        break;
+      case 'O':
+        config_bits |= UART_PARITY_ODD;
+        break;
+      default:
+        return -1;
+    }
+    const char stop_bits = config_chars[2];
+    switch (stop_bits) {
+      case '1':
+        config_bits |= UART_STOP_BITS_1;
+        break;
+      case '2':
+        config_bits |= UART_STOP_BITS_2;
+        break;
+      default:
+        return -1;
+    }
+  }
+  return config_bits;
+}
+
 #ifdef ESP8266
 void UARTAdapter::setupESP8266(int rx_pin, int tx_pin, const char* config_chars,
                                int baud_rate) {
@@ -178,12 +229,6 @@ const __FlashStringHelper* UARTAdapter::serial_taken_error_ =
     FPSTR("UART taken/nullptr");
 const __FlashStringHelper* UARTAdapter::invalid_pins_error_ =
     FPSTR("Invalid pins");
-
-const __FlashStringHelper* UARTAdapter::rx_key_ = FPSTR("rx");
-const __FlashStringHelper* UARTAdapter::tx_key_ = FPSTR("tx");
-const __FlashStringHelper* UARTAdapter::baud_rate_key_ = FPSTR("baud_rate");
-const __FlashStringHelper* UARTAdapter::config_key_ = FPSTR("config");
-const __FlashStringHelper* UARTAdapter::config_error_ = FPSTR("Invalid config");
 
 }  // namespace uart
 }  // namespace peripherals

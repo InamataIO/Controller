@@ -8,10 +8,12 @@ namespace inamata {
 class ErrorStore {
  public:
   enum class KeyType {
-    kUUID,
-    kUint32t,
-    kString,
+    kArray,
     kBool,
+    kFloat,
+    kString,
+    kUint32t,
+    kUUID,
   };
 
   static String genMissingProperty(String key, KeyType key_type);
@@ -32,9 +34,11 @@ class ErrorStore {
   static const size_t missing_property_length_a = 18 + 2 + 2;
 
   static const __FlashStringHelper* missing_property_prefix_;
+  static const __FlashStringHelper* array_type_;
+  static const __FlashStringHelper* bool_type_;
+  static const __FlashStringHelper* float_type_;
+  static const __FlashStringHelper* string_type_;
   static const __FlashStringHelper* uuid_type_;
   static const __FlashStringHelper* uint32_t_type_;
-  static const __FlashStringHelper* string_type_;
-  static const __FlashStringHelper* bool_type_;
 };
 }  // namespace inamata

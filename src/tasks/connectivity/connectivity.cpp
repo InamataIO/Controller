@@ -51,8 +51,10 @@ bool CheckConnectivity::TaskCallback() {
       setMode(Mode::ProvisionDevice);
     }
     if (connect_mode == Network::ConnectMode::kConnected) {
-      checkInternetTime();
-      handleWebSocket();
+      handleClockSync();
+      if (network_->isTimeSynced()) {
+        handleWebSocket();
+      }
     }
   } else {
 #ifdef PROV_WIFI
@@ -83,20 +85,12 @@ bool CheckConnectivity::TaskCallback() {
   return true;
 }
 
-CheckConnectivity::TimeCheckResult CheckConnectivity::checkInternetTime() {
-  TimeCheckResult result = TimeCheckResult::kNoCheck;
+void CheckConnectivity::handleClockSync() {
   if (utils::chrono_abs(std::chrono::steady_clock::now() - last_time_check_) >
       time_check_period_) {
     last_time_check_ = std::chrono::steady_clock::now();
-
-    bool success = network_->setClock(std::chrono::seconds(30));
-    if (success) {
-      result = TimeCheckResult::kUpdated;
-    } else {
-      result = TimeCheckResult::kUpdateFailed;
-    }
+    network_->initTimeSync();
   }
-  return result;
 }
 
 void CheckConnectivity::handleWebSocket() {
@@ -127,21 +121,10 @@ void CheckConnectivity::setMode(Mode mode) {
     services_.getBleServer()->disable();
 #endif
 #ifdef PROV_WIFI
-#ifdef ESP32
     wifi_manager_ = nullptr;
     ws_token_parameter_ = nullptr;
     core_domain_parameter_ = nullptr;
     secure_url_parameter_ = nullptr;
-#else
-    std::chrono::steady_clock::time_point start_time =
-        std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start_time <
-           std::chrono::seconds(2)) {
-      wifi_manager_->process();
-    }
-    TRACELN(F("Restart to close WifiManager"));
-    ESP.restart();
-#endif
 #endif
   }
 
@@ -151,6 +134,9 @@ void CheckConnectivity::setMode(Mode mode) {
   // Actions to run when entering mode
   if (mode_ == Mode::ConnectWiFi) {
     network_->setMode(Network::ConnectMode::kFastConnect);
+    // If not reset, will fail on WS connection after being provisioned
+    // and will require a reboot
+    web_socket_->resetConnectAttempt();
   }
   if (mode == Mode::ProvisionDevice) {
 #ifdef PROV_WIFI
@@ -169,7 +155,6 @@ void CheckConnectivity::handleImprov() {
     return;
   }
   if (!improv_) {
-    TRACELN(F("Creating BleImprov"));
     improv_ = std::unique_ptr<BleImprov>(new BleImprov(services_));
   }
   improv_->handle();

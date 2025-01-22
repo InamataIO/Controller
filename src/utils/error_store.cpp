@@ -5,13 +5,23 @@ namespace inamata {
 String ErrorStore::genMissingProperty(String key, KeyType key_type) {
   String key_type_string;
   switch (key_type) {
-    case KeyType::kUUID:
-      key_type_string = uuid_type_;
-    case KeyType::kString:
-      key_type_string = string_type_;
+    case KeyType::kArray:
+      key_type_string = bool_type_;
       break;
     case KeyType::kBool:
       key_type_string = bool_type_;
+      break;
+    case KeyType::kFloat:
+      key_type_string = float_type_;
+      break;
+    case KeyType::kString:
+      key_type_string = string_type_;
+      break;
+    case KeyType::kUint32t:
+      key_type_string = uint32_t_type_;
+      break;
+    case KeyType::kUUID:
+      key_type_string = uuid_type_;
       break;
     default:
       break;
@@ -40,9 +50,11 @@ String ErrorStore::genNotAValid(const utils::UUID& uuid, const String& type) {
 
 const __FlashStringHelper* ErrorStore::missing_property_prefix_ =
     FPSTR("Missing property: ");
-const __FlashStringHelper* ErrorStore::uuid_type_ = FPSTR("uuid");
-const __FlashStringHelper* ErrorStore::uint32_t_type_ = FPSTR("uint32_t");
-const __FlashStringHelper* ErrorStore::string_type_ = FPSTR("string");
+const __FlashStringHelper* ErrorStore::array_type_ = FPSTR("array");
 const __FlashStringHelper* ErrorStore::bool_type_ = FPSTR("bool");
+const __FlashStringHelper* ErrorStore::float_type_ = FPSTR("float");
+const __FlashStringHelper* ErrorStore::string_type_ = FPSTR("string");
+const __FlashStringHelper* ErrorStore::uint32_t_type_ = FPSTR("uint32_t");
+const __FlashStringHelper* ErrorStore::uuid_type_ = FPSTR("uuid");
 
 }  // namespace inamata

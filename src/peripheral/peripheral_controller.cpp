@@ -106,6 +106,7 @@ std::vector<utils::VersionedID> PeripheralController::getPeripheralIDs() {
 ErrorResult PeripheralController::add(const JsonObjectConst& config) {
   utils::UUID peripheral_id(config[Peripheral::uuid_key_]);
   if (!peripheral_id.isValid()) {
+    TRACEJSON(config);
     return ErrorResult(type(), Peripheral::uuid_key_error_);
   }
 

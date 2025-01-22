@@ -2,6 +2,7 @@
 
 #include "managers/services.h"
 #include "peripheral/peripheral.h"
+#include "utils/error_store.h"
 
 namespace inamata {
 namespace tasks {
@@ -24,13 +25,14 @@ GetValuesTask::GetValuesTask(const ServiceGetters& services,
 
   // Get the UUID to later find the pointer to the peripheral object
   if (!peripheral_id_.isValid()) {
-    setInvalid(peripheral_key_error_);
+    setInvalid(ErrorStore::genMissingProperty(
+        WebSocket::telemetry_peripheral_key_, ErrorStore::KeyType::kUUID));
     return;
   }
 
   // Search for the peripheral for the given name
   auto peripheral =
-      Services::getPeripheralController().getPeripheral(input.peripheral_id);
+      Services::getPeripheralController().getPeripheral(peripheral_id_);
   if (!peripheral) {
     setInvalid(peripheral::Peripheral::peripheralNotFoundError(peripheral_id_));
     return;
@@ -60,7 +62,8 @@ void GetValuesTask::populateInput(const JsonObjectConst& parameters,
   BaseTask::populateInput(parameters, input);
 
   // Get the UUID to later find the pointer to the peripheral object
-  JsonVariantConst peripheral_id = parameters[peripheral_key_];
+  JsonVariantConst peripheral_id =
+      parameters[WebSocket::telemetry_peripheral_key_];
   if (!peripheral_id.isNull()) {
     input.peripheral_id = peripheral_id;
   }
@@ -71,29 +74,9 @@ void GetValuesTask::sendTelemetry(
   // Clear the JSON doc, then insert value units and peripheral UUID
   JsonDocument doc_out;
   JsonObject result_object = doc_out.to<JsonObject>();
-  packageValues(result, result_object);
-
-  // Send the result to the server
+  WebSocket::packageTelemetry(result.values, peripheral_id_, false,
+                              result_object);
   web_socket_->sendTelemetry(result_object, &getTaskID());
-}
-
-void GetValuesTask::packageValues(
-    peripheral::capabilities::GetValues::Result& result,
-    JsonObject& telemetry) {
-  // Create an array for the value units and get them from the peripheral
-  JsonArray value_units_doc =
-      telemetry[utils::ValueUnit::data_points_key].to<JsonArray>();
-
-  // Create a JSON object representation for each value unit in the array
-  for (const auto& value_unit : result.values) {
-    JsonObject value_unit_object = value_units_doc.add<JsonObject>();
-    value_unit_object[utils::ValueUnit::value_key] = value_unit.value;
-    value_unit_object[utils::ValueUnit::data_point_type_key] =
-        value_unit.data_point_type.toString();
-  }
-
-  // Add the peripheral UUID to the result
-  telemetry[peripheral_key_] = peripheral_id_.toString();
 }
 
 const __FlashStringHelper* GetValuesTask::threshold_key_ = FPSTR("threshold");

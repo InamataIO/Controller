@@ -85,8 +85,6 @@ class ADS1X15Adapter : public peripherals::i2c::I2CAbstractPeripheral {
   /// The error if the chip type does not match the expected values
   static const __FlashStringHelper* invalid_chip_type_error_;
   /// If it is an ADS1015 or ADS1115
-  static const __FlashStringHelper* variant_key_;
-  static const __FlashStringHelper* variant_key_error_;
 };
 
 }  // namespace ads1x15

@@ -171,6 +171,9 @@ void Alert::handleLimit1(const std::chrono::steady_clock::time_point now,
     update_color_ = elevated_color_;
     is_limit_1_crossed = true;
   } else if (is_limit_1_crossed) {
+    // TODO: Check Alarms::handleLimit to always set limit_2_delay_start to
+    // min if below threshold
+
     // First check where limit is no longer being crossed
     limit_1_delay_start = std::chrono::steady_clock::time_point::min();
     sendLimitEvent(limit_1_id_, value_unit, utils::LimitEvent::Type::kEnd);
@@ -201,6 +204,9 @@ void Alert::handleLimit2(const std::chrono::steady_clock::time_point now,
     update_color_ = danger_color_;
     is_limit_2_crossed = true;
   } else if (is_limit_2_crossed) {
+    // TODO: Check Alarms::handleLimit to always set limit_2_delay_start to
+    // min if below threshold
+
     // First check where limit is no longer being crossed
     limit_2_delay_start = std::chrono::steady_clock::time_point::min();
     sendLimitEvent(limit_2_id_, value_unit, utils::LimitEvent::Type::kEnd);

@@ -1,6 +1,21 @@
 #include "network.h"
 
+#include "esp_sntp.h"
+
 namespace inamata {
+
+bool is_time_synced = false;
+
+void timeSyncCallback(struct timeval* tv) {
+  is_time_synced = true;
+
+#ifdef TRACELN
+  time_t nowSecs = time(nullptr);
+  struct tm timeinfo;
+  gmtime_r(&nowSecs, &timeinfo);
+  TRACEF("Time synced: %s\n", asctime(&timeinfo));
+#endif
+}
 
 Network::Network(std::vector<WiFiAP>& wifi_aps, String& controller_name)
     : wifi_aps_(std::move(wifi_aps)),
@@ -14,6 +29,8 @@ Network::Network(std::vector<WiFiAP>& wifi_aps, String& controller_name)
 }
 
 void Network::setMode(ConnectMode mode) { connect_mode_ = mode; }
+
+Network::ConnectMode Network::getMode() { return connect_mode_; }
 
 Network::ConnectMode Network::connect() {
   // If not connected, execute active conntect mode. After trying action, try
@@ -314,64 +331,30 @@ bool Network::tryCyclePower() {
     Serial.println(F("WiFi: CyclePower start"));
     WiFi.mode(WIFI_OFF);
   } else {
-// In the next cycle, turn it back on and try to fast connect
-#ifdef ESP32
+    // In the next cycle, turn it back on and try to fast connect
     WiFi.mode(WIFI_MODE_STA);
-#else
-    WiFi.mode(WIFI_STA);
-#endif
     connect_mode_ = ConnectMode::kFastConnect;
   }
   // Power cycle never results in connection to AP
   return false;
 }
 
-bool Network::setClock(std::chrono::seconds timeout) {
-  // #TODO: Make operation non-blocking
+void Network::initTimeSync() {
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-
-  TRACELN(F("Network: Waiting for NTP time sync"));
-  Serial.print(F("\t"));
-  time_t nowSecs = time(nullptr);
-  std::chrono::milliseconds delay_duration(500);
-  unsigned int tries = 0;
-  while (nowSecs < 8 * 3600 * 2) {
-    delay(delay_duration.count());
-    tries++;
-    Serial.print(F("."));
-    yield();
-    nowSecs = time(nullptr);
-    if (tries * delay_duration > timeout) {
-      Serial.println();
-      Serial.print(F("Timed out after "));
-      Serial.print(static_cast<long>(timeout.count()));
-      Serial.println("s");
-      return false;
-    }
-  }
-  Serial.println();
-
-  struct tm timeinfo;
-  gmtime_r(&nowSecs, &timeinfo);
-  Serial.print(F("Current time: "));
-  Serial.print(asctime(&timeinfo));
-  return true;
+  sntp_set_time_sync_notification_cb(timeSyncCallback);
+  TRACELN(F("Start time sync"));
 }
+
+bool Network::isTimeSynced() { return is_time_synced; }
 
 bool Network::populateNetworkInfo(NetworkInfo& network_info) {
   if (network_info.id < 0 || network_info.id > 255) {
     return false;
   }
   uint8_t id = static_cast<uint8_t>(network_info.id);
-#ifndef ESP32
-  return WiFi.getNetworkInfo(id, network_info.ssid, network_info.encType,
-                             network_info.rssi, network_info.bssid,
-                             network_info.channel, network_info.hidden);
-#else
   return WiFi.getNetworkInfo(id, network_info.ssid, network_info.encType,
                              network_info.rssi, network_info.bssid,
                              network_info.channel);
-#endif
 }
 
 bool Network::sortRssi(const WiFiAP& lhs, const WiFiAP& rhs) {

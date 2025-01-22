@@ -57,9 +57,7 @@ class LocalActionChain : public tasks::BaseTask {
   void handleReadButton(Action& action);
   void handleReadSensor(Action& action);
   void handleSetValue(Action& action);
-#ifdef ESP32
   void handleSetRgbLed(Action& action);
-#endif
 
   void handleSetValueOutput(utils::ValueUnit& value,
                             tasks::set_value::SetValue& task);

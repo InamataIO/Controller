@@ -9,12 +9,7 @@ namespace utils {
 
 UUID::UUID() {
   for (int i = 0; i < 16; i += 4) {
-#ifdef ESP32
     uint32_t random = esp_random();
-#elif ESP8266
-    uint32_t random = RANDOM_REG32;
-#endif
-
     memcpy(&buffer_[i], &random, 4);
   }
 
@@ -23,15 +18,23 @@ UUID::UUID() {
   buffer_[8] = (buffer_[8] & 0x3F) | 0x80;
 }
 
-UUID::UUID(const char* str) { fromString(str); }
+UUID::UUID(const char* str) {
+  if (str == nullptr) {
+    return;
+  }
+  parseString(str);
+}
 
 UUID::UUID(const JsonVariantConst& uuid) {
   if (!uuid.is<const char*>()) {
-    clear();
     return;
   }
+  parseString(uuid.as<const char*>());
+}
 
-  fromString(uuid.as<const char*>());
+UUID UUID::fromFSH(const __FlashStringHelper* uuid) {
+  String uuid_str(uuid);
+  return UUID(uuid_str.c_str());
 }
 
 bool UUID::operator<(const UUID& rhs) const { return buffer_ < rhs.buffer_; }
@@ -74,7 +77,7 @@ String UUID::toString() const {
   return uuid_str;
 }
 
-bool UUID::fromString(const char* uuid) {
+bool UUID::parseString(const char* uuid) {
   if (!uuid || strlen(uuid) != 36) {
     clear();
     return false;

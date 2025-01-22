@@ -9,4 +9,7 @@ const __FlashStringHelper* ServiceGetters::web_socket_nullptr_error_ =
 
 const __FlashStringHelper* ServiceGetters::storage_nullptr_error_ =
     FPSTR("Storage nullptr returned");
+
+const __FlashStringHelper* ServiceGetters::ble_server_nullptr_error_ =
+    FPSTR("BleServer nullptr returned");
 }  // namespace inamata

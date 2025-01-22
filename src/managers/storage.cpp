@@ -54,7 +54,6 @@ void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
 
 void Storage::openFS() {
   // Initialize the file system
-#ifdef ESP32
   if (!LittleFS.begin()) {
     if (!LittleFS.begin(true)) {
       TRACELN(F("Failed mounting LittleFS"));
@@ -62,11 +61,6 @@ void Storage::openFS() {
       TRACELN(F("Formatted LittleFS on fail"));
     }
   }
-#else
-  if (!LittleFS.begin()) {
-    TRACELN(F("Failed mounting LittleFS"));
-  }
-#endif
 #ifdef ENABLE_TRACE
   listDir(LittleFS, "/", 1);
 #endif

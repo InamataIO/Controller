@@ -17,13 +17,28 @@ void ActionController::handleCallback(const JsonObjectConst& message) {
   } else if (action == action_clear_stored_resources_) {
     services_.getStorage()->deletePeripherals();
     ESP.restart();
+  } else if (action == action_identify_) {
+    identify();
   } else {
     TRACEF("Unknown action: %s\n", action);
   }
 }
 
+void ActionController::identify() {
+  if (identify_callback_) {
+    identify_callback_();
+  }
+}
+
+void ActionController::setIdentifyCallback(std::function<void()> callback) {
+  identify_callback_ = callback;
+}
+
+void ActionController::clearIdentifyCallback() { identify_callback_ = nullptr; }
+
 const __FlashStringHelper* ActionController::action_restart_ = FPSTR("rst");
 const __FlashStringHelper* ActionController::action_clear_stored_resources_ =
     FPSTR("clrStrdRes");
+const __FlashStringHelper* ActionController::action_identify_ = FPSTR("ident");
 
 }  // namespace inamata

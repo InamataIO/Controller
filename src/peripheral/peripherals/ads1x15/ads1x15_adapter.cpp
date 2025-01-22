@@ -1,5 +1,3 @@
-#ifdef ESP32
-
 #include "ads1x15_adapter.h"
 
 #include "peripheral/peripheral_factory.h"
@@ -140,13 +138,7 @@ bool ADS1X15Adapter::registered_ =
 const __FlashStringHelper* ADS1X15Adapter::invalid_chip_type_error_ =
     FPSTR("Failed ADS1x15 setup");
 
-const __FlashStringHelper* ADS1X15Adapter::variant_key_ = FPSTR("variant");
-const __FlashStringHelper* ADS1X15Adapter::variant_key_error_ =
-    FPSTR("Missing property: variant (str)");
-
 }  // namespace ads1x15
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata
-
-#endif

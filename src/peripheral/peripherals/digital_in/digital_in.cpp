@@ -17,7 +17,7 @@ DigitalIn::DigitalIn(const JsonObjectConst& parameters) {
   pin_ = pin;
 
   // Get the data point type for setting the pin state
-  data_point_type_ = utils::UUID(parameters[data_point_type_key_]);
+  data_point_type_ = getDataPointType(parameters);
   if (!data_point_type_.isValid()) {
     setInvalid(data_point_type_key_error_);
     return;
@@ -34,11 +34,7 @@ DigitalIn::DigitalIn(const JsonObjectConst& parameters) {
   } else if (input_type == F("pullup")) {
     pinMode(pin_, INPUT_PULLUP);
   } else if (input_type == F("pulldown")) {
-#ifdef ESP32
     pinMode(pin_, INPUT_PULLDOWN);
-#else
-    pinMode(pin_, INPUT_PULLDOWN_16);
-#endif
   } else {
     setInvalid(input_type_key_error_);
     return;
@@ -71,6 +67,16 @@ capabilities::GetValues::Result DigitalIn::getValues() {
   return {.values = {utils::ValueUnit{.value = static_cast<float>(value),
                                       .data_point_type = data_point_type_}}};
 }
+
+bool DigitalIn::readState() {
+  bool value = bool(digitalRead(pin_));
+  if (active_low_) {
+    return !value;
+  }
+  return value;
+}
+
+bool DigitalIn::readCurrentState() { return readState(); }
 
 std::shared_ptr<Peripheral> DigitalIn::factory(
     const ServiceGetters& services, const JsonObjectConst& parameters) {

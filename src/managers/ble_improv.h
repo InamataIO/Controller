@@ -61,7 +61,7 @@ class BleImprov : public NimBLECharacteristicCallbacks {
   void setupService();
 
   /**
-   * Handle received RPC data (set WiFi AP, indicate, ...)
+   * Handle received RPC data (set WiFi AP, identify, ...)
    */
   void processRpcData();
 
@@ -122,10 +122,6 @@ class BleImprov : public NimBLECharacteristicCallbacks {
   std::chrono::steady_clock::time_point wifi_connect_start_ =
       std::chrono::steady_clock::time_point::min();
   std::chrono::milliseconds wifi_connect_timeout_ = std::chrono::seconds(30);
-
-  // TODO: Implement identify logic
-  std::chrono::steady_clock::time_point identify_start_ =
-      std::chrono::steady_clock::time_point::min();
 
   improv::State state_ = improv::STATE_STOPPED;
   improv::Error error_ = improv::ERROR_NONE;

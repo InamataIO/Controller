@@ -26,7 +26,8 @@ SetValue::SetValue(Scheduler& scheduler, const Input& input)
 
   peripheral_id_ = input.peripheral_id;
   if (!peripheral_id_.isValid()) {
-    setInvalid(peripheral_key_error_);
+    setInvalid(ErrorStore::genMissingProperty(
+        WebSocket::telemetry_peripheral_key_, ErrorStore::KeyType::kUUID));
     return;
   }
 
@@ -59,7 +60,8 @@ const String& SetValue::type() {
 void SetValue::populateInput(const JsonObjectConst& parameters, Input& input) {
   BaseTask::populateInput(parameters, input);
 
-  JsonVariantConst peripheral_id = parameters[peripheral_key_];
+  JsonVariantConst peripheral_id =
+      parameters[WebSocket::telemetry_peripheral_key_];
   if (!peripheral_id.isNull()) {
     input.peripheral_id = peripheral_id;
   }
@@ -98,7 +100,8 @@ void SetValue::sendTelemetry(utils::ValueUnit value_unit,
   value_unit_object[utils::ValueUnit::value_key] = value_unit_.value;
   value_unit_object[utils::ValueUnit::data_point_type_key] =
       value_unit_.data_point_type.toString();
-  telemetry_doc[peripheral_key_] = peripheral_id_.toString();
+  telemetry_doc[WebSocket::telemetry_peripheral_key_] =
+      peripheral_id_.toString();
   if (lac_id) {
     web_socket_->sendTelemetry(telemetry_doc, nullptr, lac_id);
   } else {

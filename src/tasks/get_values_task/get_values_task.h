@@ -45,15 +45,6 @@ class GetValuesTask : public BaseTask {
    */
   void sendTelemetry(peripheral::capabilities::GetValues::Result& result);
 
-  /**
-   * Make a JSON object with the value units and UUID from the peripheral
-   *
-   * \param result The measured values and data point types
-   * \param telemetry The JSON object to add the value units and UUID to
-   */
-  void packageValues(peripheral::capabilities::GetValues::Result& result,
-                     JsonObject& telemetry);
-
   static const __FlashStringHelper* threshold_key_;
   static const __FlashStringHelper* threshold_key_error_;
   static const __FlashStringHelper* trigger_type_key_;

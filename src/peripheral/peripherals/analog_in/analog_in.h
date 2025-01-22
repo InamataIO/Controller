@@ -43,13 +43,7 @@ class AnalogIn : public Peripheral,
 
   /// The pin to be used as a GPIO output
   unsigned int pin_;
-#ifdef ESP32
   static const std::array<uint8_t, 8> valid_pins_;
-#elif ESP8266
-  static const std::array<uint8_t, 1> valid_pins_;
-#else
-  static const std::array<uint8_t, 1> valid_pins_;
-#endif
   static const __FlashStringHelper* invalid_pin_error_;
 };
 

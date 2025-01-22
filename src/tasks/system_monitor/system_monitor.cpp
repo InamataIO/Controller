@@ -48,21 +48,10 @@ bool SystemMonitor::TaskCallback() {
   size_t max_malloc_bytes = 0;
   size_t least_free_bytes = 0;
   uint8_t heap_fragmentation = 0;
-#ifdef ESP32
   stack_hwm = uxTaskGetStackHighWaterMark(NULL) * 4;
   free_bytes = heap_caps_get_free_size(MALLOC_CAP_8BIT);
   max_malloc_bytes = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
   least_free_bytes = heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT);
-#else
-  stack_hwm = ESP.getFreeContStack();
-  uint32_t heap_free;
-  uint32_t heap_max;
-  uint8_t heap_frag;
-  ESP.getHeapStats(&heap_free, &heap_max, &heap_frag);
-  free_bytes = heap_free;
-  max_malloc_bytes = heap_max;
-  heap_fragmentation = heap_frag;
-#endif
 
   JsonDocument doc_out;
   if (stack_hwm) {
@@ -85,19 +74,16 @@ bool SystemMonitor::TaskCallback() {
 
   float cpuTotal = scheduler_.getCpuLoadTotal();
   float cpuCycles = scheduler_.getCpuLoadCycle();
-  float cpuIdle = scheduler_.getCpuLoadIdle();
   scheduler_.cpuLoadReset();
 
-  // Productive work (not idle, not scheduling) --> time in task callbacks
-  doc_out[F("productive_percent")] =
-      100 - ((cpuIdle + cpuCycles) / cpuTotal * 100.0);
+  doc_out[F("cpu_load")] = cpuCycles / cpuTotal * 100.0;
   doc_out[F("wifi_rssi")] = WiFi.RSSI();
 
   web_socket_->sendSystem(doc_out.as<JsonObject>());
   return true;
 }
 
-const std::chrono::seconds SystemMonitor::default_interval_{60};
+const std::chrono::seconds SystemMonitor::default_interval_{60 * 30};
 
 }  // namespace system_monitor
 }  // namespace tasks

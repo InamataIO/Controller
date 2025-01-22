@@ -11,12 +11,8 @@
 #include <chrono>
 #include <initializer_list>
 
-#include "managers/types.h"
-
-#ifdef ESP32
 extern const uint8_t rootca_crt_bundle_start[] asm(
     "_binary_data_cert_x509_crt_bundle_bin_start");
-#endif
 
 namespace inamata {
 
@@ -30,7 +26,8 @@ static const std::chrono::seconds wifi_connect_timeout(30);
 static const std::chrono::seconds web_socket_connect_timeout(30);
 static const std::chrono::minutes provision_timeout(5);
 
-#ifdef DEVICE_TYPE_VOC_SENSOR_MK1
+#if defined(DEVICE_TYPE_VOC_SENSOR_MK1) || \
+    defined(DEVICE_TYPE_TIAKI_CO2_MONITOR)
 #define BEHAVIOR_BASED
 const bool behavior_based = true;
 #endif

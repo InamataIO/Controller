@@ -73,11 +73,7 @@ void AnalogOut::setValue(utils::ValueUnit value_unit) {
   const float clamped_value =
       std::fmax(0, std::fmin(value_unit.value, max_value));
   const float dac_value = clamped_value * 255.0 / max_value;
-#ifdef ESP32
   dacWrite(pin_, dac_value);
-#else
-  analogWrite(pin_, dac_value);
-#endif
 }
 
 std::shared_ptr<Peripheral> AnalogOut::factory(

@@ -1,4 +1,3 @@
-#ifdef ESP32
 #include "set_rgb_led.h"
 
 #include "managers/services.h"
@@ -16,7 +15,8 @@ SetRgbLed::SetRgbLed(Scheduler& scheduler, const Input& input)
 
   // Get the UUID to later find the pointer to the peripheral object
   if (!input.peripheral_id.isValid()) {
-    setInvalid(peripheral_key_error_);
+    setInvalid(ErrorStore::genMissingProperty(
+        WebSocket::telemetry_peripheral_key_, ErrorStore::KeyType::kUUID));
     return;
   }
 
@@ -59,7 +59,8 @@ void SetRgbLed::populateInput(const JsonObjectConst& parameters, Input& input) {
   BaseTask::populateInput(parameters, input);
 
   // Get the UUID to later find the pointer to the peripheral object
-  JsonVariantConst peripheral_id = parameters[peripheral_key_];
+  JsonVariantConst peripheral_id =
+      parameters[WebSocket::telemetry_peripheral_key_];
   if (!peripheral_id.isNull()) {
     input.peripheral_id = peripheral_id;
   }
@@ -148,5 +149,3 @@ const __FlashStringHelper* SetRgbLed::white_key_ = F("white");
 }  // namespace set_rgb_led
 }  // namespace tasks
 }  // namespace inamata
-
-#endif

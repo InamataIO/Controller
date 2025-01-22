@@ -96,7 +96,7 @@ bool CalibrateVoc::setFixedPeripherals() {
     return false;
   }
 
-  humidity_dpt_ = String(peripheral::fixed::dpt_humidity_id).c_str();
+  humidity_dpt_ = String(peripheral::fixed::dpt_humidity_rh_id).c_str();
   temperature_c_dpt_ = String(peripheral::fixed::dpt_temperature_c_id).c_str();
 
   return true;

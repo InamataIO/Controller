@@ -1,16 +1,8 @@
 #pragma once
-#ifdef ESP32
 
 #include <ArduinoJson.h>
-#ifdef ESP32
 #include <HTTPClient.h>
 #include <esp_https_ota.h>
-#elif ESP8266
-#include <ESP8266HTTPClient.h>
-#include <ESP8266httpUpdate.h>
-#else
-#error Only ESP32 and ESP8266 supported
-#endif
 
 #include "managers/service_getters.h"
 #include "tasks/base_task.h"
@@ -104,5 +96,3 @@ class OtaUpdater : public tasks::BaseTask {
 };
 
 }  // namespace inamata
-
-#endif

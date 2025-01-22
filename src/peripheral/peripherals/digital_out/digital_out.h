@@ -30,7 +30,32 @@ class DigitalOut : public Peripheral, public capabilities::SetValue {
    */
   void setValue(utils::ValueUnit value_unit) final;
 
+  /**
+   * Set an override value that preserves the setValue state
+   *
+   * \see clearOverride
+   * \param state Logical on or off
+   */
+  void setOverride(bool state);
+
+  /**
+   * Clear the override value and restores the last setValue state
+   */
+  void clearOverride();
+
+  /**
+   * Returns the setValue state (ignore override)
+   *
+   * \return Logical on or off
+   */
+  bool getState();
+
  private:
+  /**
+   * Sets the output (digitalWrite) depending on state, override and active low
+   */
+  void setOutput();
+
   static std::shared_ptr<Peripheral> factory(const ServiceGetters& services,
                                              const JsonObjectConst& parameter);
   static bool registered_;
@@ -38,6 +63,11 @@ class DigitalOut : public Peripheral, public capabilities::SetValue {
 
   /// Interface to send data to the server
   std::shared_ptr<WebSocket> web_socket_;
+
+  /// Main setValue state
+  bool state_ = false;
+  /// Logical override state, -1 if override cleared
+  int8_t override_state_ = -1;
 
   /// The pin to be used as a GPIO output
   unsigned int pin_;

@@ -1,6 +1,10 @@
 #pragma once
 
+#include <WiFi.h>
+
+#ifdef PROV_WIFI
 #include <WiFiManager.h>
+#endif
 
 #include <chrono>
 #include <vector>
@@ -55,6 +59,7 @@ class Network {
   Network(std::vector<WiFiAP>& access_points, String& controller_name);
 
   void setMode(ConnectMode mode);
+  ConnectMode getMode();
 
   /**
    * Connects to the configured WiFi access point
@@ -76,15 +81,14 @@ class Network {
   bool isConnected(wl_status_t* wifi_status = nullptr);
 
   /**
-   * Updates clock from NTP server
-   *
-   * Not sure if WiFiClientSecure checks the validity date of the certificate.
-   * Setting clock just to be sure...
-   *
-   * @param timeout Time after which the update should timeout
-   * @return True if the time was updated
+   * Start the NTP service to sync clock every hour
    */
-  bool setClock(std::chrono::seconds timeout);
+  void initTimeSync();
+
+  /**
+   * Whether the system clock has been synced since boot
+   */
+  bool isTimeSynced();
 
   static bool populateNetworkInfo(NetworkInfo& network_info);
 

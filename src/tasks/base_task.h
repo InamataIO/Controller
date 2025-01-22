@@ -161,9 +161,6 @@ class BaseTask : public Task {
   /// Function called on task disable (task end)
   std::function<void()> on_task_disable_;
 
-  static const __FlashStringHelper* peripheral_key_;
-  static const __FlashStringHelper* fixed_peripheral_key_;
-  static const __FlashStringHelper* peripheral_key_error_;
   static const __FlashStringHelper* task_id_key_;
   static const __FlashStringHelper* task_id_key_error_;
 

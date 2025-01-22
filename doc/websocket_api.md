@@ -28,9 +28,6 @@
     install: { uuid: "", "routine": []},
     uninstall: { uuid: ""}
   },
-  behavior: {
-    set: { ... }
-  }
   behav: {
     set: { bid: "", update: int, ... },
     clear: { uuid: "" }
@@ -82,7 +79,8 @@ a response to the register message.
 
 ```
 {
-  type: ""
+  set: { bid: "", update: int, ... },
+  clear: { uuid: "" }
 }
 ```
 
@@ -204,15 +202,50 @@ In order to stop a task, send its ID to the stop topic.
     "limit_id": UUID/str,
     "limit": float,
     <"delay_s": float,>
-    "fp_id": UUID/str,
-    "fdpt_id": UUID/str,
+  },
+  "voc_limit_2": {
+    "limit_id": UUID/str,
+    "limit": float,
+    <"delay_s": float>
+  }
+}
+```
+
+### Tiaki CO2 Sensor
+
+#### Alarms
+
+```
+{
+  "co2_limit_1": {
+    "limit_id": UUID/str,
+    "limit": float,
+    <"delay_s": float,>
+  },
+  "co2_limit_2": {
+    "limit_id": UUID/str,
+    "limit": float,
+    <"delay_s": float,>
+  },
+  "co2_limit_3": {
+    "limit_id": UUID/str,
+    "limit": float,
+    <"delay_s": float,>
+  },
+  "co2_limit_4": {
+    "limit_id": UUID/str,
+    "limit": float,
+    <"delay_s": float,>
+  },
+  "voc_limit_1": {
+    "limit_id": UUID/str,
+    "limit": float,
+    <"delay_s": float,>
   },
   "voc_limit_2": {
     "limit_id": UUID/str,
     "limit": float,
     <"delay_s": float,>
-    "fp_id": UUID/str,
-    "fdpt_id": UUID/str,
   }
 }
 ```

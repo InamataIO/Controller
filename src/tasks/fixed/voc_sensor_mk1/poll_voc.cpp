@@ -54,21 +54,7 @@ bool PollVoc::TaskCallback() {
 
   JsonDocument doc_out;
   JsonObject telemetry = doc_out.to<JsonObject>();
-  // Create an array for the value units and get them from the peripheral
-  JsonArray value_units_doc =
-      doc_out[utils::ValueUnit::data_points_key].to<JsonArray>();
-
-  // Create a JSON object representation for each value unit in the array
-  for (const auto& value_unit : result.values) {
-    JsonObject value_unit_object = value_units_doc.add<JsonObject>();
-    value_unit_object[utils::ValueUnit::value_key] = value_unit.value;
-    value_unit_object[utils::ValueUnit::fixed_data_point_type_key] =
-        value_unit.data_point_type.toString();
-  }
-
-  // Add the peripheral UUID to the result
-  telemetry[fixed_peripheral_key_] = voc_sensor_->id.toString();
-
+  WebSocket::packageTelemetry(result.values, voc_sensor_->id, true, telemetry);
   web_socket_->sendTelemetry(telemetry);
 
   return true;

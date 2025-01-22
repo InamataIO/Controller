@@ -1,4 +1,3 @@
-#ifdef ESP32
 #include "ota_updater.h"
 
 #include <ArduinoJson.h>
@@ -223,5 +222,3 @@ const __FlashStringHelper* OtaUpdater::update_in_progress_error_ =
 const __FlashStringHelper* OtaUpdater::http_code_error_ = FPSTR("HTTP code: ");
 
 }  // namespace inamata
-
-#endif

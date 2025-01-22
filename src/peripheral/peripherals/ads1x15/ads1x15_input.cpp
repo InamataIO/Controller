@@ -1,5 +1,3 @@
-#ifdef ESP32
-
 #include "ads1x15_input.h"
 
 #include "managers/services.h"
@@ -160,5 +158,3 @@ const __FlashStringHelper* ADS1X15Input::ads1x15_adapter_key_error_ =
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata
-
-#endif

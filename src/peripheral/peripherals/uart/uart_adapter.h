@@ -24,10 +24,18 @@ class UARTAdapter : public Peripheral {
 
   /**
    * Get the configured Serial object
-   * 
+   *
    * @return Pointer to active serial/UART interface
    */
   HardwareSerial* getSerial();
+
+  /**
+   * Parse a 3 char config (8N1) into Serial config bitmask
+   *
+   * \param config_chars 3 char config (8N1, 7E0, ...)
+   * \return A SerialConfig enum or -1 on error
+   */
+  static int parseUARTConfig(const char* config_chars);
 
  private:
   static std::shared_ptr<Peripheral> factory(const ServiceGetters& services,
@@ -63,12 +71,6 @@ class UARTAdapter : public Peripheral {
   static const __FlashStringHelper* invalid_pins_error_;
 
   std::shared_ptr<UARTAdapter> uart_adapter_;
-
-  static const __FlashStringHelper* rx_key_;
-  static const __FlashStringHelper* tx_key_;
-  static const __FlashStringHelper* baud_rate_key_;
-  static const __FlashStringHelper* config_key_;
-  static const __FlashStringHelper* config_error_;
 };
 
 }  // namespace uart

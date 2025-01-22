@@ -1,5 +1,3 @@
-#ifdef ESP32
-
 #include "i2c_adapter.h"
 
 #include "peripheral/peripheral_factory.h"
@@ -82,5 +80,3 @@ const __FlashStringHelper* I2CAdapter::sda_key_error_ =
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata
-
-#endif

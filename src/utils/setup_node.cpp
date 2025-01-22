@@ -43,9 +43,7 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
       services.getPeripheralController();
   tasks::TaskController& task_controller = services.getTaskController();
   lac::LacController& lac_controller = services.getLacController();
-#ifdef ESP32
   OtaUpdater& ota_updater = services.getOtaUpdater();
-#endif
 
   // Create a websocket instance as the server interface
   WebSocket::Config config{
@@ -67,10 +65,8 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
           &tasks::TaskController::handleCallback, &task_controller, _1),
       .lac_controller_callback =
           std::bind(&lac::LacController::handleCallback, &lac_controller, _1),
-#ifdef ESP32
       .ota_update_callback =
           std::bind(&OtaUpdater::handleCallback, &ota_updater, _1),
-#endif
       .core_domain = core_domain.as<const char*>(),
       .ws_url_path = ws_url_path.as<const char*>(),
       .ws_token = ws_token.as<const char*>(),
@@ -122,8 +118,9 @@ bool loadLocalPeripherals(Services& services) {
                               : peripheral_doc.as<JsonArray>();
   for (JsonVariantConst peripheral : peripherals) {
     ErrorResult error = services.getPeripheralController().add(peripheral);
-    TRACEF("Loaded peri: %s\n",
-           peripheral[peripheral::Peripheral::uuid_key_].as<const char*>());
+    TRACEF("Local peri: %s : %d\n",
+           peripheral[peripheral::Peripheral::uuid_key_].as<const char*>(),
+           error.isError());
     if (error.isError()) {
       // TODO: Save error and send to server
       Serial.println(error.toString());
@@ -140,14 +137,22 @@ bool loadLocalPeripherals(Services& services) {
 
 bool loadFixedPeripherals(Services& services) {
   JsonDocument peripherals_doc;
-  DeserializationError error =
-      deserializeJson(peripherals_doc, peripheral::fixed::config);
-  for (auto peripheral : peripherals_doc.as<JsonArray>()) {
-    ErrorResult error = services.getPeripheralController().add(peripheral);
-    TRACEF("Loaded peri: %s\n",
-           peripheral[peripheral::Peripheral::uuid_key_].as<const char*>());
-    if (error.isError()) {
+  for (auto config : peripheral::fixed::configs) {
+    if (!config) {
+      continue;
+    }
+    DeserializationError error = deserializeJson(peripherals_doc, config);
+    if (error) {
+      TRACEF("Fixed peri JSON fail: %s\n", error.c_str());
       return false;
+    }
+    for (auto peripheral : peripherals_doc.as<JsonArray>()) {
+      ErrorResult error = services.getPeripheralController().add(peripheral);
+      if (error.isError()) {
+        TRACEF("Init fixed peri fail: %s\n", error.toString().c_str());
+        TRACEJSON(peripheral);
+        return false;
+      }
     }
   }
 
@@ -157,6 +162,7 @@ bool loadFixedPeripherals(Services& services) {
 bool setupNode(Services& services) {
   // Enable serial communication and prints
   Serial.begin(115200);
+  delay(2000);
   Serial.print(F("Fimware version: "));
   Serial.println(WebSocket::firmware_version_);
 
@@ -181,7 +187,7 @@ bool setupNode(Services& services) {
 
   // Create the BLE server
   services.setBleServer(std::make_shared<BleServer>());
-  if (peripheral::fixed::config != nullptr) {
+  if (peripheral::fixed::configs[0] != nullptr) {
     success = loadFixedPeripherals(services);
   } else {
     success = loadLocalPeripherals(services);
@@ -190,7 +196,7 @@ bool setupNode(Services& services) {
     return false;
   }
 
-  if (peripheral::fixed::config != nullptr) {
+  if (peripheral::fixed::configs[0] != nullptr) {
     JsonDocument behavior_doc;
     services.getStorage()->loadBehavior(behavior_doc);
     JsonObjectConst behavior_config = behavior_doc.as<JsonObjectConst>();
