@@ -3,6 +3,7 @@
 #include "managers/action_controller.h"
 #include "managers/web_socket.h"
 #include "peripheral/fixed.h"
+#include "tasks/configman/configman_task.h"
 #include "tasks/connectivity/connectivity.h"
 #include "tasks/fixed/config.h"
 #include "tasks/system_monitor/system_monitor.h"
@@ -205,10 +206,24 @@ bool setupNode(Services& services) {
                                   services.getScheduler(), behavior_config);
   }
 
+#ifdef CONFIGURATION_MANAGER
+  services.setConfigManager(std::make_shared<ConfigManager>());
+
+  tasks::config_man::ConfigurationManagementTask* config_task =
+      new tasks::config_man::ConfigurationManagementTask(
+          services.getGetters(), services.getScheduler());
+
+  if (!config_task->isValid()) {
+    TRACELN(config_task->getError().toString());
+    delete config_task;
+  }
+#endif
+
   success = createSystemTasks(services);
   if (!success) {
     return false;
   }
+
   return true;
 }
 

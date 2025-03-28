@@ -40,6 +40,14 @@ void Services::setBleServer(std::shared_ptr<BleServer> ble_server) {
   ble_server_ = ble_server;
 }
 
+std::shared_ptr<ConfigManager> Services::getConfigManager() {
+  return config_manager_;
+}
+
+void Services::setConfigManager(std::shared_ptr<ConfigManager> config_manager) {
+  config_manager_ = config_manager;
+}
+
 ActionController& Services::getActionController() { return action_controller_; }
 
 BehaviorController& Services::getBehaviorController() {
@@ -64,7 +72,8 @@ ServiceGetters Services::getGetters() {
   ServiceGetters getters(std::bind(&Services::getNetwork, this),
                          std::bind(&Services::getWebSocket, this),
                          std::bind(&Services::getStorage, this),
-                         std::bind(&Services::getBleServer, this));
+                         std::bind(&Services::getBleServer, this),
+                         std::bind(&Services::getConfigManager, this));
   return getters;
 }
 

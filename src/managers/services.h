@@ -48,6 +48,9 @@ class Services {
   std::shared_ptr<BleServer> getBleServer();
   void setBleServer(std::shared_ptr<BleServer> ble_server);
 
+  std::shared_ptr<ConfigManager> getConfigManager();
+  void setConfigManager(std::shared_ptr<ConfigManager> config_manager);
+
   static ActionController& getActionController();
   static BehaviorController& getBehaviorController();
   static peripheral::PeripheralController& getPeripheralController();
@@ -74,6 +77,7 @@ class Services {
   /// Handles Low-Energy Bluetooth
   std::shared_ptr<BleServer> ble_server_;
   /// Executes the active tasks
+  std::shared_ptr<ConfigManager> config_manager_;
   static Scheduler scheduler_;
 
   /// Handles commands with controller actions
