@@ -8,7 +8,7 @@ cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 ##############################################################################
 # Skip check on main branch
 
-if [[ $(git branch --show-current) = "main" ]]; then
+if [[ "$CI_COMMIT_REF_NAME" = "main" ]]; then
   echo "Skipping version check on main branch"
   exit 0
 fi
