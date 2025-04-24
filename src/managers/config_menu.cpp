@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 
+#include "managers/time_manager.h"
 #include "utils/person_info.h"
 #include "utils/person_info_validator.h"
 
@@ -60,8 +61,11 @@ void ConfigManager::loop() {
       isStillInState = deleteRecipient(key);
     } else if (menuState == MenuState::kSearchRecipient) {
       isStillInState = searchRecipient(key);
+#ifdef RTC_MANAGER      
+    } else if (menuState == MenuState::kDateTimeSet) {
+      isStillInState = setSystemDateTime(key);
+#endif
     }
-
     // Show main menu if state machine is terminated or in idle mode.
     if (!isStillInState) {
       printMenu();
@@ -93,6 +97,8 @@ bool ConfigManager::isValidChar(InputType type, char c) {
       return isalnum(c) || c == ' ';
     case InputType::kPhoneNumInput:
       return isdigit(c) || c == '+';
+    case InputType::kNumberInput:
+      return isdigit(c);
     case InputType::kAnyInput:
     default:
       return isPrintable(c);
@@ -891,8 +897,158 @@ void ConfigManager::printMenu() {
   Serial.println("[3] Edit Recipient Details");
   Serial.println("[4] Remove Recipient");
   Serial.println("[5] Search Recipient");
+#ifdef RTC_MANAGER
+  Serial.println("[6] Set System Date/Time");
+  Serial.println("[7] Show System Date/Time");
+#endif
   Serial.println("[X] Exit Configuration Menu");
   Serial.print("\r\nSelection: ");
+}
+
+/**
+ * \brief Sets the system date and time based on user input.
+ *
+ * This function allows the user to set the system date and time by entering
+ * values for year, month, day, hour, minute, and second. It validates each
+ * input and updates the system time accordingly.
+ *
+ * \param key The character received from serial input for date/time entry.
+ * \return true if the process is ongoing, false when the date/time is set or
+ * an error occurs.
+ *
+ * Functionality:
+ * - Guides the user through entering year, month, day, hour, minute, and
+ * second.
+ * - Validates each input to ensure correctness.
+ * - Sets the system time using `TimeManager::setSystemTime`.
+ *
+ * \note This function interacts with `TimeManager` to set the system date and
+ * time.
+ */
+bool ConfigManager::setSystemDateTime(char key) {
+  menuState = MenuState::kDateTimeSet;
+
+  switch (dateInputStage) {
+    case SetDateTimeStage::SDT_INIT:
+      Serial.print("Year: ");
+      dateInputStage = SetDateTimeStage::SDT_YEAR;
+      break;
+    case SetDateTimeStage::SDT_YEAR:
+      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
+        if (tempNumber.isEmpty()) return false;
+
+        if (!TimeManager::isValidYear(tempNumber)) {
+          Serial.println("Invalid year!");
+          return false;
+        }
+
+        inputYear = tempNumber.toInt();
+
+        dateInputStage = SetDateTimeStage::SDT_MONTH;
+        tempNumber = "";
+        Serial.print("Month: ");
+
+        return true;
+      }
+      break;
+
+    case SetDateTimeStage::SDT_MONTH:
+      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
+        if (tempNumber.isEmpty()) return false;
+
+        if (!TimeManager::isValidMonth(tempNumber)) {
+          Serial.println("Invalid month!");
+          return false;
+        }
+
+        inputMonth = tempNumber.toInt();
+
+        dateInputStage = SetDateTimeStage::SDT_DAY;
+        tempNumber = "";
+        Serial.print("Day: ");
+
+        return true;
+      }
+      break;
+
+    case SetDateTimeStage::SDT_DAY:
+      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
+        if (tempNumber.isEmpty()) return false;
+
+        if (!TimeManager::isValidDay(tempNumber, inputYear, inputMonth)) {
+          Serial.println("Invalid day!");
+          return false;
+        }
+
+        inputDay = tempNumber.toInt();
+
+        dateInputStage = SetDateTimeStage::SDT_HOUR;
+        tempNumber = "";
+        Serial.print("Hour: ");
+
+        return true;
+      }
+      break;
+    case SetDateTimeStage::SDT_HOUR:
+      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
+        if (tempNumber.isEmpty()) return false;
+
+        if (!TimeManager::isValidHour(tempNumber)) {
+          Serial.println("Invalid hour!");
+          return false;
+        }
+
+        inputHour = tempNumber.toInt();
+
+        dateInputStage = SetDateTimeStage::SDT_MINUTE;
+        tempNumber = "";
+        Serial.print("Minute: ");
+
+        return true;
+      }
+      break;
+    case SetDateTimeStage::SDT_MINUTE:
+      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
+        if (tempNumber.isEmpty()) return false;
+
+        if (!TimeManager::isValidMinute(tempNumber)) {
+          Serial.println("Invalid minute!");
+          return false;
+        }
+
+        inputMinute = tempNumber.toInt();
+
+        dateInputStage = SetDateTimeStage::SDT_SECOND;
+        tempNumber = "";
+        Serial.print("Second: ");
+
+        return true;
+      }
+      break;
+    case SetDateTimeStage::SDT_SECOND:
+      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
+        if (tempNumber.isEmpty()) return false;
+
+        // Check if the second is valid (using the same function as minute).
+        if (!TimeManager::isValidMinute(tempNumber)) {
+          Serial.println("Invalid second!");
+          return false;
+        }
+
+        inputSecond = tempNumber.toInt();
+
+        TimeManager::setSystemTime(inputYear, inputMonth, inputDay, inputHour,
+                                   inputMinute, inputSecond);
+
+        dateInputStage = SetDateTimeStage::SDT_INIT;
+        tempNumber = "";
+        Serial.println("Date/Time set successfully.");
+        return false;
+      }
+      break;
+  }
+
+  return true;
 }
 
 /**
@@ -927,6 +1083,8 @@ void ConfigManager::resetSubState() {
   selectedRecipient.groupData = 0;
   selectedRecipient.name = "";
   selectedRecipient.siteName = "";
+
+  dateInputStage = SetDateTimeStage::SDT_INIT;
 }
 
 /**
@@ -963,6 +1121,14 @@ void ConfigManager::handleInput(char input) {
     case '5':
       isStillInState = searchRecipient(input);
       break;
+#ifdef RTC_MANAGER
+    case '6':
+      isStillInState = setSystemDateTime(input);
+      break;
+    case '7':
+      TimeManager::showSystemDateTime();
+      break;
+#endif
     case 'x':
     case 'X':
       Serial.println("Exiting configuration menu.");

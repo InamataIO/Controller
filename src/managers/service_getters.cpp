@@ -15,4 +15,7 @@ const __FlashStringHelper* ServiceGetters::ble_server_nullptr_error_ =
 
 const __FlashStringHelper* ServiceGetters::config_manager_nullptr_error_ =
     FPSTR("ConfigManager nullptr returned");
+
+const __FlashStringHelper* ServiceGetters::log_manager_nullptr_error_ =
+    FPSTR("LoggingManager nullptr returned");
 }  // namespace inamata

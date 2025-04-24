@@ -13,7 +13,8 @@ class ConfigManager {
   enum class InputType {
     kAlphaNumericInput,  // Allows alphanumeric characters.
     kPhoneNumInput,      // Allows only characters which uses in phone numbers.
-    kAnyInput            // Allows any printable character.
+    kAnyInput,           // Allows any printable character.
+    kNumberInput         // Allows only numbers.
   };
 
   enum class MenuState {
@@ -23,6 +24,7 @@ class ConfigManager {
     kEditRecipient,    // Edit recipient state.
     kDeleteRecipient,  // Delete recipient state.
     kSearchRecipient,  // Search recipient state.
+    kDateTimeSet,      // Set date and time state.
     kExit              // Exit from configuration mode.
   };
 
@@ -48,6 +50,16 @@ class ConfigManager {
     kGroupDataStatisticsInput    // Setting up statistics flag.
   };
 
+  enum class SetDateTimeStage {
+    SDT_INIT,     // Initial state.
+    SDT_YEAR,     // Year input state.
+    SDT_MONTH,    // Month input state.
+    SDT_DAY,      // Day input state.
+    SDT_HOUR,     // Hour input state.
+    SDT_MINUTE,   // Minute input state.
+    SDT_SECOND    // Second input state.
+  };
+
   // configuration manager's serial operations.
   String inputBuffer;         // Buffer to store raw user input.
   char choiceBuffer;          // Buffer to store last user choice.
@@ -60,9 +72,11 @@ class ConfigManager {
   PersonalInfoManager
       infoManager;  // Manages personal information collection of recipients.
 
-  String tempName;       // Name of the recipient.
-  String tempContact;    // Contact number of the recipient.
-  String tempSite;       // Site name of the recipient.
+  String tempName;     // Name of the recipient.
+  String tempContact;  // Contact number of the recipient.
+  String tempSite;     // Site name of the recipient.
+  String tempNumber;  // Temporary buffer to store the numbers input by the user
+                      // (mainly used in date/time input routines).
   char tempMaintanence;  // Maintenance flag (extracted from group data).
   char tempManagement;   // Management flag (extracted from group data).
   char tempStatistics;   // Statistics flag (extracted from group data).
@@ -70,6 +84,11 @@ class ConfigManager {
   MenuState menuState;  // Current state of the menu.
   RecipientState
       recipientMenuState;  // Current state of the add recipient menu.
+
+  SetDateTimeStage
+      dateInputStage;  // Current stage of the date/time input process.
+  int inputYear, inputMonth, inputDay, inputHour, inputMinute,
+      inputSecond;  // Components of date/time input flow.
 
   void printMenu();
   void resetSubState();
@@ -89,6 +108,8 @@ class ConfigManager {
 
   bool deleteRecipient(char key);
   bool searchRecipient(char key);
+
+  bool setSystemDateTime(char key);
 
  public:
   void initConfigMenuManager();

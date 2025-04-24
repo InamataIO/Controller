@@ -2,11 +2,18 @@
 
 #include "managers/action_controller.h"
 #include "managers/web_socket.h"
+#include "managers/time_manager.h"
 #include "peripheral/fixed.h"
 #include "tasks/configman/configman_task.h"
 #include "tasks/connectivity/connectivity.h"
 #include "tasks/fixed/config.h"
+#include "tasks/logman/logman_task.h"
 #include "tasks/system_monitor/system_monitor.h"
+
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+#define I2C1_SDA 9
+#define I2C1_SCL 8
+#endif
 
 namespace inamata {
 
@@ -167,6 +174,11 @@ bool setupNode(Services& services) {
   Serial.print(F("Fimware version: "));
   Serial.println(WebSocket::firmware_version_);
 
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+  // Initialize the I2C bus for the peripherals.
+  Wire.begin(I2C1_SDA,I2C1_SCL);
+#endif
+
   // Load and start subsystems that need secrets
   services.setStorage(std::make_shared<Storage>());
   services.getStorage()->openFS();
@@ -206,6 +218,10 @@ bool setupNode(Services& services) {
                                   services.getScheduler(), behavior_config);
   }
 
+#ifdef RTC_MANAGER
+  TimeManager::initRTC();
+#endif
+
 #ifdef CONFIGURATION_MANAGER
   services.setConfigManager(std::make_shared<ConfigManager>());
 
@@ -218,6 +234,18 @@ bool setupNode(Services& services) {
     delete config_task;
   }
 #endif
+  services.setLoggingManager(
+      std::make_shared<LoggingManager>());
+
+  tasks::logging_man::LoggingManagerTask* logman_task =
+      new tasks::logging_man::LoggingManagerTask(services.getGetters(),
+                                                 services.getScheduler());
+  if (!logman_task->isValid()) {
+    TRACELN(logman_task->getError().toString());
+    delete logman_task;
+  }
+
+  services.getLoggingManager()->addLog(F("Starting"), F("Starting the system"));
 
   success = createSystemTasks(services);
   if (!success) {

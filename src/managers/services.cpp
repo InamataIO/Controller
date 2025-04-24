@@ -48,6 +48,14 @@ void Services::setConfigManager(std::shared_ptr<ConfigManager> config_manager) {
   config_manager_ = config_manager;
 }
 
+std::shared_ptr<LoggingManager> Services::getLoggingManager() {
+  return log_manager_;
+}
+
+void Services::setLoggingManager(std::shared_ptr<LoggingManager> log_manager) {
+  log_manager_ = log_manager;
+} 
+
 ActionController& Services::getActionController() { return action_controller_; }
 
 BehaviorController& Services::getBehaviorController() {
@@ -73,7 +81,8 @@ ServiceGetters Services::getGetters() {
                          std::bind(&Services::getWebSocket, this),
                          std::bind(&Services::getStorage, this),
                          std::bind(&Services::getBleServer, this),
-                         std::bind(&Services::getConfigManager, this));
+                         std::bind(&Services::getConfigManager, this),
+                         std::bind(&Services::getLoggingManager, this));
   return getters;
 }
 
