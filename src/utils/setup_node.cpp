@@ -1,12 +1,13 @@
 #include "setup_node.h"
 
 #include "managers/action_controller.h"
-#include "managers/web_socket.h"
 #include "managers/time_manager.h"
+#include "managers/web_socket.h"
 #include "peripheral/fixed.h"
 #include "tasks/configman/configman_task.h"
 #include "tasks/connectivity/connectivity.h"
 #include "tasks/fixed/config.h"
+#include "tasks/gpio_monitor/gpio_monitor_task.h"
 #include "tasks/logman/logman_task.h"
 #include "tasks/system_monitor/system_monitor.h"
 
@@ -176,7 +177,7 @@ bool setupNode(Services& services) {
 
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
   // Initialize the I2C bus for the peripherals.
-  Wire.begin(I2C1_SDA,I2C1_SCL);
+  Wire.begin(I2C1_SDA, I2C1_SCL);
 #endif
 
   // Load and start subsystems that need secrets
@@ -234,8 +235,7 @@ bool setupNode(Services& services) {
     delete config_task;
   }
 #endif
-  services.setLoggingManager(
-      std::make_shared<LoggingManager>());
+  services.setLoggingManager(std::make_shared<LoggingManager>());
 
   tasks::logging_man::LoggingManagerTask* logman_task =
       new tasks::logging_man::LoggingManagerTask(services.getGetters(),
@@ -245,7 +245,15 @@ bool setupNode(Services& services) {
     delete logman_task;
   }
 
-  services.getLoggingManager()->addLog(F("Starting"), F("Starting the system"));
+#ifdef GPIO_MONITOR
+  tasks::gpio_monitor::GPIO_MonitorTask* gpio_task =
+      new tasks::gpio_monitor::GPIO_MonitorTask(services.getGetters(),
+                                                services.getScheduler());
+  if (!gpio_task->isValid()) {
+    TRACELN(gpio_task->getError().toString());
+    delete gpio_task;
+  }
+#endif
 
   success = createSystemTasks(services);
   if (!success) {

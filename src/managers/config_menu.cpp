@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "managers/time_manager.h"
+#include "managers/log_manager.h"
 #include "utils/person_info.h"
 #include "utils/person_info_validator.h"
 
@@ -901,6 +902,7 @@ void ConfigManager::printMenu() {
   Serial.println("[6] Set System Date/Time");
   Serial.println("[7] Show System Date/Time");
 #endif
+  Serial.println("[8] Show Log Entries");
   Serial.println("[X] Exit Configuration Menu");
   Serial.print("\r\nSelection: ");
 }
@@ -1129,6 +1131,9 @@ void ConfigManager::handleInput(char input) {
       TimeManager::showSystemDateTime();
       break;
 #endif
+    case '8':
+      LoggingManager::showAllLogs();
+      break;
     case 'x':
     case 'X':
       Serial.println("Exiting configuration menu.");

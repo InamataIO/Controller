@@ -12,16 +12,26 @@ namespace inamata {
 
 class LoggingManager {
  private:
+  struct LogPath {
+    String dateTime;
+    int fileNum;
+    String fullPath;
+  };
+
   std::vector<String> logBuffer;
   int fileNumber;
   int logCount;
+
+  static std::vector<LoggingManager::LogPath> getAllLogPaths();
 
   void rotateLogFile();
   void deleteOldLogs();
 
  public:
+  static void showAllLogs();
+
   LoggingManager();
   void addLog(const String &event, const String &status);
-  void showLogs();
+  void showCurrentLog();
 };
 }  // namespace inamata
