@@ -68,6 +68,27 @@ extern const __FlashStringHelper* peripheral_modbus_client_id;
 extern const __FlashStringHelper* peripheral_modbus_sensor_in_id;
 extern const __FlashStringHelper* peripheral_modbus_sensor_out_id;
 
+#elif defined(DEVICE_TYPE_FIRE_DATA_LOGGER)
+
+extern const char* peripheral_i2c_adapter_id;
+extern const char* peripheral_io_1_id;
+extern const char* peripheral_io_2_id;
+
+extern const char* peripheral_electric_control_circuit_fail_id;
+
+extern const char* peripheral_jockey_1_pump_run_id;
+extern const char* peripheral_jockey_2_pump_run_id;
+extern const char* peripheral_jockey_1_pump_fail_id;
+extern const char* peripheral_jockey_2_pump_fail_id;
+
+extern const char* peripheral_pumphouse_protection_alarm_id;
+extern const char* peripheral_annunciator_fault_id;
+extern const char* peripheral_pumphouse_flooding_alarm_id;
+extern const char* peripheral_maintenance_mode_id;
+
+extern const char* peripheral_relay_1_id;
+extern const char* peripheral_relay_2_id;
+
 #endif
 
 }  // namespace fixed
