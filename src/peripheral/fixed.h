@@ -89,6 +89,8 @@ extern const char* peripheral_maintenance_mode_id;
 extern const char* peripheral_relay_1_id;
 extern const char* peripheral_relay_2_id;
 
+extern const char* peripheral_status_led_id;
+
 #endif
 
 }  // namespace fixed

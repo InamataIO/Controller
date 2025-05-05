@@ -1,0 +1,30 @@
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+
+#include "tasks/fixed/config.h"
+
+#include "configuration.h"
+#include "cycle_colors.h"
+
+namespace inamata {
+namespace tasks {
+namespace fixed {
+
+bool startFixedTasks(const ServiceGetters& services, Scheduler& scheduler,
+                     const JsonObjectConst& behavior_config) {
+  CycleColors* cycle_colors_task =
+      new CycleColors(services, scheduler, behavior_config);
+  ErrorResult error = cycle_colors_task->getError();
+  if (error.isError()) {
+    cycle_colors_task->abort();
+    delete cycle_colors_task;
+    return false;
+  }
+
+  return true;
+}
+
+}  // namespace fixed
+}  // namespace tasks
+}  // namespace inamata
+
+#endif

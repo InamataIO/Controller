@@ -197,6 +197,8 @@ const char* peripheral_maintenance_mode_id =
 const char* peripheral_relay_1_id = "3faabb21-e3f0-49bb-a84c-3e47a6e935fb";
 const char* peripheral_relay_2_id = "4a6a9a0c-3af3-4c1c-84df-0f35c4ad58c4";
 
+const char* peripheral_status_led_id = "2048bc79-2caf-4265-a713-4a5b5fa26394";
+
 // Ports I1-4 (PCA9539: 1 pin 0-3)
 const char* dpt_diesel_1_fire_alarm_id = "fa9939f9-7d7b-4303-8ba5-7718afa369f0";
 const char* dpt_diesel_2_fire_alarm_id = "5b6eebcc-7017-4aae-b37c-8cca0181ae94";
@@ -293,9 +295,11 @@ const __FlashStringHelper* config_2 = FPSTR(R"([
 {"type":"DigitalIn","pin":6,"input_type":"floating","dpt":"cd9f1cd2-0252-4c6e-b9eb-7868de72face","uuid":"6e3f58b2-89ba-4e4c-9a7a-8eaec27c0ed5"},
 {"type":"DigitalOut","pin":46,"dpt":"68d4ce65-7c21-4ff3-be5e-160e7943573a","uuid":"3faabb21-e3f0-49bb-a84c-3e47a6e935fb"},
 {"type":"DigitalOut","pin":3,"dpt":"68d4ce65-7c21-4ff3-be5e-160e7943573a","uuid":"4a6a9a0c-3af3-4c1c-84df-0f35c4ad58c4"},
+{"speed": 800.0, "variant": "NeoPixel_RGB", "color_encoding": "grb", "led_pin": 1.0, "led_count": 1.0, "uuid": "2048bc79-2caf-4265-a713-4a5b5fa26394", "type": "NeoPixel", "version": 0}
 ])");
 
 std::array<const __FlashStringHelper*, 2> configs{config_1, config_2};
+
 void setRegisterFixedPeripherals(JsonObject msg) {}
 
 #else

@@ -53,11 +53,16 @@ void NeoPixel::turnOn(utils::Color color) {
     driver_.begin();
     is_driver_started_ = true;
   }
+  driver_.setBrightness(255);
   driver_.fill(color.getWrgbInt());
   driver_.show();
 }
 
 void NeoPixel::turnOff() {
+  if (!is_driver_started_) {
+    driver_.begin();
+    is_driver_started_ = true;
+  }
   driver_.setBrightness(0);
   driver_.show();
 }
