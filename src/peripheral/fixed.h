@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <utils/uuid.h>
 
 namespace inamata {
 namespace peripheral {
@@ -70,26 +71,75 @@ extern const __FlashStringHelper* peripheral_modbus_sensor_out_id;
 
 #elif defined(DEVICE_TYPE_FIRE_DATA_LOGGER)
 
-extern const char* peripheral_i2c_adapter_id;
-extern const char* peripheral_io_1_id;
-extern const char* peripheral_io_2_id;
+extern const utils::UUID peripheral_i2c_adapter_id;
+extern const utils::UUID peripheral_io_1_id;
+extern const utils::UUID peripheral_io_2_id;
 
-extern const char* peripheral_electric_control_circuit_fail_id;
+extern const utils::UUID peripheral_electric_control_circuit_fail_id;
 
-extern const char* peripheral_jockey_1_pump_run_id;
-extern const char* peripheral_jockey_2_pump_run_id;
-extern const char* peripheral_jockey_1_pump_fail_id;
-extern const char* peripheral_jockey_2_pump_fail_id;
+extern const utils::UUID peripheral_jockey_1_pump_run_id;
+extern const utils::UUID peripheral_jockey_2_pump_run_id;
+extern const utils::UUID peripheral_jockey_1_pump_fail_id;
+extern const utils::UUID peripheral_jockey_2_pump_fail_id;
 
-extern const char* peripheral_pumphouse_protection_alarm_id;
-extern const char* peripheral_annunciator_fault_id;
-extern const char* peripheral_pumphouse_flooding_alarm_id;
-extern const char* peripheral_maintenance_mode_id;
+extern const utils::UUID peripheral_pumphouse_protection_alarm_id;
+extern const utils::UUID peripheral_annunciator_fault_id;
+extern const utils::UUID peripheral_pumphouse_flooding_alarm_id;
+extern const utils::UUID peripheral_maintenance_mode_id;
 
-extern const char* peripheral_relay_1_id;
-extern const char* peripheral_relay_2_id;
+extern const utils::UUID peripheral_relay_1_id;
+extern const utils::UUID peripheral_relay_2_id;
 
-extern const char* peripheral_status_led_id;
+extern const utils::UUID peripheral_status_led_id;
+
+extern const utils::UUID dpt_diesel_1_fire_alarm_id;
+extern const utils::UUID dpt_diesel_2_fire_alarm_id;
+extern const utils::UUID dpt_diesel_3_fire_alarm_id;
+extern const utils::UUID dpt_diesel_4_fire_alarm_id;
+
+extern const utils::UUID dpt_diesel_1_pump_run_id;
+extern const utils::UUID dpt_diesel_2_pump_run_id;
+extern const utils::UUID dpt_diesel_3_pump_run_id;
+extern const utils::UUID dpt_diesel_4_pump_run_id;
+
+extern const utils::UUID dpt_diesel_1_pump_fail_id;
+extern const utils::UUID dpt_diesel_2_pump_fail_id;
+extern const utils::UUID dpt_diesel_3_pump_fail_id;
+extern const utils::UUID dpt_diesel_4_pump_fail_id;
+
+extern const utils::UUID dpt_diesel_1_battery_charger_fail_id;
+extern const utils::UUID dpt_diesel_2_battery_charger_fail_id;
+extern const utils::UUID dpt_diesel_3_battery_charger_fail_id;
+extern const utils::UUID dpt_diesel_4_battery_charger_fail_id;
+
+extern const utils::UUID dpt_diesel_1_low_oil_level_fail_id;
+extern const utils::UUID dpt_diesel_2_low_oil_level_fail_id;
+extern const utils::UUID dpt_diesel_3_low_oil_level_fail_id;
+extern const utils::UUID dpt_diesel_4_low_oil_level_fail_id;
+
+extern const utils::UUID dpt_diesel_control_circuit_fail_id;
+extern const utils::UUID dpt_diesel_mains_fail_id;
+extern const utils::UUID dpt_diesel_pump_fail_id;
+extern const utils::UUID dpt_diesel_engine_overheat_fail_id;
+extern const utils::UUID dpt_diesel_fuel_tank_low_id;
+
+extern const utils::UUID dpt_electric_1_fire_alarm_id;
+extern const utils::UUID dpt_electric_2_fire_alarm_id;
+extern const utils::UUID dpt_electric_1_pump_run_id;
+extern const utils::UUID dpt_electric_2_pump_run_id;
+extern const utils::UUID dpt_electric_1_pump_fail_id;
+extern const utils::UUID dpt_electric_2_pump_fail_id;
+extern const utils::UUID dpt_electric_mains_fail_id;
+extern const utils::UUID dpt_electric_control_circuit_fail_id;
+
+extern const utils::UUID dpt_jockey_1_pump_run_id;
+extern const utils::UUID dpt_jockey_2_pump_run_id;
+extern const utils::UUID dpt_jockey_1_pump_fail_id;
+extern const utils::UUID dpt_jockey_2_pump_fail_id;
+extern const utils::UUID dpt_pumphouse_protection_alarm_id;
+extern const utils::UUID dpt_annunciator_fault_id;
+extern const utils::UUID dpt_pumphouse_flooding_alarm_id;
+extern const utils::UUID dpt_maintenance_mode_id;
 
 #endif
 

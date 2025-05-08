@@ -108,6 +108,7 @@ class Peripheral {
   static const __FlashStringHelper* pin_key_error_;
   static const __FlashStringHelper* active_low_key_;
   static const __FlashStringHelper* active_low_key_error_;
+  static const char* active_low_in_key_;
   static const __FlashStringHelper* temperature_c_key_;
   static const __FlashStringHelper* temperature_c_key_error_;
   static const __FlashStringHelper* humidity_rh_key_;

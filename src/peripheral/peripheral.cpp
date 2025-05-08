@@ -84,6 +84,7 @@ const __FlashStringHelper* Peripheral::pin_key_error_ =
 const __FlashStringHelper* Peripheral::active_low_key_ = FPSTR("active_low");
 const __FlashStringHelper* Peripheral::active_low_key_error_ =
     FPSTR("Wrong property: active_low (bool)");
+const char* Peripheral::active_low_in_key_ = "active_low_in";
 const __FlashStringHelper* Peripheral::temperature_c_key_ =
     FPSTR("temperature_c");
 const __FlashStringHelper* Peripheral::temperature_c_key_error_ =

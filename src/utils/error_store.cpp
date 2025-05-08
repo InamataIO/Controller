@@ -2,11 +2,12 @@
 
 namespace inamata {
 
-String ErrorStore::genMissingProperty(String key, KeyType key_type) {
-  String key_type_string;
+String ErrorStore::genMissingProperty(String key, KeyType key_type,
+                                      bool type_error) {
+  const char* key_type_string;
   switch (key_type) {
     case KeyType::kArray:
-      key_type_string = bool_type_;
+      key_type_string = array_type_;
       break;
     case KeyType::kBool:
       key_type_string = bool_type_;
@@ -24,37 +25,49 @@ String ErrorStore::genMissingProperty(String key, KeyType key_type) {
       key_type_string = uuid_type_;
       break;
     default:
+      key_type_string = unknown_type_;
       break;
   }
 
-  // Create the missing property error string
-  const size_t length =
-      missing_property_length_a + key.length() + key_type_string.length();
+  // The length A consists of the prefix + padding + terminator
+  // The length B is the length of the key
+  // The lenght C is the length of the key type
+  size_t length = 2 + 2 + key.length() + strlen(key_type_string);
+  if (type_error) {
+    // Invalid type: some_key (some_type)
+    // |------------>|------>|>|--------|>
+    // A-------------B-------A-C--------A-
+    length += strlen(invalid_type_prefix_);
+  } else {
+    // Missing property: some_key (some_type)
+    // |------------>|------>|>|--------|>
+    // A-------------B-------A-C--------A-
+    length += strlen(missing_property_prefix_);
+  }
+
   String error;
   error.reserve(length);
-  error = missing_property_prefix_;
-  error += key;
-  error += F(" (");
-  error += string_type_;
-  error += F(")");
-
+  if (type_error) {
+    error = invalid_type_prefix_;
+  } else {
+    error = missing_property_prefix_;
+  }
+  error += key + " (" + key_type_string + ")";
   return error;
 }
 
 String ErrorStore::genNotAValid(const utils::UUID& uuid, const String& type) {
-  String error = uuid.toString();
-  error += F(" not a valid ");
-  error += type;
-  return error;
+  return uuid.toString() + " not a valid " + type;
 }
 
-const __FlashStringHelper* ErrorStore::missing_property_prefix_ =
-    FPSTR("Missing property: ");
-const __FlashStringHelper* ErrorStore::array_type_ = FPSTR("array");
-const __FlashStringHelper* ErrorStore::bool_type_ = FPSTR("bool");
-const __FlashStringHelper* ErrorStore::float_type_ = FPSTR("float");
-const __FlashStringHelper* ErrorStore::string_type_ = FPSTR("string");
-const __FlashStringHelper* ErrorStore::uint32_t_type_ = FPSTR("uint32_t");
-const __FlashStringHelper* ErrorStore::uuid_type_ = FPSTR("uuid");
+const char* ErrorStore::missing_property_prefix_ = "Missing property: ";
+const char* ErrorStore::invalid_type_prefix_ = "Invalid type: ";
+const char* ErrorStore::array_type_ = "array";
+const char* ErrorStore::bool_type_ = "bool";
+const char* ErrorStore::float_type_ = "float";
+const char* ErrorStore::string_type_ = "string";
+const char* ErrorStore::uint32_t_type_ = "uint32_t";
+const char* ErrorStore::uuid_type_ = "uuid";
+const char* ErrorStore::unknown_type_ = "unknown";
 
 }  // namespace inamata

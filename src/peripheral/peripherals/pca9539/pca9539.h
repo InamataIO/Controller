@@ -50,10 +50,13 @@ class PCA9539 : public peripherals::i2c::I2CAbstractPeripheral,
   utils::UUID data_point_type_{nullptr};
 
   static const uint8_t default_i2c_address_ = 0x74;
+  uint8_t reset_pin_;
   ::PCA9539 driver_;
 
   std::vector<IO> inputs_;
   std::vector<IO> outputs_;
+  // Invert input states
+  bool active_low_in_ = false;
 };
 
 }  // namespace pca9539
