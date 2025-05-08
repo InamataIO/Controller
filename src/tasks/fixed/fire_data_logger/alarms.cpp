@@ -50,19 +50,23 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
   input_bank_4_[7] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_pumphouse_flooding_alarm_id));
+  status_led_ =
+      std::dynamic_pointer_cast<NeoPixel>(peripheral_controller.getPeripheral(
+          peripheral::fixed::peripheral_status_led_id));
 
   if (!input_bank_1_ || !input_bank_2_ || !input_bank_3_ || !input_bank_4_[0] ||
-      !input_bank_4_[1] || !input_bank_4_[2] || !input_bank_4_[3] ||
-      !input_bank_4_[4] || !input_bank_4_[5] || !input_bank_4_[6] ||
-      !input_bank_4_[7]) {
-    char buffer[40];
+          !input_bank_4_[1] || !input_bank_4_[2] || !input_bank_4_[3] ||
+          !input_bank_4_[4] || !input_bank_4_[5] || !input_bank_4_[6] ||
+          !input_bank_4_[7],
+      !status_led_) {
+    char buffer[42];
     const int len = snprintf(
         buffer, sizeof(buffer),
-        "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d", bool(input_bank_1_),
-        bool(input_bank_2_), bool(input_bank_3_), bool(input_bank_4_[0]),
-        bool(input_bank_4_[1]), bool(input_bank_4_[2]), bool(input_bank_4_[3]),
-        bool(input_bank_4_[4]), bool(input_bank_4_[5]), bool(input_bank_4_[6]),
-        bool(input_bank_4_[7]));
+        "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
+        bool(input_bank_1_), bool(input_bank_2_), bool(input_bank_3_),
+        bool(input_bank_4_[0]), bool(input_bank_4_[1]), bool(input_bank_4_[2]),
+        bool(input_bank_4_[3]), bool(input_bank_4_[4]), bool(input_bank_4_[5]),
+        bool(input_bank_4_[6]), bool(input_bank_4_[7]), bool(status_led_));
     setInvalid(buffer);
     return;
   }
@@ -71,6 +75,8 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
     setInvalid(services.web_socket_nullptr_error_);
     return;
   }
+
+  resetLimits();
 
   setIterations(TASK_FOREVER);
   enable();
@@ -85,28 +91,111 @@ const String& Alarms::type() {
 
 bool Alarms::TaskCallback() {
   Task::delay(std::chrono::milliseconds(default_interval_).count());
+  handleMaintenanceMode();
 
-  auto result = input_bank_1_->getValues();
-  for (const auto& value : result.values) {
-    handleResult(value);
-  }
-  result = input_bank_2_->getValues();
-  for (const auto& value : result.values) {
-    handleResult(value);
-  }
-  result = input_bank_3_->getValues();
-  for (const auto& value : result.values) {
-    handleResult(value);
-  }
-  for (const auto& digital_in : input_bank_4_) {
-    result = digital_in->getValues();
-    if (result.values.size() == 1) {
-      handleResult(result.values[0]);
-    } else {
-      TRACEF("Missing value: %s", result.error.toString().c_str());
+  if (!is_maintenace_mode) {
+    auto result = input_bank_1_->getValues();
+    for (const auto& value : result.values) {
+      handleResult(value);
+    }
+    result = input_bank_2_->getValues();
+    for (const auto& value : result.values) {
+      handleResult(value);
+    }
+    for (const auto& digital_in : input_bank_4_) {
+      result = digital_in->getValues();
+      if (result.values.size() == 1) {
+        handleResult(result.values[0]);
+      } else {
+        TRACEF("Missing value: %s", result.error.toString().c_str());
+      }
     }
   }
   return true;
+}
+
+void Alarms::resetLimits() {
+  // Digital alarms
+  limit_diesel_1_fire_alarm_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+  limit_diesel_2_fire_alarm_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+  limit_diesel_3_fire_alarm_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+  limit_diesel_4_fire_alarm_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+
+  limit_diesel_1_pump_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+  limit_diesel_2_pump_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+  limit_diesel_3_pump_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+  limit_diesel_4_pump_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+
+  limit_diesel_1_battery_charger_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+  limit_diesel_2_battery_charger_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+  limit_diesel_3_battery_charger_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+  limit_diesel_4_battery_charger_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_1_id);
+
+  limit_diesel_1_low_oil_level_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_diesel_2_low_oil_level_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_diesel_3_low_oil_level_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_diesel_4_low_oil_level_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+
+  limit_diesel_control_circuit_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_diesel_mains_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_diesel_pump_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_diesel_engine_overheat_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_diesel_fuel_tank_low_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+
+  limit_electric_1_fire_alarm_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_electric_2_fire_alarm_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_electric_1_pump_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_electric_2_pump_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_electric_mains_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_io_2_id);
+  limit_electric_control_circuit_fail_ = makeBoolLimitInfo(
+      &peripheral::fixed::peripheral_electric_control_circuit_fail_id);
+
+  limit_jockey_1_pump_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_jockey_1_pump_fail_id);
+  limit_jockey_2_pump_fail_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_jockey_2_pump_fail_id);
+  limit_pumphouse_protection_alarm_ = makeBoolLimitInfo(
+      &peripheral::fixed::peripheral_pumphouse_protection_alarm_id);
+  limit_annunciator_fault_ =
+      makeBoolLimitInfo(&peripheral::fixed::peripheral_annunciator_fault_id);
+  limit_pumphouse_flooding_alarm_ = makeBoolLimitInfo(
+      &peripheral::fixed::peripheral_pumphouse_flooding_alarm_id);
+
+  // Runtime alarms
+  limit_duration_jockey_1_pump_run_ = makeDurationLimitInfo(
+      &peripheral::fixed::peripheral_jockey_1_pump_run_id);
+  limit_duration_jockey_2_pump_run_ = makeDurationLimitInfo(
+      &peripheral::fixed::peripheral_jockey_2_pump_run_id);
+  limit_activation_jockey_1_pump_run_ = makeActivationLimitInfo(
+      &peripheral::fixed::peripheral_jockey_1_pump_run_id);
+  limit_activation_jockey_2_pump_run_ = makeActivationLimitInfo(
+      &peripheral::fixed::peripheral_jockey_2_pump_run_id);
 }
 
 void Alarms::handleResult(const utils::ValueUnit& value_unit) {
@@ -223,12 +312,6 @@ void Alarms::handleResult(const utils::ValueUnit& value_unit) {
     handleDurationLimit(limit_duration_jockey_2_pump_run_, value_unit, now);
     handleActivationLimit(limit_activation_jockey_2_pump_run_, value_unit, now);
   }
-
-  /// Buttons
-  else if (peripheral::fixed::dpt_maintenance_mode_id ==
-           value_unit.data_point_type) {
-    TRACEF("Maintenance: %d\n", int(value_unit.value));
-  }
 }
 
 void Alarms::handleBoolLimit(BoolLimit& limit_info,
@@ -247,8 +330,8 @@ void Alarms::handleBoolLimit(BoolLimit& limit_info,
       sendLimitEvent(limit_info.limit_id, limit_info.fixed_peripheral_id,
                      value_unit, utils::LimitEvent::Type::kStart);
       limit_info.last_continue_event_sent = now;
-    } else if (limit_info.last_continue_event_sent + continue_event_period_ <
-               now) {
+    } else if (now - limit_info.last_continue_event_sent >
+               continue_event_period_) {
       // Send continue events periodically while limit is being crossed
       sendLimitEvent(limit_info.limit_id, limit_info.fixed_peripheral_id,
                      value_unit, utils::LimitEvent::Type::kContinue);
@@ -419,6 +502,53 @@ bool Alarms::ignoreCrossedLimit(
   return false;
 }
 
+void Alarms::handleMaintenanceMode() {
+  const std::chrono::steady_clock::time_point now =
+      std::chrono::steady_clock::now();
+
+  auto result = input_bank_3_->getValues();
+  for (const auto& value : result.values) {
+    if (value.data_point_type == peripheral::fixed::dpt_maintenance_mode_id) {
+      const bool state = value.value > 0.5;
+      maintenance_button.setCurrentState(state);
+      break;
+    }
+  }
+  maintenance_button.update();
+  if (maintenance_button.rose()) {
+    is_maintenace_mode = !is_maintenace_mode;
+    if (is_maintenace_mode) {
+      // Entered maintenance mode
+      status_led_->setOverride(utils::Color::fromRgbw(100, 0, 0, 0));
+      sendLimitEvent(
+          maintenance_limit_id, &peripheral::fixed::peripheral_io_3_id,
+          utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),
+          utils::LimitEvent::Type::kStart);
+      last_maintenance_continue_event_sent = now;
+      // Reset limits to ensure a clean state when leaving mode
+      resetLimits();
+    } else {
+      // Left maintenace mode
+      status_led_->clearOverride();
+      sendLimitEvent(
+          maintenance_limit_id, &peripheral::fixed::peripheral_io_3_id,
+          utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),
+          utils::LimitEvent::Type::kEnd);
+      last_maintenance_continue_event_sent =
+          std::chrono::steady_clock::time_point::min();
+    }
+  }
+  if (last_maintenance_continue_event_sent !=
+          std::chrono::steady_clock::time_point::min() &&
+      now - last_maintenance_continue_event_sent > continue_event_period_) {
+    sendLimitEvent(
+        maintenance_limit_id, &peripheral::fixed::peripheral_io_3_id,
+        utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),
+        utils::LimitEvent::Type::kContinue);
+    last_maintenance_continue_event_sent = now;
+  }
+}
+
 Alarms::BoolLimit Alarms::makeBoolLimitInfo(
     const utils::UUID* fixed_peripheral_id,
     const std::chrono::seconds delay_duration) {
@@ -456,7 +586,7 @@ Alarms::ActivationLimit Alarms::makeActivationLimitInfo(
       .is_over_limit = false};
 }
 
-const std::chrono::milliseconds Alarms::default_interval_{1000};
+const std::chrono::milliseconds Alarms::default_interval_{500};
 
 }  // namespace fixed
 }  // namespace tasks

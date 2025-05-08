@@ -35,17 +35,36 @@ class NeoPixel : public Peripheral, public capabilities::LedStrip {
   void turnOn(utils::Color color) final;
 
   /**
-   * Turn off all LEDs
+   * Turn off all LEDs. Ignore setOverride state
    */
   void turnOff() final;
 
+  /**
+   * Set an override color that is shown until clearOverride() is called
+   */
+  void setOverride(utils::Color color);
+
+  /**
+   * Clear override color and show turnOn() color
+   */
+  void clearOverride();
+
  private:
+  void setOutput();
+
   static String invalidColorEncodingError(const String& color_encoding);
 
   static std::shared_ptr<Peripheral> factory(const ServiceGetters& services,
                                              const JsonObjectConst& parameters);
   static bool registered_;
   static bool capability_led_strip_;
+
+  /// Main turnOn color
+  utils::Color color_;
+  /// Override color
+  utils::Color override_color_;
+  /// Whether override is currently active
+  bool is_override_ = false;
 
   static const uint8_t blue_offset_{0};
   static const uint8_t green_offset_{2};

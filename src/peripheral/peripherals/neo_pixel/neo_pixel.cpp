@@ -49,13 +49,8 @@ const String& NeoPixel::type() {
 }
 
 void NeoPixel::turnOn(utils::Color color) {
-  if (!is_driver_started_) {
-    driver_.begin();
-    is_driver_started_ = true;
-  }
-  driver_.setBrightness(255);
-  driver_.fill(color.getWrgbInt());
-  driver_.show();
+  color_ = color;
+  setOutput();
 }
 
 void NeoPixel::turnOff() {
@@ -64,6 +59,31 @@ void NeoPixel::turnOff() {
     is_driver_started_ = true;
   }
   driver_.setBrightness(0);
+  driver_.show();
+}
+
+void NeoPixel::setOverride(utils::Color color) {
+  override_color_ = color;
+  is_override_ = true;
+  setOutput();
+}
+
+void NeoPixel::clearOverride() {
+  is_override_ = false;
+  setOutput();
+}
+
+void NeoPixel::setOutput() {
+  if (!is_driver_started_) {
+    driver_.begin();
+    is_driver_started_ = true;
+  }
+  driver_.setBrightness(255);
+  if (is_override_) {
+    driver_.fill(override_color_.getWrgbInt());
+  } else {
+    driver_.fill(color_.getWrgbInt());
+  }
   driver_.show();
 }
 

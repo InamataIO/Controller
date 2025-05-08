@@ -39,20 +39,20 @@ bool CycleColors::TaskCallback() {
   // Only use half brightness (256 is max)
   switch (iterations_ % 5) {
     case 0:
-      status_led_->turnOn(utils::Color::fromRgbw(random(0, 128), random(0, 128),
-                                                 random(0, 128)));
+      status_led_->turnOn(
+          utils::Color::fromRgbw(random(0, 55), random(0, 55), random(0, 55)));
       break;
     case 1:
       status_led_->turnOff();
       break;
     case 2:
-      status_led_->turnOn(utils::Color::fromRgbw(255, 0, 0, 0));
+      status_led_->turnOn(utils::Color::fromRgbw(55, 0, 0, 0));
       break;
     case 3:
-      status_led_->turnOn(utils::Color::fromRgbw(0, 255, 0, 0));
+      status_led_->turnOn(utils::Color::fromRgbw(0, 55, 0, 0));
       break;
     case 4:
-      status_led_->turnOn(utils::Color::fromRgbw(0, 0, 255, 0));
+      status_led_->turnOn(utils::Color::fromRgbw(0, 0, 55, 0));
       break;
     default:
       break;
@@ -63,11 +63,12 @@ bool CycleColors::TaskCallback() {
 }
 
 bool CycleColors::setFixedPeripherals() {
-  utils::UUID peripheral_id(peripheral::fixed::peripheral_status_led_id);
   std::shared_ptr<peripheral::Peripheral> peripheral =
-      Services::getPeripheralController().getPeripheral(peripheral_id);
+      Services::getPeripheralController().getPeripheral(
+          peripheral::fixed::peripheral_status_led_id);
   if (!peripheral) {
-    setInvalid(peripheral::Peripheral::peripheralNotFoundError(peripheral_id));
+    setInvalid(peripheral::Peripheral::peripheralNotFoundError(
+        peripheral::fixed::peripheral_status_led_id));
     return false;
   }
 
@@ -79,8 +80,8 @@ bool CycleColors::setFixedPeripherals() {
         std::static_pointer_cast<peripheral::peripherals::neo_pixel::NeoPixel>(
             peripheral);
   } else {
-    setInvalid(
-        peripheral::Peripheral::notAValidError(peripheral_id, neopixel_type));
+    setInvalid(peripheral::Peripheral::notAValidError(
+        peripheral::fixed::peripheral_status_led_id, neopixel_type));
     return false;
   }
   return true;
