@@ -192,7 +192,7 @@ class Alarms : public BaseTask {
   ActivationLimit limit_activation_jockey_2_pump_run_;
 
   // Maintenance mode
-  bool is_maintenace_mode = false;
+  bool is_maintenance_mode = false;
   ManualDebouncer maintenance_button;
   utils::UUID maintenance_limit_id = nullptr;
   std::chrono::steady_clock::time_point last_maintenance_continue_event_sent =

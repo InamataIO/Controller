@@ -93,7 +93,7 @@ bool Alarms::TaskCallback() {
   Task::delay(std::chrono::milliseconds(default_interval_).count());
   handleMaintenanceMode();
 
-  if (!is_maintenace_mode) {
+  if (!is_maintenance_mode) {
     auto result = input_bank_1_->getValues();
     for (const auto& value : result.values) {
       handleResult(value);
@@ -516,8 +516,8 @@ void Alarms::handleMaintenanceMode() {
   }
   maintenance_button.update();
   if (maintenance_button.rose()) {
-    is_maintenace_mode = !is_maintenace_mode;
-    if (is_maintenace_mode) {
+    is_maintenance_mode = !is_maintenance_mode;
+    if (is_maintenance_mode) {
       // Entered maintenance mode
       status_led_->setOverride(utils::Color::fromRgbw(100, 0, 0, 0));
       sendLimitEvent(
