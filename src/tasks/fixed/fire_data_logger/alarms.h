@@ -26,8 +26,6 @@ class Alarms : public BaseTask {
 
   bool TaskCallback();
 
-  void handleBehaviorConfig(const JsonObjectConst& config);
-
  private:
   /**
    * Limit info for bool threshold limits

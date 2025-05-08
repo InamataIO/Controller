@@ -10,7 +10,8 @@ namespace fixed {
 
 Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
                const JsonObjectConst& behavior_config)
-    : BaseTask(scheduler, Input(nullptr, true)) {
+    : BaseTask(scheduler, Input(nullptr, true)),
+      web_socket_(services.getWebSocket()) {
   if (!isValid()) {
     return;
   }
@@ -63,6 +64,11 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
         bool(input_bank_3_[5]), bool(input_bank_3_[6]), bool(input_bank_3_[7]),
         bool(maintenance_mode_));
     setInvalid(buffer);
+    return;
+  }
+
+  if (web_socket_ == nullptr) {
+    setInvalid(services.web_socket_nullptr_error_);
     return;
   }
 
