@@ -171,8 +171,12 @@ void setRegisterFixedPeripherals(JsonObject msg) {
 
 const utils::UUID peripheral_i2c_adapter_id =
     "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c";
+// PCA9539 1: 16 pins
 const utils::UUID peripheral_io_1_id = "bccf2795-7533-41ef-b3d2-f1d587c86a32";
+// PCA9539 2: 16 pins
 const utils::UUID peripheral_io_2_id = "1e75c20c-a565-4cd0-b8ac-9629ca837515";
+// PCA9536D 1: 3 pins (of 4)
+const utils::UUID peripheral_io_3_id = "4f1da40b-e239-4fc8-87fd-29b7ac6db5b7";
 
 const utils::UUID peripheral_electric_control_circuit_fail_id =
     "8ac7fcc4-e7ae-4bf4-a303-979b5fae3fa1";
@@ -192,8 +196,7 @@ const utils::UUID peripheral_annunciator_fault_id =
     "76581861-7c3b-4480-ab60-44682c8d606b";
 const utils::UUID peripheral_pumphouse_flooding_alarm_id =
     "90d8fd97-5cc7-4241-9c60-f6c0f6f79287";
-const utils::UUID peripheral_maintenance_mode_id =
-    "6e3f58b2-89ba-4e4c-9a7a-8eaec27c0ed5";
+const utils::UUID peripheral_i41_id = "6e3f58b2-89ba-4e4c-9a7a-8eaec27c0ed5";
 
 const utils::UUID peripheral_relay_1_id =
     "3faabb21-e3f0-49bb-a84c-3e47a6e935fb";
@@ -301,13 +304,20 @@ const utils::UUID dpt_annunciator_fault_id =
     "4bc1b31d-3610-45bf-baf0-503afd45f6b5";
 const utils::UUID dpt_pumphouse_flooding_alarm_id =
     "25a58394-1d7b-4645-8e08-a47952a49c1e";
+const utils::UUID dpt_i41_id = "cd9f1cd2-0252-4c6e-b9eb-7868de72face";
+
+// Maintenance button
+const utils::UUID dpt_mem_wr_led_id = "7699a3b3-ebf5-444a-8cd8-49776dba5f5d";
+const utils::UUID dpt_gsm_wifi_toggle_id =
+    "07fafa6a-b31a-431e-8510-09d5212ecefc";
 const utils::UUID dpt_maintenance_mode_id =
-    "cd9f1cd2-0252-4c6e-b9eb-7868de72face";
+    "0dab65a4-92fa-420d-990c-eaf82da508ea";
 
 const __FlashStringHelper* config_1 = FPSTR(R"([
 {"type":"I2CAdapter","uuid":"2f99965f-ce6d-44dc-81cb-75f9e6afaf3c","scl":9,"sda":8},
 {"type":"PCA9539","uuid":"bccf2795-7533-41ef-b3d2-f1d587c86a32","i2c_adapter":"2f99965f-ce6d-44dc-81cb-75f9e6afaf3c","i2c_address":116,"reset":45,"active_low_in":true,"inputs":[{"pin":0,"dpt":"fa9939f9-7d7b-4303-8ba5-7718afa369f0"},{"pin":1,"dpt":"5b6eebcc-7017-4aae-b37c-8cca0181ae94"},{"pin":2,"dpt":"c3338cca-2fa5-4b95-b002-13b33176ccbc"},{"pin":3,"dpt":"a1d5f7e3-194a-4c3a-963d-fcfa14464dbf"},{"pin":4,"dpt":"1efb6f6a-50a1-4267-84a9-f800fcae412b"},{"pin":5,"dpt":"f34bcce7-6d5d-4b6a-ac4d-7fd028dcff7c"},{"pin":6,"dpt":"12be15ec-d71c-4420-a3ec-d9be49234152"},{"pin":7,"dpt":"5da7c712-d286-4ae3-ae56-639a8c42a75e"},{"pin":8,"dpt":"a982c7e2-59dd-4cc4-8674-20bd3e452d65"},{"pin":9,"dpt":"d4e05f90-3774-4ea8-9dc7-df3440c49f3e"},{"pin":10,"dpt":"454ba26c-09c1-4a6c-b2bb-69038c6e912c"},{"pin":11,"dpt":"e82c196c-4f4f-4471-9d9b-f20725fc51d4"},{"pin":12,"dpt":"7173899b-8a85-4cf3-8721-5dbc23658c3a"},{"pin":13,"dpt":"3ad7b7aa-dfb1-43b1-96ec-8071b067824b"},{"pin":14,"dpt":"9de56ad6-2e71-4913-9c1b-241ebc352846"},{"pin":15,"dpt":"4aa525d1-e217-465f-ab18-73af003d90c1"}]},
-{"type":"PCA9539","uuid":"1e75c20c-a565-4cd0-b8ac-9629ca837515","i2c_adapter":"2f99965f-ce6d-44dc-81cb-75f9e6afaf3c","i2c_address":117,"reset":45,"active_low_in":true,"inputs":[{"pin":0,"dpt":"db72aeb2-1907-452b-b7bb-b3b70e511504"},{"pin":1,"dpt":"b311d288-2f75-44d1-9130-a44eb97b038c"},{"pin":2,"dpt":"ece604b9-0ef5-4ec1-bc3f-7072623db190"},{"pin":3,"dpt":"459e1ae2-cfb5-4b7d-9476-cac367655988"},{"pin":4,"dpt":"0a2ba814-e6d6-4fab-9273-55cdfe646126"},{"pin":5,"dpt":"72846fa0-1a08-4569-955c-71876b348edf"},{"pin":6,"dpt":"1b677e95-3b8d-4a0d-ab11-c6c327de16d2"},{"pin":7,"dpt":"fff6ea3d-8c46-488d-a0ad-f4b21cb85de7"},{"pin":8,"dpt":"8f66c61e-af0c-43dc-a0a3-dd8f661ec3d8"},{"pin":9,"dpt":"2a0b97ae-d896-4cd7-bc92-050179f8ce7a"},{"pin":10,"dpt":"0e5d33d9-98d7-476b-9a9c-e586979e1173"},{"pin":11,"dpt":"080ed05b-3e22-4437-bab0-4df783a84270"},{"pin":12,"dpt":"2237695c-2166-42d3-a518-7b701c1baeb0"},{"pin":13,"dpt":"ae393474-019e-419b-a183-981f605f379d"},{"pin":14,"dpt":"a2d852a2-ddb4-4f6b-b753-008a2fd324b2"},{"pin":15,"dpt":"4aef53e1-d90d-42a0-bd2d-dab3d76e61ae"}]}
+{"type":"PCA9539","uuid":"1e75c20c-a565-4cd0-b8ac-9629ca837515","i2c_adapter":"2f99965f-ce6d-44dc-81cb-75f9e6afaf3c","i2c_address":117,"reset":45,"active_low_in":true,"inputs":[{"pin":0,"dpt":"db72aeb2-1907-452b-b7bb-b3b70e511504"},{"pin":1,"dpt":"b311d288-2f75-44d1-9130-a44eb97b038c"},{"pin":2,"dpt":"ece604b9-0ef5-4ec1-bc3f-7072623db190"},{"pin":3,"dpt":"459e1ae2-cfb5-4b7d-9476-cac367655988"},{"pin":4,"dpt":"0a2ba814-e6d6-4fab-9273-55cdfe646126"},{"pin":5,"dpt":"72846fa0-1a08-4569-955c-71876b348edf"},{"pin":6,"dpt":"1b677e95-3b8d-4a0d-ab11-c6c327de16d2"},{"pin":7,"dpt":"fff6ea3d-8c46-488d-a0ad-f4b21cb85de7"},{"pin":8,"dpt":"8f66c61e-af0c-43dc-a0a3-dd8f661ec3d8"},{"pin":9,"dpt":"2a0b97ae-d896-4cd7-bc92-050179f8ce7a"},{"pin":10,"dpt":"0e5d33d9-98d7-476b-9a9c-e586979e1173"},{"pin":11,"dpt":"080ed05b-3e22-4437-bab0-4df783a84270"},{"pin":12,"dpt":"2237695c-2166-42d3-a518-7b701c1baeb0"},{"pin":13,"dpt":"ae393474-019e-419b-a183-981f605f379d"},{"pin":14,"dpt":"a2d852a2-ddb4-4f6b-b753-008a2fd324b2"},{"pin":15,"dpt":"4aef53e1-d90d-42a0-bd2d-dab3d76e61ae"}]},
+{"type":"PCA9536D","uuid":"4f1da40b-e239-4fc8-87fd-29b7ac6db5b7","i2c_adapter":"2f99965f-ce6d-44dc-81cb-75f9e6afaf3c","active_low_in":true,"inputs":[{"pin":1,"dpt":"07fafa6a-b31a-431e-8510-09d5212ecefc"},{"pin":2,"dpt":"0dab65a4-92fa-420d-990c-eaf82da508ea"}],"outputs":[{"pin":0,"dpt":"7699a3b3-ebf5-444a-8cd8-49776dba5f5d"}]}
 ])");
 
 const __FlashStringHelper* config_2 = FPSTR(R"([

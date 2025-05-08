@@ -22,7 +22,6 @@ CycleColors::CycleColors(const ServiceGetters& services, Scheduler& scheduler,
     return;
   }
 
-  Task::setInterval(std::chrono::milliseconds(default_interval_).count());
   setIterations(TASK_FOREVER);
   enable();
 }
@@ -35,6 +34,8 @@ const String& CycleColors::type() {
 }
 
 bool CycleColors::TaskCallback() {
+  Task::delay(std::chrono::milliseconds(default_interval_).count());
+
   // Only use half brightness (256 is max)
   switch (iterations_ % 5) {
     case 0:

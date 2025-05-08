@@ -4,6 +4,7 @@
 #include "peripheral/fixed.h"
 #include "peripheral/peripherals/digital_in/digital_in.h"
 #include "peripheral/peripherals/digital_out/digital_out.h"
+#include "peripheral/peripherals/pca9536d/pca9536d.h"
 #include "peripheral/peripherals/pca9539/pca9539.h"
 #include "utils/limit_event.h"
 
@@ -16,6 +17,7 @@ class Alarms : public BaseTask {
   using DigitalOut = peripheral::peripherals::digital_out::DigitalOut;
   using DigitalIn = peripheral::peripherals::digital_in::DigitalIn;
   using PCA9539 = peripheral::peripherals::pca9539::PCA9539;
+  using PCA9536D = peripheral::peripherals::pca9536d::PCA9536D;
 
   Alarms(const ServiceGetters& services, Scheduler& scheduler,
          const JsonObjectConst& behavior_config);
@@ -130,8 +132,8 @@ class Alarms : public BaseTask {
 
   std::shared_ptr<PCA9539> input_bank_1_;
   std::shared_ptr<PCA9539> input_bank_2_;
-  std::array<std::shared_ptr<DigitalIn>, 8> input_bank_3_;
-  std::shared_ptr<DigitalIn> maintenance_mode_;
+  std::shared_ptr<PCA9536D> input_bank_3_;
+  std::array<std::shared_ptr<DigitalIn>, 8> input_bank_4_;
 
   // Limits
   /// Digital alarms

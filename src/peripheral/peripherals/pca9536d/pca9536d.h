@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ArduinoJson.h>
-#include <PCA9539.h>
+#include <PCA9536D.h>
 
 #include "managers/service_getters.h"
 #include "peripheral/capabilities/get_values.h"
@@ -12,11 +12,11 @@
 namespace inamata {
 namespace peripheral {
 namespace peripherals {
-namespace pca9539 {
+namespace pca9536d {
 
-class PCA9539 : public peripherals::i2c::I2CAbstractPeripheral,
-                public capabilities::GetValues,
-                public capabilities::SetValue {
+class PCA9536D : public peripherals::i2c::I2CAbstractPeripheral,
+                 public capabilities::GetValues,
+                 public capabilities::SetValue {
  public:
   struct IO {
     IO(uint8_t pin, utils::UUID dpt) : pin(pin), dpt(dpt) {}
@@ -25,8 +25,8 @@ class PCA9539 : public peripherals::i2c::I2CAbstractPeripheral,
     utils::UUID dpt;
   };
 
-  PCA9539(const JsonObjectConst& parameters);
-  virtual ~PCA9539() = default;
+  PCA9536D(const JsonObjectConst& parameters);
+  virtual ~PCA9536D() = default;
 
   // Type registration in the peripheral factory
   const String& getType() const final;
@@ -47,9 +47,8 @@ class PCA9539 : public peripherals::i2c::I2CAbstractPeripheral,
   static bool capability_get_values_;
   static bool capability_set_value_;
 
-  static const uint8_t default_i2c_address_ = 0x74;
   uint8_t reset_pin_;
-  ::PCA9539 driver_;
+  ::PCA9536 driver_;
 
   std::vector<IO> inputs_;
   std::vector<IO> outputs_;
@@ -57,7 +56,7 @@ class PCA9539 : public peripherals::i2c::I2CAbstractPeripheral,
   bool active_low_in_ = false;
 };
 
-}  // namespace pca9539
+}  // namespace pca9536d
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata

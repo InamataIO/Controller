@@ -23,46 +23,46 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
   input_bank_2_ =
       std::dynamic_pointer_cast<PCA9539>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_io_2_id));
-  input_bank_3_[0] =
+  input_bank_3_ =
+      std::dynamic_pointer_cast<PCA9536D>(peripheral_controller.getPeripheral(
+          peripheral::fixed::peripheral_io_3_id));
+  input_bank_4_[0] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_electric_control_circuit_fail_id));
-  input_bank_3_[1] =
+  input_bank_4_[1] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_jockey_1_pump_run_id));
-  input_bank_3_[2] =
+  input_bank_4_[2] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_jockey_2_pump_run_id));
-  input_bank_3_[3] =
+  input_bank_4_[3] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_jockey_1_pump_fail_id));
-  input_bank_3_[4] =
+  input_bank_4_[4] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_jockey_2_pump_fail_id));
-  input_bank_3_[5] =
+  input_bank_4_[5] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_pumphouse_protection_alarm_id));
-  input_bank_3_[6] =
+  input_bank_4_[6] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_annunciator_fault_id));
-  input_bank_3_[7] =
+  input_bank_4_[7] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_pumphouse_flooding_alarm_id));
-  maintenance_mode_ =
-      std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
-          peripheral::fixed::peripheral_maintenance_mode_id));
 
-  if (!input_bank_1_ || !input_bank_2_ || !input_bank_3_[0] ||
-      !input_bank_3_[1] || !input_bank_3_[2] || !input_bank_3_[3] ||
-      !input_bank_3_[4] || !input_bank_3_[5] || !input_bank_3_[6] ||
-      !input_bank_3_[7] || !maintenance_mode_) {
+  if (!input_bank_1_ || !input_bank_2_ || !input_bank_3_ || !input_bank_4_[0] ||
+      !input_bank_4_[1] || !input_bank_4_[2] || !input_bank_4_[3] ||
+      !input_bank_4_[4] || !input_bank_4_[5] || !input_bank_4_[6] ||
+      !input_bank_4_[7]) {
     char buffer[40];
     const int len = snprintf(
         buffer, sizeof(buffer),
         "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d", bool(input_bank_1_),
-        bool(input_bank_2_), bool(input_bank_3_[0]), bool(input_bank_3_[1]),
-        bool(input_bank_3_[2]), bool(input_bank_3_[3]), bool(input_bank_3_[4]),
-        bool(input_bank_3_[5]), bool(input_bank_3_[6]), bool(input_bank_3_[7]),
-        bool(maintenance_mode_));
+        bool(input_bank_2_), bool(input_bank_3_), bool(input_bank_4_[0]),
+        bool(input_bank_4_[1]), bool(input_bank_4_[2]), bool(input_bank_4_[3]),
+        bool(input_bank_4_[4]), bool(input_bank_4_[5]), bool(input_bank_4_[6]),
+        bool(input_bank_4_[7]));
     setInvalid(buffer);
     return;
   }
@@ -94,7 +94,11 @@ bool Alarms::TaskCallback() {
   for (const auto& value : result.values) {
     handleResult(value);
   }
-  for (const auto& digital_in : input_bank_3_) {
+  result = input_bank_3_->getValues();
+  for (const auto& value : result.values) {
+    handleResult(value);
+  }
+  for (const auto& digital_in : input_bank_4_) {
     result = digital_in->getValues();
     if (result.values.size() == 1) {
       handleResult(result.values[0]);
@@ -210,14 +214,20 @@ void Alarms::handleResult(const utils::ValueUnit& value_unit) {
   }
 
   /// Runtime alarms
-  else if (value_unit.data_point_type ==
-           peripheral::fixed::dpt_jockey_1_pump_run_id) {
+  else if (peripheral::fixed::dpt_jockey_1_pump_run_id ==
+           value_unit.data_point_type) {
     handleDurationLimit(limit_duration_jockey_1_pump_run_, value_unit, now);
     handleActivationLimit(limit_activation_jockey_1_pump_run_, value_unit, now);
-  } else if (value_unit.data_point_type ==
-             peripheral::fixed::dpt_jockey_2_pump_run_id) {
+  } else if (peripheral::fixed::dpt_jockey_2_pump_run_id ==
+             value_unit.data_point_type) {
     handleDurationLimit(limit_duration_jockey_2_pump_run_, value_unit, now);
     handleActivationLimit(limit_activation_jockey_2_pump_run_, value_unit, now);
+  }
+
+  /// Buttons
+  else if (peripheral::fixed::dpt_maintenance_mode_id ==
+           value_unit.data_point_type) {
+    TRACEF("Maintenance: %d\n", int(value_unit.value));
   }
 }
 

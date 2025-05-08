@@ -74,6 +74,7 @@ extern const __FlashStringHelper* peripheral_modbus_sensor_out_id;
 extern const utils::UUID peripheral_i2c_adapter_id;
 extern const utils::UUID peripheral_io_1_id;
 extern const utils::UUID peripheral_io_2_id;
+extern const utils::UUID peripheral_io_3_id;
 
 extern const utils::UUID peripheral_electric_control_circuit_fail_id;
 
@@ -139,6 +140,10 @@ extern const utils::UUID dpt_jockey_2_pump_fail_id;
 extern const utils::UUID dpt_pumphouse_protection_alarm_id;
 extern const utils::UUID dpt_annunciator_fault_id;
 extern const utils::UUID dpt_pumphouse_flooding_alarm_id;
+extern const utils::UUID dpt_i41_id;
+
+extern const utils::UUID dpt_mem_wr_led_id;
+extern const utils::UUID dpt_gsm_wifi_toggle_id;
 extern const utils::UUID dpt_maintenance_mode_id;
 
 #endif
