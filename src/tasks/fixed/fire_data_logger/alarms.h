@@ -144,6 +144,9 @@ class Alarms : public BaseTask {
   std::shared_ptr<PCA9536D> input_bank_3_;
   std::array<std::shared_ptr<DigitalIn>, 8> input_bank_4_;
 
+  std::shared_ptr<DigitalOut> relay_1_;
+  std::shared_ptr<DigitalOut> relay_2_;
+
   // Limits
   // Digital alarms
   BoolLimit limit_diesel_1_fire_alarm_;

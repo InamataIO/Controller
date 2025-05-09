@@ -53,20 +53,26 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
   status_led_ =
       std::dynamic_pointer_cast<NeoPixel>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_status_led_id));
+  relay_1_ =
+      std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
+          peripheral::fixed::peripheral_relay_1_id));
+  relay_2_ =
+      std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
+          peripheral::fixed::peripheral_relay_2_id));
 
   if (!input_bank_1_ || !input_bank_2_ || !input_bank_3_ || !input_bank_4_[0] ||
-          !input_bank_4_[1] || !input_bank_4_[2] || !input_bank_4_[3] ||
-          !input_bank_4_[4] || !input_bank_4_[5] || !input_bank_4_[6] ||
-          !input_bank_4_[7],
-      !status_led_) {
-    char buffer[42];
+      !input_bank_4_[1] || !input_bank_4_[2] || !input_bank_4_[3] ||
+      !input_bank_4_[4] || !input_bank_4_[5] || !input_bank_4_[6] ||
+      !input_bank_4_[7] || !status_led_ || !relay_1_ || !relay_2_) {
+    char buffer[50];
     const int len = snprintf(
         buffer, sizeof(buffer),
-        "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
+        "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
         bool(input_bank_1_), bool(input_bank_2_), bool(input_bank_3_),
         bool(input_bank_4_[0]), bool(input_bank_4_[1]), bool(input_bank_4_[2]),
         bool(input_bank_4_[3]), bool(input_bank_4_[4]), bool(input_bank_4_[5]),
-        bool(input_bank_4_[6]), bool(input_bank_4_[7]), bool(status_led_));
+        bool(input_bank_4_[6]), bool(input_bank_4_[7]), bool(status_led_),
+        bool(relay_1_), bool(relay_2_));
     setInvalid(buffer);
     return;
   }
@@ -517,9 +523,13 @@ void Alarms::handleMaintenanceMode() {
   maintenance_button.update();
   if (maintenance_button.rose()) {
     is_maintenance_mode = !is_maintenance_mode;
+    const utils::UUID relay_dpt =
+        utils::UUID::fromFSH(peripheral::fixed::dpt_relay_id);
     if (is_maintenance_mode) {
       // Entered maintenance mode
       status_led_->setOverride(utils::Color::fromRgbw(100, 0, 0, 0));
+      relay_1_->setValue(utils::ValueUnit(1, relay_dpt));
+      relay_2_->setValue(utils::ValueUnit(0, relay_dpt));
       sendLimitEvent(
           maintenance_limit_id, &peripheral::fixed::peripheral_io_3_id,
           utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),
@@ -530,6 +540,8 @@ void Alarms::handleMaintenanceMode() {
     } else {
       // Left maintenace mode
       status_led_->clearOverride();
+      relay_1_->setValue(utils::ValueUnit(0, relay_dpt));
+      relay_2_->setValue(utils::ValueUnit(1, relay_dpt));
       sendLimitEvent(
           maintenance_limit_id, &peripheral::fixed::peripheral_io_3_id,
           utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),

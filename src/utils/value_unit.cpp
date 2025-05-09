@@ -3,8 +3,8 @@
 namespace inamata {
 namespace utils {
 
-ValueUnit::ValueUnit(float avalue, UUID adata_point_type)
-    : value(avalue), data_point_type(adata_point_type) {}
+ValueUnit::ValueUnit(float value, UUID data_point_type)
+    : value(value), data_point_type(data_point_type) {}
 
 const String ValueUnit::sourceUnitError(const UUID& other_data_point_type) {
   return mismatchUnitError(other_data_point_type, data_point_type);
