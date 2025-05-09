@@ -36,6 +36,9 @@ class DigitalIn : public Peripheral,
   bool readState();
 
  private:
+  /**
+   * Used by Debouncer to update the button state
+   */
   bool readCurrentState();
 
   static std::shared_ptr<Peripheral> factory(const ServiceGetters& services,

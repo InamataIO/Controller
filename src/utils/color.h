@@ -8,7 +8,7 @@ namespace utils {
 class Color : public Printable {
  public:
   /**
-   * Create an empty invalid instance (#00000000)
+   * Create default black color (#00000000)
    */
   Color() = default;
   virtual ~Color() = default;
@@ -46,7 +46,7 @@ class Color : public Printable {
    */
   static int hexToInt(char hex);
 
-  uint32_t wrgb_;
+  uint32_t wrgb_ = 0;
 };
 
 }  // namespace utils
