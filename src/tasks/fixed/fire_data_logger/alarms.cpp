@@ -512,7 +512,7 @@ void Alarms::handleMaintenanceMode() {
   const std::chrono::steady_clock::time_point now =
       std::chrono::steady_clock::now();
 
-  auto result = input_bank_3_->getValues();
+  const auto result = input_bank_3_->getValues();
   for (const auto& value : result.values) {
     if (value.data_point_type == peripheral::fixed::dpt_maintenance_mode_id) {
       const bool state = value.value > 0.5;

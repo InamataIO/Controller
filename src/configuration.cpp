@@ -11,4 +11,6 @@ namespace inamata {
 const __FlashStringHelper* wifi_portal_ssid = FPSTR("InamataSetup");
 const __FlashStringHelper* wifi_portal_password = FPSTR("12345678");
 
+const char* GSM_APN = "wsim";
+
 }  // namespace inamata

@@ -313,6 +313,11 @@ const utils::UUID dpt_gsm_wifi_toggle_id =
 const utils::UUID dpt_maintenance_mode_id =
     "0dab65a4-92fa-420d-990c-eaf82da508ea";
 
+const uint8_t gsm_enable_pin = 36;
+const uint8_t gsm_reset_pin = 13;
+const uint8_t gsm_tx_pin = 16;
+const uint8_t gsm_rx_pin = 4;
+
 const __FlashStringHelper* config_1 = FPSTR(R"([
 {"type":"I2CAdapter","uuid":"2f99965f-ce6d-44dc-81cb-75f9e6afaf3c","scl":9,"sda":8},
 {"type":"PCA9539","uuid":"bccf2795-7533-41ef-b3d2-f1d587c86a32","i2c_adapter":"2f99965f-ce6d-44dc-81cb-75f9e6afaf3c","i2c_address":116,"reset":45,"active_low_in":true,"inputs":[{"pin":0,"dpt":"fa9939f9-7d7b-4303-8ba5-7718afa369f0"},{"pin":1,"dpt":"5b6eebcc-7017-4aae-b37c-8cca0181ae94"},{"pin":2,"dpt":"c3338cca-2fa5-4b95-b002-13b33176ccbc"},{"pin":3,"dpt":"a1d5f7e3-194a-4c3a-963d-fcfa14464dbf"},{"pin":4,"dpt":"1efb6f6a-50a1-4267-84a9-f800fcae412b"},{"pin":5,"dpt":"f34bcce7-6d5d-4b6a-ac4d-7fd028dcff7c"},{"pin":6,"dpt":"12be15ec-d71c-4420-a3ec-d9be49234152"},{"pin":7,"dpt":"5da7c712-d286-4ae3-ae56-639a8c42a75e"},{"pin":8,"dpt":"a982c7e2-59dd-4cc4-8674-20bd3e452d65"},{"pin":9,"dpt":"d4e05f90-3774-4ea8-9dc7-df3440c49f3e"},{"pin":10,"dpt":"454ba26c-09c1-4a6c-b2bb-69038c6e912c"},{"pin":11,"dpt":"e82c196c-4f4f-4471-9d9b-f20725fc51d4"},{"pin":12,"dpt":"7173899b-8a85-4cf3-8721-5dbc23658c3a"},{"pin":13,"dpt":"3ad7b7aa-dfb1-43b1-96ec-8071b067824b"},{"pin":14,"dpt":"9de56ad6-2e71-4913-9c1b-241ebc352846"},{"pin":15,"dpt":"4aa525d1-e217-465f-ab18-73af003d90c1"}]},

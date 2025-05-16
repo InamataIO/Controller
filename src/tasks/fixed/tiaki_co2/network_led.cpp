@@ -23,8 +23,8 @@ NetworkLed::NetworkLed(const ServiceGetters& services, Scheduler& scheduler,
     return;
   }
 
-  network_ = services.getNetwork();
-  if (network_ == nullptr) {
+  wifi_network_ = services.getWifiNetwork();
+  if (wifi_network_ == nullptr) {
     setInvalid(services.network_nullptr_error_);
     return;
   }
@@ -120,7 +120,7 @@ bool NetworkLed::TaskCallback() {
 
 void NetworkLed::updateLedState() {
   const bool ws_connected = web_socket_->isConnected();
-  Network::ConnectMode mode = network_->getMode();
+  Network::ConnectMode mode = wifi_network_->getMode();
   if (ws_connected) {
     led_state_ = LedState::kWebSocketConnected;
     return;

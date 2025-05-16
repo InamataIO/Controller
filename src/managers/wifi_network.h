@@ -21,9 +21,7 @@ struct NetworkInfo {
   uint8_t encType;
   uint8_t* bssid;
   int32_t channel;
-#ifndef ESP32
   bool hidden;
-#endif
 };
 
 /**
@@ -31,7 +29,7 @@ struct NetworkInfo {
  *
  * Functionality includes conencting to wifi
  */
-class Network {
+class WiFiNetwork {
  public:
   enum class ConnectMode {
     /// Connected to WiFi AP
@@ -56,7 +54,7 @@ class Network {
    *
    * \param acces_points The WiFi access points to try to connect to
    */
-  Network(std::vector<WiFiAP>& access_points, String& controller_name);
+  WiFiNetwork(std::vector<WiFiAP>& access_points, String& controller_name);
 
   void setMode(ConnectMode mode);
   ConnectMode getMode();

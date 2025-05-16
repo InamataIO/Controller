@@ -41,7 +41,7 @@ class NetworkLed : public BaseTask {
 
   void wsMessageSent();
 
-  std::shared_ptr<Network> network_;
+  std::shared_ptr<WiFiNetwork> wifi_network_;
   std::shared_ptr<WebSocket> web_socket_;
   std::shared_ptr<BleServer> ble_server_;
 

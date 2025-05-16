@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 
+#include "NetworkClient.h"
 #include "configuration.h"
 #include "managers/logging.h"
 #include "managers/types.h"

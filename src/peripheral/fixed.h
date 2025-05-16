@@ -146,6 +146,11 @@ extern const utils::UUID dpt_mem_wr_led_id;
 extern const utils::UUID dpt_gsm_wifi_toggle_id;
 extern const utils::UUID dpt_maintenance_mode_id;
 
+extern const uint8_t gsm_enable_pin;
+extern const uint8_t gsm_reset_pin;
+extern const uint8_t gsm_tx_pin;
+extern const uint8_t gsm_rx_pin;
+
 #endif
 
 }  // namespace fixed

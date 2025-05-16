@@ -6,11 +6,11 @@
 #include "lac/lac_controller.h"
 #include "managers/action_controller.h"
 #include "managers/behavior_controller.h"
-#include "managers/network.h"
 #include "managers/ota_updater.h"
 #include "managers/service_getters.h"
 #include "managers/ui_controller.h"
 #include "managers/web_socket.h"
+#include "managers/wifi_network.h"
 #include "peripheral/peripheral_controller.h"
 #include "peripheral/peripheral_factory.h"
 #include "tasks/task_controller.h"
@@ -36,9 +36,12 @@ class Services {
   Services();
   virtual ~Services() = default;
 
-  std::shared_ptr<Network> getNetwork();
-  void setNetwork(std::shared_ptr<Network> network);
-
+  std::shared_ptr<WiFiNetwork> getWifiNetwork();
+  void setWifiNetwork(std::shared_ptr<WiFiNetwork> wifi_network);
+#ifdef GSM_NETWORK
+  std::shared_ptr<GsmNetwork> getGsmNetwork();
+  void setGsmNetwork(std::shared_ptr<GsmNetwork> gsm_network);
+#endif
   std::shared_ptr<WebSocket> getWebSocket();
   void setWebSocket(std::shared_ptr<WebSocket> web_socket);
 
@@ -70,8 +73,12 @@ class Services {
   ServiceGetters getGetters();
 
  private:
-  /// Handles network connectivity and time synchronization
-  std::shared_ptr<Network> network_;
+  /// Handles WiFi network connectivity and time synchronization
+  std::shared_ptr<WiFiNetwork> wifi_network_;
+#ifdef GSM_NETWORK
+  /// Handles GSM network connectivity
+  std::shared_ptr<GsmNetwork> gsm_network_;
+#endif
   /// Handles communication to the server
   std::shared_ptr<WebSocket> web_socket_;
   /// Handles FS / EEPROM storage

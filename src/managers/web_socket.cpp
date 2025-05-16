@@ -290,10 +290,11 @@ void WebSocket::setUrl(const char* domain, const char* path, bool secure_url) {
 }
 
 void WebSocket::setWsToken(const char* ws_token) {
+  const char* token_prefix = "token_";
   is_setup_ = false;
   ws_token_.clear();
-  ws_token_.reserve(6 + strlen(ws_token));
-  ws_token_ = F("token_");
+  ws_token_.reserve(strlen(token_prefix) + strlen(ws_token));
+  ws_token_ = token_prefix;
   ws_token_ += ws_token;
   TRACEF("Set token: %s\n", ws_token_.c_str());
 }

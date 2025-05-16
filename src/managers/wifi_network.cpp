@@ -1,4 +1,4 @@
-#include "network.h"
+#include "wifi_network.h"
 
 #include "esp_sntp.h"
 
@@ -17,7 +17,7 @@ void timeSyncCallback(struct timeval* tv) {
 #endif
 }
 
-Network::Network(std::vector<WiFiAP>& wifi_aps, String& controller_name)
+WiFiNetwork::WiFiNetwork(std::vector<WiFiAP>& wifi_aps, String& controller_name)
     : wifi_aps_(std::move(wifi_aps)),
       controller_name_(std::move(controller_name)) {
 #ifdef ENABLE_TRACE
@@ -28,40 +28,44 @@ Network::Network(std::vector<WiFiAP>& wifi_aps, String& controller_name)
 #endif
 }
 
-void Network::setMode(ConnectMode mode) { connect_mode_ = mode; }
+void WiFiNetwork::setMode(ConnectMode mode) { connect_mode_ = mode; }
 
-Network::ConnectMode Network::getMode() { return connect_mode_; }
+WiFiNetwork::ConnectMode WiFiNetwork::getMode() { return connect_mode_; }
 
-Network::ConnectMode Network::connect() {
+WiFiNetwork::ConnectMode WiFiNetwork::connect() {
   // If not connected, execute active conntect mode. After trying action, try
   // check if subsequent action can be run
   bool connected = isConnected();
-  if (!connected && connect_mode_ == ConnectMode::kFastConnect) {
+  if (connected) {
+    return ConnectMode::kConnected;
+  }
+  if (connect_mode_ == ConnectMode::kFastConnect) {
     connected = tryFastConnect();
   }
-  if (!connected && connect_mode_ == ConnectMode::kScanning) {
+  if (connect_mode_ == ConnectMode::kScanning) {
     connected = tryScanning();
   }
-  if (!connected && connect_mode_ == ConnectMode::kMultiConnect) {
+  if (connect_mode_ == ConnectMode::kMultiConnect) {
     connected = tryMultiConnect();
   }
-  if (!connected && connect_mode_ == ConnectMode::kHiddenConnect) {
+  if (connect_mode_ == ConnectMode::kHiddenConnect) {
     connected = tryHiddenConnect();
   }
-  if (!connected && connect_mode_ == ConnectMode::kCyclePower) {
+  if (connect_mode_ == ConnectMode::kCyclePower) {
     connected = tryCyclePower();
   }
-  if (!connected && connect_mode_ == ConnectMode::kPowerOff) {
+  if (connect_mode_ == ConnectMode::kPowerOff) {
     wifi_mode_t wifi_mode = WiFi.getMode();
     if (wifi_mode != WIFI_OFF || wifi_mode != WIFI_MODE_NULL) {
       TRACELN("Turning WiFi off");
       WiFi.mode(WIFI_OFF);
     }
+    connected = false;
   }
   return connected ? ConnectMode::kConnected : connect_mode_;
 }
 
-bool Network::isConnected(wl_status_t* wifi_status) {
+bool WiFiNetwork::isConnected(wl_status_t* wifi_status) {
   // If wifi_status is passed, use that state, else check it now
   wl_status_t status;
   if (wifi_status == nullptr) {
@@ -85,7 +89,7 @@ bool Network::isConnected(wl_status_t* wifi_status) {
   return false;
 }
 
-bool Network::tryFastConnect() {
+bool WiFiNetwork::tryFastConnect() {
   wl_status_t wifi_status = WL_IDLE_STATUS;
   if (connect_start_ == std::chrono::steady_clock::time_point::min()) {
     // If first run of fast connect
@@ -128,7 +132,7 @@ bool Network::tryFastConnect() {
   return false;
 }
 
-bool Network::tryScanning() {
+bool WiFiNetwork::tryScanning() {
   if (scan_start_ == std::chrono::steady_clock::time_point::min()) {
     startWiFiScan();
   }
@@ -192,7 +196,7 @@ bool Network::tryScanning() {
   return false;
 }
 
-void Network::startWiFiScan() {
+void WiFiNetwork::startWiFiScan() {
   TRACELN(F("WiFi: Scan start"));
   // If first run of WiFi scan
   scan_start_ = std::chrono::steady_clock::now();
@@ -204,7 +208,7 @@ void Network::startWiFiScan() {
   WiFi.scanNetworks(true);
 }
 
-int16_t Network::getWiFiScanState() {
+int16_t WiFiNetwork::getWiFiScanState() {
   int16_t scan_result = WiFi.scanComplete();
   std::chrono::steady_clock::duration scan_duration =
       std::chrono::steady_clock::now() - scan_start_;
@@ -215,7 +219,7 @@ int16_t Network::getWiFiScanState() {
   return scan_result;
 }
 
-bool Network::tryMultiConnect() {
+bool WiFiNetwork::tryMultiConnect() {
   if (current_wifi_ap_ == wifi_aps_.end() || current_wifi_ap_->id == -1) {
     // On reaching the last or last known AP, try connecting to hidden APs
     connect_mode_ = ConnectMode::kHiddenConnect;
@@ -271,7 +275,7 @@ bool Network::tryMultiConnect() {
   return false;
 }
 
-bool Network::tryHiddenConnect() {
+bool WiFiNetwork::tryHiddenConnect() {
   if (current_wifi_ap_ == wifi_aps_.end()) {
     // On reaching the last AP, cycle modem power before returning to scan
     // mode
@@ -323,7 +327,7 @@ bool Network::tryHiddenConnect() {
   return false;
 }
 
-bool Network::tryCyclePower() {
+bool WiFiNetwork::tryCyclePower() {
   const auto mode = WiFi.getMode();
   // If WiFi modem is not powered off, turn it off
   TRACEF("Changing from WiFi mode: %d\n", mode);
@@ -339,15 +343,15 @@ bool Network::tryCyclePower() {
   return false;
 }
 
-void Network::initTimeSync() {
+void WiFiNetwork::initTimeSync() {
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
   sntp_set_time_sync_notification_cb(timeSyncCallback);
   TRACELN(F("Start time sync"));
 }
 
-bool Network::isTimeSynced() { return is_time_synced; }
+bool WiFiNetwork::isTimeSynced() { return is_time_synced; }
 
-bool Network::populateNetworkInfo(NetworkInfo& network_info) {
+bool WiFiNetwork::populateNetworkInfo(NetworkInfo& network_info) {
   if (network_info.id < 0 || network_info.id > 255) {
     return false;
   }
@@ -357,7 +361,7 @@ bool Network::populateNetworkInfo(NetworkInfo& network_info) {
                              network_info.channel);
 }
 
-bool Network::sortRssi(const WiFiAP& lhs, const WiFiAP& rhs) {
+bool WiFiNetwork::sortRssi(const WiFiAP& lhs, const WiFiAP& rhs) {
   if (lhs.id == -1) {
     return false;
   }

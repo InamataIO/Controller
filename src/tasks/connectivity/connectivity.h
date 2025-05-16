@@ -13,6 +13,9 @@
 #include "managers/web_socket.h"
 #include "tasks/base_task.h"
 #include "utils/chrono_abs.h"
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+#include "peripheral/peripherals/pca9536d/pca9536d.h"
+#endif
 
 namespace inamata {
 namespace tasks {
@@ -20,9 +23,20 @@ namespace connectivity {
 
 class CheckConnectivity : public BaseTask {
  public:
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+  using PCA9536D = peripheral::peripherals::pca9536d::PCA9536D;
+#endif
+
   enum class Mode {
     ConnectWiFi,
+    ConnectGsm,
     ProvisionDevice,
+  };
+
+  enum class UseNetwork {
+    kGsm,
+    kWifi,
+    kNone,
   };
 
   CheckConnectivity(const ServiceGetters& services, Scheduler& scheduler);
@@ -45,7 +59,14 @@ class CheckConnectivity : public BaseTask {
   /**
    * Reinits time sync (NTP) service every day
    */
-  void handleClockSync();
+  void handleClockSync(const std::chrono::steady_clock::time_point now);
+
+  /**
+   * Checks if the time has been synced since power on
+   *
+   * @return True if synced either by WiFi or GSM network
+   */
+  bool isTimeSynced();
 
   /**
    * Performs WebSocket processing and ensure connected state
@@ -53,6 +74,14 @@ class CheckConnectivity : public BaseTask {
    * If WebSocket connection fails after a timeout, open a captive portal
    */
   void handleWebSocket();
+
+  bool initGsmWifiSwitch();
+  void handleGsmWifiSwitch(const std::chrono::steady_clock::time_point now);
+
+  /**
+   * Connect to either GSM/LTE or WiFi
+   */
+  void enterConnectMode();
 
 #ifdef PROV_IMPROV
   enum class WiFiScanMode { kNone, kScanning, kFinished };
@@ -96,12 +125,19 @@ class CheckConnectivity : public BaseTask {
   std::unique_ptr<WiFiManagerParameter> secure_url_parameter_;
   bool disable_captive_portal_timeout_ = false;
 #endif
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+  std::shared_ptr<PCA9536D> input_bank_;
+#endif
 
   ServiceGetters services_;
-  std::shared_ptr<Network> network_;
+  std::shared_ptr<WiFiNetwork> wifi_network_;
+#ifdef GSM_NETWORK
+  std::shared_ptr<GsmNetwork> gsm_network_;
+#endif
   std::shared_ptr<WebSocket> web_socket_;
 
   Mode mode_ = Mode::ConnectWiFi;
+  UseNetwork use_network_ = UseNetwork::kNone;
   std::chrono::steady_clock::time_point mode_start_;
 
   /// Set true once WebSocket connects. Will not set false on disconnect. Avoids
@@ -116,6 +152,12 @@ class CheckConnectivity : public BaseTask {
       std::chrono::steady_clock::time_point::max();
   const std::chrono::steady_clock::duration time_check_period_ =
       std::chrono::hours(24);
+
+  /// Last time the GSM/WiFi switch was checked
+  std::chrono::steady_clock::time_point last_gsm_wifi_switch_check_ =
+      std::chrono::steady_clock::time_point::min();
+  const std::chrono::steady_clock::duration gsm_wifi_switch_check_period_ =
+      std::chrono::seconds(2);
 };
 
 }  // namespace connectivity

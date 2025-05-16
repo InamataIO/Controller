@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <TaskScheduler.h>
-#include <tinyexpr.h>
 
 #include "managers/services.h"
 #include "utils/setup_node.h"

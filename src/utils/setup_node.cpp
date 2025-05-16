@@ -32,7 +32,12 @@ bool loadNetwork(Services& services, JsonObjectConst secrets) {
   if (controller_name.isEmpty()) {
     controller_name = Storage::device_type_name_;
   }
-  services.setNetwork(std::make_shared<Network>(wifi_aps, controller_name));
+  services.setWifiNetwork(
+      std::make_shared<WiFiNetwork>(wifi_aps, controller_name));
+
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+  services.setGsmNetwork(std::make_shared<GsmNetwork>());
+#endif
   return true;
 }
 
@@ -234,7 +239,6 @@ bool setupNode(Services& services) {
     TRACELN(config_task->getError().toString());
     delete config_task;
   }
-#endif
   services.setLoggingManager(std::make_shared<LoggingManager>());
 
   tasks::logging_man::LoggingManagerTask* logman_task =
@@ -244,6 +248,7 @@ bool setupNode(Services& services) {
     TRACELN(logman_task->getError().toString());
     delete logman_task;
   }
+#endif
 
 #ifdef GPIO_MONITOR
   tasks::gpio_monitor::GPIO_MonitorTask* gpio_task =

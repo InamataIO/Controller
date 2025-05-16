@@ -16,10 +16,13 @@ extern const uint8_t rootca_crt_bundle_start[] asm(
 
 namespace inamata {
 
-// Connectivity
+// Connectivity - WiFi
 extern const __FlashStringHelper* wifi_portal_ssid;
 extern const __FlashStringHelper* wifi_portal_password;
 static const std::chrono::milliseconds check_connectivity_period(100);
+
+// Conectivity - GSM
+extern const char* GSM_APN;
 
 // Connection Timeouts
 static const std::chrono::seconds wifi_connect_timeout(30);

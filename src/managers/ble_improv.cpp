@@ -43,7 +43,7 @@ void BleImprov::handle() {
     case improv::STATE_PROVISIONING:
       // TODO: set indicator
       if (WiFi.isConnected()) {
-        services_.getNetwork()->wifi_aps_.push_back(wifi_ap_);
+        services_.getWifiNetwork()->wifi_aps_.push_back(wifi_ap_);
         services_.getStorage()->saveWiFiAP(wifi_ap_);
         wifi_ap_ = {};
         wifi_connect_start_ = std::chrono::steady_clock::time_point::min();
@@ -344,7 +344,7 @@ void BleImprov::sendDeviceInfoResponse() {
 
   device_info.emplace_back(board_name);
   device_info.emplace_back(Storage::device_type_name_);
-  device_info.emplace_back(services_.getNetwork()->controller_name_);
+  device_info.emplace_back(services_.getWifiNetwork()->controller_name_);
   for (const String &str : device_info) {
     TRACELN(str);
   }
@@ -398,7 +398,7 @@ void BleImprov::handleGetWifiNetworks() {
   std::vector<WiFiScanAP> scanned_wifi_aps;
   for (int16_t i = 0; i < wifi_scan_state; i++) {
     NetworkInfo network_info{.id = i};
-    Network::populateNetworkInfo(network_info);
+    WiFiNetwork::populateNetworkInfo(network_info);
     // Check if network was already found and update signal strength (RSSI)
     bool found = false;
     for (auto &wifi_ap : scanned_wifi_aps) {

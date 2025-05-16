@@ -1,9 +1,12 @@
 #include "service_getters.h"
 
 namespace inamata {
-const __FlashStringHelper* ServiceGetters::network_nullptr_error_ =
-    FPSTR("Network nullptr returned");
-
+const __FlashStringHelper* ServiceGetters::wifi_network_nullptr_error_ =
+    FPSTR("WiFiNetwork nullptr returned");
+#ifdef GSM_NETWORK
+const __FlashStringHelper* ServiceGetters::gsm_network_nullptr_error_ =
+    FPSTR("GsmNetwork nullptr returned");
+#endif
 const __FlashStringHelper* ServiceGetters::web_socket_nullptr_error_ =
     FPSTR("WebSocket nullptr returned");
 

@@ -16,12 +16,20 @@ Services::Services() {
   ota_updater_.setServices(getters);
 }
 
-std::shared_ptr<Network> Services::getNetwork() { return network_; }
-
-void Services::setNetwork(std::shared_ptr<Network> network) {
-  network_ = network;
+std::shared_ptr<WiFiNetwork> Services::getWifiNetwork() {
+  return wifi_network_;
 }
 
+void Services::setWifiNetwork(std::shared_ptr<WiFiNetwork> wifi_network) {
+  wifi_network_ = wifi_network;
+}
+#ifdef GSM_NETWORK
+std::shared_ptr<GsmNetwork> Services::getGsmNetwork() { return gsm_network_; }
+
+void Services::setGsmNetwork(std::shared_ptr<GsmNetwork> gsm_network) {
+  gsm_network_ = gsm_network;
+}
+#endif
 std::shared_ptr<WebSocket> Services::getWebSocket() { return web_socket_; }
 
 void Services::setWebSocket(std::shared_ptr<WebSocket> web_socket) {
@@ -54,7 +62,7 @@ std::shared_ptr<LoggingManager> Services::getLoggingManager() {
 
 void Services::setLoggingManager(std::shared_ptr<LoggingManager> log_manager) {
   log_manager_ = log_manager;
-} 
+}
 
 ActionController& Services::getActionController() { return action_controller_; }
 
@@ -77,7 +85,10 @@ OtaUpdater& Services::getOtaUpdater() { return ota_updater_; }
 Scheduler& Services::getScheduler() { return scheduler_; }
 
 ServiceGetters Services::getGetters() {
-  ServiceGetters getters(std::bind(&Services::getNetwork, this),
+  ServiceGetters getters(std::bind(&Services::getWifiNetwork, this),
+#ifdef GSM_NETWORK
+                         std::bind(&Services::getGsmNetwork, this),
+#endif
                          std::bind(&Services::getWebSocket, this),
                          std::bind(&Services::getStorage, this),
                          std::bind(&Services::getBleServer, this),

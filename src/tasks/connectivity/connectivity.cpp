@@ -1,6 +1,11 @@
 #include "connectivity.h"
 
 #include "configuration.h"
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+#include "managers/network_client_impl.h"
+#include "peripheral/fixed.h"
+#include "utils/error_store.h"
+#endif
 
 namespace inamata {
 namespace tasks {
@@ -9,9 +14,11 @@ namespace connectivity {
 CheckConnectivity::CheckConnectivity(const ServiceGetters& services,
                                      Scheduler& scheduler)
     : BaseTask(scheduler, Input(nullptr, true)), services_(services) {
+  const bool success = initGsmWifiSwitch();
+  if (!success) {
+    return;
+  }
   Task::setIterations(TASK_FOREVER);
-  Task::setInterval(
-      std::chrono::milliseconds(check_connectivity_period).count());
 }
 
 CheckConnectivity::~CheckConnectivity() {}
@@ -24,44 +31,71 @@ const String& CheckConnectivity::type() {
 }
 
 bool CheckConnectivity::OnTaskEnable() {
-  network_ = services_.getNetwork();
-  if (network_ == nullptr) {
-    setInvalid(services_.network_nullptr_error_);
+  wifi_network_ = services_.getWifiNetwork();
+  if (wifi_network_ == nullptr) {
+    setInvalid(services_.wifi_network_nullptr_error_);
     return false;
   }
+#ifdef GSM_NETWORK
+  gsm_network_ = services_.getGsmNetwork();
+  if (gsm_network_ == nullptr) {
+    setInvalid(services_.gsm_network_nullptr_error_);
+    return false;
+  }
+#endif
   web_socket_ = services_.getWebSocket();
   if (web_socket_ == nullptr) {
     setInvalid(services_.web_socket_nullptr_error_);
     return false;
   }
-  // If the network service has no known APs, jump directly to provisioning
-  if (network_->wifi_aps_.size() == 0) {
+  // If the WebSocket token has not been set, jump directly to provisioning
+  if (!web_socket_->isWsTokenSet()) {
     mode_ = Mode::ProvisionDevice;
+  } else {
+    handleGsmWifiSwitch(std::chrono::steady_clock::now());
   }
 
-  return Callback();
+  return true;
 }
 
 bool CheckConnectivity::TaskCallback() {
+  const auto now = std::chrono::steady_clock::now();
+  handleGsmWifiSwitch(now);
   if (mode_ == Mode::ConnectWiFi) {
-    Network::ConnectMode connect_mode = network_->connect();
+    WiFiNetwork::ConnectMode connect_mode = wifi_network_->connect();
     // Disable starting WiFi captive portal if the WebSocket connects once
-    if (connect_mode == Network::ConnectMode::kPowerOff &&
+    if (connect_mode == WiFiNetwork::ConnectMode::kPowerOff &&
         !web_socket_connected_since_boot_) {
       setMode(Mode::ProvisionDevice);
     }
-    if (connect_mode == Network::ConnectMode::kConnected) {
-      handleClockSync();
-      if (network_->isTimeSynced()) {
+    if (connect_mode == WiFiNetwork::ConnectMode::kConnected) {
+      handleClockSync(now);
+      if (isTimeSynced()) {
         handleWebSocket();
       }
     }
-  } else {
+  }
+#ifdef GSM_NETWORK
+  else if (mode_ == Mode::ConnectGsm) {
+    if (!web_socket_->isWsTokenSet()) {
+      setMode(Mode::ProvisionDevice);
+    } else {
+      gsm_network_->handleConnection();
+      if (gsm_network_->isGprsConnected()) {
+        handleClockSync(now);
+        if (isTimeSynced()) {
+          handleWebSocket();
+        }
+      }
+    }
+  }
+#endif
+  else {
 #ifdef PROV_WIFI
-    if (std::chrono::steady_clock::now() - mode_start_ > provision_timeout) {
+    if (now - mode_start_ > provision_timeout) {
       if (disable_captive_portal_timeout_) {
         TRACELN(F("Captive portal timeout reset"));
-        mode_start_ = std::chrono::steady_clock::now();
+        mode_start_ = now;
       } else {
         TRACELN(F("Captive portal timed out"));
         setMode(Mode::ConnectWiFi);
@@ -70,27 +104,49 @@ bool CheckConnectivity::TaskCallback() {
     handleCaptivePortal();
 #endif
 #ifdef PROV_IMPROV
-    if (std::chrono::steady_clock::now() - mode_start_ > provision_timeout) {
+    if (now - mode_start_ > provision_timeout) {
       TRACELN(F("Improv setup timed out"));
       setMode(Mode::ConnectWiFi);
     }
     handleBleServer();
     handleImprov();
     if (improv_ && improv_->getState() == improv::STATE_STOPPED) {
-      setMode(Mode::ConnectWiFi);
+      handleGsmWifiSwitch(now);
     }
 #endif
   }
 
+  // Delay at end to ensure delay even if processing takes longer
+  Task::delay(std::chrono::milliseconds(check_connectivity_period).count());
   return true;
 }
 
-void CheckConnectivity::handleClockSync() {
-  if (utils::chrono_abs(std::chrono::steady_clock::now() - last_time_check_) >
-      time_check_period_) {
-    last_time_check_ = std::chrono::steady_clock::now();
-    network_->initTimeSync();
+void CheckConnectivity::handleClockSync(
+    const std::chrono::steady_clock::time_point now) {
+  if (utils::chrono_abs(now - last_time_check_) > time_check_period_) {
+    Serial.println("C1");
+    last_time_check_ = now;
+    if (mode_ == Mode::ConnectWiFi) {
+      Serial.println("C2");
+      wifi_network_->initTimeSync();
+    }
+#ifdef GSM_NETWORK
+    else if (mode_ == Mode::ConnectGsm) {
+      Serial.println("C3");
+      gsm_network_->syncTime();
+    }
+#endif
   }
+}
+
+bool CheckConnectivity::isTimeSynced() {
+  bool is_synced = wifi_network_->isTimeSynced();
+#ifdef GSM_NETWORK
+  if (!is_synced) {
+    is_synced = gsm_network_->isTimeSynced();
+  }
+#endif
+  return is_synced;
 }
 
 void CheckConnectivity::handleWebSocket() {
@@ -107,6 +163,67 @@ void CheckConnectivity::handleWebSocket() {
   }
 }
 
+bool CheckConnectivity::initGsmWifiSwitch() {
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+  input_bank_ = std::dynamic_pointer_cast<PCA9536D>(
+      Services::getPeripheralController().getPeripheral(
+          peripheral::fixed::peripheral_io_3_id));
+  if (!input_bank_) {
+    setInvalid(ErrorStore::genNotAValid(peripheral::fixed::peripheral_io_3_id,
+                                        PCA9536D::type()));
+    return false;
+  }
+#endif
+  return true;
+}
+
+void CheckConnectivity::handleGsmWifiSwitch(
+    const std::chrono::steady_clock::time_point now) {
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+  if (utils::chrono_abs(now - last_gsm_wifi_switch_check_) >
+      gsm_wifi_switch_check_period_) {
+    last_gsm_wifi_switch_check_ = now;
+    const auto result = input_bank_->getValues();
+    for (const auto& value : result.values) {
+      if (value.data_point_type == peripheral::fixed::dpt_gsm_wifi_toggle_id) {
+        const bool use_wifi = value.value < 0.5;
+        if (use_wifi && use_network_ != UseNetwork::kWifi) {
+          TRACELN("Switch to WiFi");
+          use_network_ = UseNetwork::kWifi;
+          enterConnectMode();
+        } else if (!use_wifi && use_network_ != UseNetwork::kGsm) {
+          TRACELN("Switch to GSM");
+          use_network_ = UseNetwork::kGsm;
+          enterConnectMode();
+        }
+        break;
+      }
+    }
+  }
+#else
+  enterConnectMode();
+#endif
+}
+
+void CheckConnectivity::enterConnectMode() {
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+  Serial.println("x1");
+  switch (use_network_) {
+    case UseNetwork::kWifi:
+      NetworkClient::Impl::disableGsm();
+      setMode(Mode::ConnectWiFi);
+      NetworkClient::Impl::enableWifi();
+      break;
+    case UseNetwork::kGsm:
+      NetworkClient::Impl::disableWifi();
+      setMode(Mode::ConnectGsm);
+      NetworkClient::Impl::enableGsm(&gsm_network_->modem_);
+  }
+#else
+  setMode(Mode::ConnectWiFi);
+#endif
+}
+
 void CheckConnectivity::setMode(Mode mode) {
   // No actions if not changing mode
   if (mode == mode_) {
@@ -114,35 +231,57 @@ void CheckConnectivity::setMode(Mode mode) {
   }
 
   // Actions to run when leaving mode
-  if (mode_ == Mode::ProvisionDevice) {
+  switch (mode_) {
+#ifdef GSM_NETWORK
+    case Mode::ConnectGsm:
+      gsm_network_->disable();
+      break;
+#endif
+    case Mode::ProvisionDevice:
+      Serial.println("Y1");
 #ifdef PROV_IMPROV
-    improv_->stop();
-    improv_ = nullptr;
-    services_.getBleServer()->disable();
+      if (improv_) {
+        improv_->stop();
+      }
+      improv_ = nullptr;
+      services_.getBleServer()->disable();
 #endif
 #ifdef PROV_WIFI
-    wifi_manager_ = nullptr;
-    ws_token_parameter_ = nullptr;
-    core_domain_parameter_ = nullptr;
-    secure_url_parameter_ = nullptr;
+      wifi_manager_ = nullptr;
+      ws_token_parameter_ = nullptr;
+      core_domain_parameter_ = nullptr;
+      secure_url_parameter_ = nullptr;
 #endif
+      break;
   }
+  Serial.println("Y2");
 
   mode_ = mode;
   mode_start_ = std::chrono::steady_clock::now();
 
   // Actions to run when entering mode
-  if (mode_ == Mode::ConnectWiFi) {
-    network_->setMode(Network::ConnectMode::kFastConnect);
-    // If not reset, will fail on WS connection after being provisioned
-    // and will require a reboot
-    web_socket_->resetConnectAttempt();
-  }
-  if (mode == Mode::ProvisionDevice) {
+  switch (mode_) {
+    case Mode::ConnectWiFi:
+      wifi_network_->setMode(WiFiNetwork::ConnectMode::kFastConnect);
+      // If not reset, will fail on WS connection after being provisioned
+      // and will require a reboot
+      web_socket_->resetConnectAttempt();
+      break;
+#ifdef GSM_NETWORK
+    case Mode::ConnectGsm:
+      gsm_network_->enable();
+      // If not reset, will fail on WS connection after being provisioned
+      // and will require a reboot
+      web_socket_->resetConnectAttempt();
+      break;
+#endif
 #ifdef PROV_WIFI
-    disable_captive_portal_timeout_ = false;
+    case Mode::ProvisionDevice:
+      disable_captive_portal_timeout_ = false;
+      break;
 #endif
   }
+  Serial.println("Y4");
 }
 
 #ifdef PROV_IMPROV
@@ -222,7 +361,7 @@ void CheckConnectivity::saveCaptivePortalWifi() {
   String wifi_password = wifi_manager_->getWiFiPass(false);
   TRACEF("Connected to %s:%s\n", ssid.c_str(), wifi_password.c_str());
   bool saved = false;
-  for (WiFiAP& wifi_ap : network_->wifi_aps_) {
+  for (WiFiAP& wifi_ap : wifi_network_->wifi_aps_) {
     if (ssid == wifi_ap.ssid) {
       wifi_ap.password = wifi_password;
       saved = true;
@@ -230,7 +369,8 @@ void CheckConnectivity::saveCaptivePortalWifi() {
     }
   }
   if (!saved) {
-    network_->wifi_aps_.push_back({.ssid = ssid, .password = wifi_password});
+    wifi_network_->wifi_aps_.push_back(
+        {.ssid = ssid, .password = wifi_password});
   }
   saved = false;
 

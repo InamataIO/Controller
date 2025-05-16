@@ -29,7 +29,7 @@ void SystemMonitor::SetInterval(std::chrono::milliseconds interval) {
 bool SystemMonitor::OnTaskEnable() {
   web_socket_ = services_.getWebSocket();
   if (web_socket_ == nullptr) {
-    setInvalid(services_.network_nullptr_error_);
+    setInvalid(services_.wifi_network_nullptr_error_);
     return false;
   }
   // Reset counters to calculate CPU load. Wait one interval for valid readings
