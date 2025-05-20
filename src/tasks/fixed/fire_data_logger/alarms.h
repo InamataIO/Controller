@@ -200,7 +200,7 @@ class Alarms : public BaseTask {
       std::chrono::steady_clock::time_point::min();
   std::shared_ptr<peripheral::peripherals::neo_pixel::NeoPixel> status_led_;
 
-  std::chrono::seconds continue_event_period_ = std::chrono::seconds(15);
+  std::chrono::seconds continue_event_period_ = std::chrono::minutes(15);
 
   // Max time is ~72 minutes due to an overflow in the CPU load counter
   static const std::chrono::milliseconds default_interval_;

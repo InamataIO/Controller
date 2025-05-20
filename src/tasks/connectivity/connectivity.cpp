@@ -60,7 +60,9 @@ bool CheckConnectivity::OnTaskEnable() {
 
 bool CheckConnectivity::TaskCallback() {
   const auto now = std::chrono::steady_clock::now();
-  handleGsmWifiSwitch(now);
+  if (mode_ != Mode::ProvisionDevice) {
+    handleGsmWifiSwitch(now);
+  }
   if (mode_ == Mode::ConnectWiFi) {
     WiFiNetwork::ConnectMode connect_mode = wifi_network_->connect();
     // Disable starting WiFi captive portal if the WebSocket connects once
@@ -124,15 +126,12 @@ bool CheckConnectivity::TaskCallback() {
 void CheckConnectivity::handleClockSync(
     const std::chrono::steady_clock::time_point now) {
   if (utils::chrono_abs(now - last_time_check_) > time_check_period_) {
-    Serial.println("C1");
     last_time_check_ = now;
     if (mode_ == Mode::ConnectWiFi) {
-      Serial.println("C2");
       wifi_network_->initTimeSync();
     }
 #ifdef GSM_NETWORK
     else if (mode_ == Mode::ConnectGsm) {
-      Serial.println("C3");
       gsm_network_->syncTime();
     }
 #endif
@@ -211,7 +210,6 @@ void CheckConnectivity::handleGsmWifiSwitch(
 
 void CheckConnectivity::enterConnectMode() {
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
-  Serial.println("x1");
   switch (use_network_) {
     case UseNetwork::kWifi:
       NetworkClient::Impl::disableGsm();
@@ -242,7 +240,6 @@ void CheckConnectivity::setMode(Mode mode) {
       break;
 #endif
     case Mode::ProvisionDevice:
-      Serial.println("Y1");
 #ifdef PROV_IMPROV
       if (improv_) {
         improv_->stop();
@@ -258,7 +255,6 @@ void CheckConnectivity::setMode(Mode mode) {
 #endif
       break;
   }
-  Serial.println("Y2");
 
   mode_ = mode;
   mode_start_ = std::chrono::steady_clock::now();
@@ -285,7 +281,6 @@ void CheckConnectivity::setMode(Mode mode) {
       break;
 #endif
   }
-  Serial.println("Y4");
 }
 
 #ifdef PROV_IMPROV
