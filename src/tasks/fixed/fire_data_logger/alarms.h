@@ -30,57 +30,53 @@ class Alarms : public BaseTask {
 
   bool TaskCallback();
 
+  void handleBehaviorConfig(const JsonObjectConst& config);
+
  private:
+  struct BaseLimit {
+    bool is_high = false;
+    /// Invalid ID means server has not configured it
+    utils::UUID limit_id = nullptr;
+    const utils::UUID* fixed_peripheral_id = nullptr;
+    std::chrono::steady_clock::time_point last_continue_event_sent =
+        std::chrono::steady_clock::time_point::min();
+  };
+
   /**
    * Limit info for bool threshold limits
    */
-  struct BoolLimit {
-    bool is_high;
-    /// Invalid ID means server has not configured it
-    utils::UUID limit_id;
-    const utils::UUID* fixed_peripheral_id;
-    std::chrono::steady_clock::time_point last_continue_event_sent;
-
-    std::chrono::steady_clock::time_point delay_start;
-    std::chrono::milliseconds delay_duration;
+  struct BoolLimit : public BaseLimit {
+    std::chrono::steady_clock::time_point delay_start =
+        std::chrono::steady_clock::time_point::min();
+    std::chrono::milliseconds delay_duration = std::chrono::seconds(5);
   };
 
   /**
    * Limit info for activity based limits
    */
-  struct DurationLimit {
-    bool is_high;
-    /// Invalid ID means server has not configured it
-    utils::UUID limit_id;
-    const utils::UUID* fixed_peripheral_id;
-    std::chrono::steady_clock::time_point last_continue_event_sent;
-
+  struct DurationLimit : public BaseLimit {
     /// How long it may be high before sending an alert
-    std::chrono::seconds high_duration;
+    std::chrono::seconds high_duration = std::chrono::seconds(15);
     /// When the last high started (if still active) for continuous high alert
-    std::chrono::steady_clock::time_point high_start;
+    std::chrono::steady_clock::time_point high_start =
+        std::chrono::steady_clock::time_point::min();
   };
 
   /**
    * Limit info for activations based limits
    */
-  struct ActivationLimit {
-    bool is_high;
-    /// Invalid ID means server has not configured it
-    utils::UUID limit_id;
-    const utils::UUID* fixed_peripheral_id;
-    std::chrono::steady_clock::time_point last_continue_event_sent;
-
+  struct ActivationLimit : public BaseLimit {
     /// Highs in the current period
-    uint32_t highs;
+    uint32_t highs = 0;
     /// High events allowed per period
-    uint32_t highs_per_period;
+    uint32_t highs_per_period = 10;
     /// The duration specifying the high period
-    std::chrono::seconds period;
+    std::chrono::seconds period = std::chrono::hours(1);
     /// When the current period started
-    std::chrono::steady_clock::time_point period_start;
+    std::chrono::steady_clock::time_point period_start =
+        std::chrono::steady_clock::time_point::min();
     /// Whether over the limit in the current or last period
-    bool is_over_limit;
+    bool is_over_limit = false;
   };
 
   class ManualDebouncer : public Debouncer {
@@ -126,23 +122,24 @@ class Alarms : public BaseTask {
 
   void handleMaintenanceMode();
 
-  static BoolLimit makeBoolLimitInfo(
-      const utils::UUID* fixed_peripheral_id,
-      const std::chrono::seconds delay_duration = std::chrono::seconds(5));
-  static DurationLimit makeDurationLimitInfo(
-      const utils::UUID* fixed_peripheral_id,
-      const std::chrono::seconds high_duration = std::chrono::seconds(15));
-  static ActivationLimit makeActivationLimitInfo(
-      const utils::UUID* fixed_peripheral_id,
-      const uint32_t highs_per_period = 3,
-      const std::chrono::seconds period = std::chrono::seconds(30));
+  static void setBoolLimitConfig(BoolLimit& limit, JsonObjectConst config);
+  static void setDurationLimitConfig(DurationLimit& limit,
+                                     JsonObjectConst config);
+  static void setActivationLimitConfig(ActivationLimit& limit,
+                                       JsonObjectConst config);
+  static void resetBoolLimit(BoolLimit& limit,
+                             const utils::UUID* fixed_peripheral_id);
+  static void resetDurationLimit(DurationLimit& limit,
+                                 const utils::UUID* fixed_peripheral_id);
+  static void resetActivationLimit(ActivationLimit& limit,
+                                   const utils::UUID* fixed_peripheral_id);
 
   std::shared_ptr<WebSocket> web_socket_;
 
   std::shared_ptr<PCA9539> input_bank_1_;
   std::shared_ptr<PCA9539> input_bank_2_;
   std::shared_ptr<PCA9536D> input_bank_3_;
-  std::array<std::shared_ptr<DigitalIn>, 8> input_bank_4_;
+  std::array<std::shared_ptr<DigitalIn>, 9> input_bank_4_;
 
   std::shared_ptr<DigitalOut> relay_1_;
   std::shared_ptr<DigitalOut> relay_2_;
@@ -187,6 +184,7 @@ class Alarms : public BaseTask {
   BoolLimit limit_pumphouse_protection_alarm_;
   BoolLimit limit_annunciator_fault_;
   BoolLimit limit_pumphouse_flooding_alarm_;
+  BoolLimit limit_i41_;
 
   // Runtime alarms
   DurationLimit limit_duration_jockey_1_pump_run_;

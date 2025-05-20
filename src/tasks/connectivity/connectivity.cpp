@@ -52,7 +52,7 @@ bool CheckConnectivity::OnTaskEnable() {
   if (!web_socket_->isWsTokenSet()) {
     mode_ = Mode::ProvisionDevice;
   } else {
-    handleGsmWifiSwitch(std::chrono::steady_clock::now());
+    handleGsmWifiSwitch(std::chrono::steady_clock::now(), true);
   }
 
   return true;
@@ -111,7 +111,7 @@ bool CheckConnectivity::TaskCallback() {
     handleBleServer();
     handleImprov();
     if (improv_ && improv_->getState() == improv::STATE_STOPPED) {
-      handleGsmWifiSwitch(now);
+      handleGsmWifiSwitch(now, true);
     }
 #endif
   }
@@ -178,8 +178,12 @@ bool CheckConnectivity::initGsmWifiSwitch() {
 }
 
 void CheckConnectivity::handleGsmWifiSwitch(
-    const std::chrono::steady_clock::time_point now) {
+    const std::chrono::steady_clock::time_point now, bool force) {
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+  if (force) {
+    use_network_ = UseNetwork::kNone;
+    last_gsm_wifi_switch_check_ = std::chrono::steady_clock::time_point::min();
+  }
   if (utils::chrono_abs(now - last_gsm_wifi_switch_check_) >
       gsm_wifi_switch_check_period_) {
     last_gsm_wifi_switch_check_ = now;

@@ -76,7 +76,14 @@ class CheckConnectivity : public BaseTask {
   void handleWebSocket();
 
   bool initGsmWifiSwitch();
-  void handleGsmWifiSwitch(const std::chrono::steady_clock::time_point now);
+
+  /**
+   * Check whether GSM or WiFi connection should be used
+   *
+   * @param force Force enter connect mode
+   */
+  void handleGsmWifiSwitch(const std::chrono::steady_clock::time_point now,
+                           bool force = false);
 
   /**
    * Connect to either GSM/LTE or WiFi

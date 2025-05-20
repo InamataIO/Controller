@@ -86,7 +86,7 @@ extern const utils::UUID peripheral_jockey_2_pump_fail_id;
 extern const utils::UUID peripheral_pumphouse_protection_alarm_id;
 extern const utils::UUID peripheral_annunciator_fault_id;
 extern const utils::UUID peripheral_pumphouse_flooding_alarm_id;
-extern const utils::UUID peripheral_maintenance_mode_id;
+extern const utils::UUID peripheral_i41_id;
 
 extern const utils::UUID peripheral_relay_1_id;
 extern const utils::UUID peripheral_relay_2_id;
