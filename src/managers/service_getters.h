@@ -63,7 +63,9 @@ struct ServiceGetters {
   };
 
   static const __FlashStringHelper* wifi_network_nullptr_error_;
+#ifdef GSM_NETWORK
   static const __FlashStringHelper* gsm_network_nullptr_error_;
+#endif
   static const __FlashStringHelper* web_socket_nullptr_error_;
   static const __FlashStringHelper* storage_nullptr_error_;
   static const __FlashStringHelper* ble_server_nullptr_error_;

@@ -1,5 +1,5 @@
 # Based on https://docs.platformio.org/en/latest/integration/ci/gitlab.html#using-cmd-ci-command
-image: python:3.10
+image: python:3.12
 
 workflow:
   auto_cancel:
@@ -11,7 +11,7 @@ workflow:
         on_new_commit: none
     - when: always
 
-variables:  # Change pip's cache directory to be inside the project directory since we can only cache local items.
+variables: # Change pip's cache directory to be inside the project directory since we can only cache local items.
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PLATFORMIO_CACHE_DIR: "$CI_PROJECT_DIR/.cache/platformio"
 
@@ -22,8 +22,8 @@ cache:
       - $CI_PROJECT_DIR/.cache/platformio
 
 stages:
- - test
- - build
+  - test
+  - build
 
 .before_script: &before_script
   - git config --global advice.detachedHead false
@@ -31,8 +31,8 @@ stages:
   - ./scripts/check_version.sh
   - pip install -U platformio
 
-.after_script: &after_script
 # Move all firmware images to the top-level folder for easier extraction
+.after_script: &after_script
   - ls -hola
   - find .pio -type f -iname "*@*.bin" -exec mv -t . {} +
 
@@ -44,6 +44,16 @@ stages:
 .esp32-s3-script:
   before_script: *before_script
   script: platformio run -e esp32-s3-devkitc-1 -e voc-sensor-mk1 -e voc-sensor-mk1-dbg
+  after_script: *after_script
+
+.tiaki-co2-script:
+  before_script: *before_script
+  script: platformio run -e tiaki-co2-monitor -e tiaki-co2-monitor-dbg
+  after_script: *after_script
+
+.fire-data-logger-script:
+  before_script: *before_script
+  script: platformio run -e fire-data-logger -e fire-data-logger-dbg
   after_script: *after_script
 
 ##############################################################################
@@ -64,11 +74,11 @@ stages:
     - when: manual
       allow_failure: true
   artifacts:
-      when: on_success
-      name: "$CI_JOB_NAME"
-      expire_in: "30 days"
-      paths:
-        - ./*@*.bin
+    when: on_success
+    name: "$CI_JOB_NAME"
+    expire_in: "30 days"
+    paths:
+      - ./*@*.bin
 
 test:esp32:
   extends: [.test-base, .esp32-script]
@@ -76,6 +86,14 @@ test:esp32:
 
 test:esp32-s3:
   extends: [.test-base, .esp32-s3-script]
+  stage: test
+
+test:tiaki-co2-script:
+  extends: [.test-base, .tiaki-co2-script]
+  stage: test
+
+test:fire-data-logger-script:
+  extends: [.test-base, .fire-data-logger-script]
   stage: test
 
 ##############################################################################
@@ -94,11 +112,11 @@ test:esp32-s3:
     - if: "$CI_COMMIT_TAG"
       when: never
   artifacts:
-      when: on_success
-      name: "$CI_JOB_NAME"
-      expire_in: never
-      paths:
-        - ./*@*.bin
+    when: on_success
+    name: "$CI_JOB_NAME"
+    expire_in: never
+    paths:
+      - ./*@*.bin
   dependencies: []
   interruptible: false
 
@@ -108,6 +126,14 @@ build:esp32:
 
 build:esp32-s3:
   extends: [.build-base, .esp32-s3-script]
+  stage: build
+
+build:tiaki-co2-script:
+  extends: [.build-base, .tiaki-co2-script]
+  stage: build
+
+build:fire-data-logger-script:
+  extends: [.build-base, .fire-data-logger-script]
   stage: build
 
 build:tag-commit:
