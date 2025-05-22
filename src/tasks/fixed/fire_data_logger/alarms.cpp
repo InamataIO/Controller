@@ -202,7 +202,7 @@ void Alarms::handleBehaviorConfig(const JsonObjectConst& config) {
 
   JsonObjectConst maintenance_limit = config["maintenance_mode"];
   if (!maintenance_limit.isNull()) {
-    utils::UUID limit_id(config[WebSocket::limit_id_key_]);
+    utils::UUID limit_id(maintenance_limit[WebSocket::limit_id_key_]);
     if (limit_id.isValid()) {
       maintenance_limit_id = limit_id;
     }
