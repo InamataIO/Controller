@@ -199,6 +199,14 @@ void Alarms::handleBehaviorConfig(const JsonObjectConst& config) {
                            config["activation_jockey_1_pump_run"]);
   setActivationLimitConfig(limit_activation_jockey_2_pump_run_,
                            config["activation_jockey_2_pump_run"]);
+
+  JsonObjectConst maintenance_limit = config["maintenance_mode"];
+  if (!maintenance_limit.isNull()) {
+    utils::UUID limit_id(maintenance_limit[WebSocket::limit_id_key_]);
+    if (limit_id.isValid()) {
+      maintenance_limit_id = limit_id;
+    }
+  }
 }
 
 void Alarms::resetLimits() {
@@ -418,7 +426,8 @@ void Alarms::handleBoolLimit(BoolLimit& limit_info,
                              const utils::ValueUnit& value_unit,
                              const std::chrono::steady_clock::time_point now) {
   if (value_unit.value > 0.5) {
-    // Low-pass filter if limit is crossed for longer than limit_delay_duration
+    // Low-pass filter if limit is crossed for longer than
+    // limit_delay_duration
     if (ignoreCrossedLimit(limit_info.delay_start, limit_info.delay_duration,
                            now)) {
       return;
@@ -516,7 +525,8 @@ void Alarms::handleActivationLimit(
     limit_info.is_high = false;
   }
 
-  // If over limit, check if start event was sent or need to send continue event
+  // If over limit, check if start event was sent or need to send continue
+  // event
   if (limit_info.is_over_limit) {
     if (limit_info.last_continue_event_sent ==
         std::chrono::steady_clock::time_point::min()) {
