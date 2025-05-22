@@ -306,7 +306,7 @@ const utils::UUID dpt_pumphouse_flooding_alarm_id =
     "25a58394-1d7b-4645-8e08-a47952a49c1e";
 const utils::UUID dpt_i41_id = "cd9f1cd2-0252-4c6e-b9eb-7868de72face";
 
-// Maintenance button
+// Buttons, switches and LEDs
 const utils::UUID dpt_mem_wr_led_id = "7699a3b3-ebf5-444a-8cd8-49776dba5f5d";
 const utils::UUID dpt_gsm_wifi_toggle_id =
     "07fafa6a-b31a-431e-8510-09d5212ecefc";
@@ -342,7 +342,112 @@ const __FlashStringHelper* config_2 = FPSTR(R"([
 
 std::array<const __FlashStringHelper*, 2> configs{config_1, config_2};
 
-void setRegisterFixedPeripherals(JsonObject msg) {}
+void addDptToJson(const String& dpt, const char* prefix, JsonArray fdpts) {
+  JsonObject fdpt = fdpts.add<JsonObject>();
+  fdpt["fid"] = dpt;
+  if (prefix != nullptr) {
+    fdpt["prefix"] = prefix;
+  }
+}
+
+void setRegisterFixedPeripherals(JsonObject msg) {
+  JsonArray fps = msg["fps"].to<JsonArray>();
+
+  JsonObject fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_io_1_id;
+  JsonArray fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_diesel_1_fire_alarm_id.toString(), "d1fa", fdpts);
+  addDptToJson(dpt_diesel_2_fire_alarm_id.toString(), "d2fa", fdpts);
+  addDptToJson(dpt_diesel_3_fire_alarm_id.toString(), "d3fa", fdpts);
+  addDptToJson(dpt_diesel_4_fire_alarm_id.toString(), "d4fa", fdpts);
+
+  addDptToJson(dpt_diesel_1_pump_run_id.toString(), "d1pr", fdpts);
+  addDptToJson(dpt_diesel_2_pump_run_id.toString(), "d2pr", fdpts);
+  addDptToJson(dpt_diesel_3_pump_run_id.toString(), "d3pr", fdpts);
+  addDptToJson(dpt_diesel_4_pump_run_id.toString(), "d4pr", fdpts);
+
+  addDptToJson(dpt_diesel_1_pump_fail_id.toString(), "d1pf", fdpts);
+  addDptToJson(dpt_diesel_2_pump_fail_id.toString(), "d2pf", fdpts);
+  addDptToJson(dpt_diesel_3_pump_fail_id.toString(), "d3pf", fdpts);
+  addDptToJson(dpt_diesel_4_pump_fail_id.toString(), "d4pf", fdpts);
+
+  addDptToJson(dpt_diesel_1_battery_charger_fail_id.toString(), "d1bcf", fdpts);
+  addDptToJson(dpt_diesel_2_battery_charger_fail_id.toString(), "d2bcf", fdpts);
+  addDptToJson(dpt_diesel_3_battery_charger_fail_id.toString(), "d3bcf", fdpts);
+  addDptToJson(dpt_diesel_4_battery_charger_fail_id.toString(), "d4bcf", fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_io_2_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_diesel_1_low_oil_level_fail_id.toString(), "d1lolf", fdpts);
+  addDptToJson(dpt_diesel_2_low_oil_level_fail_id.toString(), "d2lolf", fdpts);
+  addDptToJson(dpt_diesel_3_low_oil_level_fail_id.toString(), "d3lolf", fdpts);
+  addDptToJson(dpt_diesel_4_low_oil_level_fail_id.toString(), "d4lolf", fdpts);
+
+  addDptToJson(dpt_diesel_control_circuit_fail_id.toString(), "dccf", fdpts);
+  addDptToJson(dpt_diesel_mains_fail_id.toString(), "dmf", fdpts);
+  addDptToJson(dpt_diesel_pump_fail_id.toString(), "dpf", fdpts);
+  addDptToJson(dpt_diesel_engine_overheat_fail_id.toString(), "deof", fdpts);
+  addDptToJson(dpt_diesel_fuel_tank_low_id.toString(), "dftl", fdpts);
+
+  addDptToJson(dpt_electric_1_fire_alarm_id.toString(), "e1fa", fdpts);
+  addDptToJson(dpt_electric_2_fire_alarm_id.toString(), "e2fa", fdpts);
+  addDptToJson(dpt_electric_1_pump_run_id.toString(), "e1pr", fdpts);
+  addDptToJson(dpt_electric_2_pump_run_id.toString(), "e2pr", fdpts);
+  addDptToJson(dpt_electric_1_pump_fail_id.toString(), "e1pf", fdpts);
+  addDptToJson(dpt_electric_2_pump_fail_id.toString(), "e2pf", fdpts);
+  addDptToJson(dpt_electric_mains_fail_id.toString(), "emf", fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_electric_control_circuit_fail_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_electric_control_circuit_fail_id.toString(), nullptr, fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_jockey_1_pump_run_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_jockey_1_pump_run_id.toString(), nullptr, fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_jockey_2_pump_run_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_jockey_2_pump_run_id.toString(), nullptr, fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_jockey_1_pump_fail_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_jockey_1_pump_fail_id.toString(), nullptr, fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_jockey_2_pump_fail_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_jockey_2_pump_fail_id.toString(), nullptr, fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_pumphouse_protection_alarm_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_pumphouse_protection_alarm_id.toString(), nullptr, fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_annunciator_fault_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_annunciator_fault_id.toString(), nullptr, fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_pumphouse_flooding_alarm_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_pumphouse_flooding_alarm_id.toString(), nullptr, fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_i41_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_i41_id.toString(), nullptr, fdpts);
+
+  fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_io_3_id;
+  fdpts = fp["fdpts"].to<JsonArray>();
+  addDptToJson(dpt_maintenance_mode_id.toString(), nullptr, fdpts);
+}
 
 #else
 

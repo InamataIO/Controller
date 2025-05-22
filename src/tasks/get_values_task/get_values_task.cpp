@@ -71,7 +71,7 @@ void GetValuesTask::populateInput(const JsonObjectConst& parameters,
 
 void GetValuesTask::sendTelemetry(
     peripheral::capabilities::GetValues::Result& result) {
-  // Clear the JSON doc, then insert value units and peripheral UUID
+  // Create a JSON doc and then insert value units and peripheral UUID
   JsonDocument doc_out;
   JsonObject result_object = doc_out.to<JsonObject>();
   WebSocket::packageTelemetry(result.values, peripheral_id_, false,

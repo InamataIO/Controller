@@ -585,6 +585,15 @@ void Alarms::sendLimitEvent(const utils::UUID& limit_id,
   web_socket_->sendLimitEvent(limit_event.as<JsonObject>());
 }
 
+void Alarms::sendMaintenanceDataPoint(bool on) {
+  JsonDocument doc_out;
+  JsonObject result_object = doc_out.to<JsonObject>();
+  WebSocket::packageTelemetry(
+      {utils::ValueUnit(on, peripheral::fixed::dpt_maintenance_mode_id)},
+      peripheral::fixed::peripheral_io_3_id, true, result_object);
+  web_socket_->sendTelemetry(result_object);
+}
+
 bool Alarms::ignoreCrossedLimit(
     std::chrono::steady_clock::time_point& start,
     const std::chrono::milliseconds duration,
@@ -624,6 +633,7 @@ void Alarms::handleMaintenanceMode() {
       status_led_->setOverride(utils::Color::fromRgbw(100, 0, 0, 0));
       relay_1_->setValue(utils::ValueUnit(1, relay_dpt));
       relay_2_->setValue(utils::ValueUnit(0, relay_dpt));
+      sendMaintenanceDataPoint(true);
       sendLimitEvent(
           maintenance_limit_id, &peripheral::fixed::peripheral_io_3_id,
           utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),
@@ -636,6 +646,7 @@ void Alarms::handleMaintenanceMode() {
       status_led_->clearOverride();
       relay_1_->setValue(utils::ValueUnit(0, relay_dpt));
       relay_2_->setValue(utils::ValueUnit(1, relay_dpt));
+      sendMaintenanceDataPoint(false);
       sendLimitEvent(
           maintenance_limit_id, &peripheral::fixed::peripheral_io_3_id,
           utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),

@@ -36,6 +36,7 @@ class BehaviorController {
  private:
   utils::UUID behavior_id_{nullptr};
   uint64_t updated_at_{0};
+  bool sent_fixed_peripherals_ = false;
 
   ServiceGetters services_;
   /// Callbacks that parse behavior configs

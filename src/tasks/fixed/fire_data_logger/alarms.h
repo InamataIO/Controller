@@ -111,6 +111,9 @@ class Alarms : public BaseTask {
                       const utils::UUID* fixed_peripheral_id,
                       const utils::ValueUnit& value_unit,
                       const utils::LimitEvent::Type type);
+
+  void sendMaintenanceDataPoint(bool on);
+
   /**
    * Whether the limit being crossed should be ignored
    *

@@ -6,6 +6,7 @@
 #include "configuration.h"
 #include "cycle_colors.h"
 #include "heartbeat.h"
+#include "telemetry.h"
 
 namespace inamata {
 namespace tasks {
@@ -38,6 +39,15 @@ bool startFixedTasks(const ServiceGetters& services, Scheduler& scheduler,
     Serial.println(error.toString());
     heartbeat_task->abort();
     delete heartbeat_task;
+    return false;
+  }
+
+  Telemetry* telemetry_task = new Telemetry(services, scheduler);
+  error = telemetry_task->getError();
+  if (error.isError()) {
+    Serial.println(error.toString());
+    telemetry_task->abort();
+    delete telemetry_task;
     return false;
   }
 
