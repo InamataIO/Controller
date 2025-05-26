@@ -13,11 +13,10 @@ class TimeManager {
   static DateTime getPastDate(int days);
   static String getFormattedTime();
   static String getCurrentDate();
-  static void showSystemDateTime();
 
   static bool isValidYear(String year);
   static bool isValidMonth(String month);
-  static bool isValidDay(String day, int inYear, int inMonth);
+  static bool isValidDay(String day, int in_year, int in_month);
   static bool isValidHour(String hour);
   static bool isValidMinute(String minute);
 };

@@ -4,11 +4,22 @@
 
 #include <memory>
 
-#include "utils/person_info.h"
+#include "managers/storage.h"
+#include "utils/person.h"
 
 namespace inamata {
 
 class ConfigManager {
+ public:
+  String init(std::shared_ptr<Storage> storage);
+  void loop();
+
+  const std::vector<Person> &getAllContacts() const;
+  const String &getLocation() const;
+
+  // Static function to display contact details.
+  static void printPerson(const Person &info);
+
  private:
   enum class InputType {
     kAlphaNumericInput,  // Allows alphanumeric characters.
@@ -18,14 +29,14 @@ class ConfigManager {
   };
 
   enum class MenuState {
-    kIdle,             // In idle mode (Main state machine is not yet started).
-    kMainMenu,         // Main selection state.
-    kAddRecipient,     // Add recipient state.
-    kEditRecipient,    // Edit recipient state.
-    kDeleteRecipient,  // Delete recipient state.
-    kSearchRecipient,  // Search recipient state.
-    kDateTimeSet,      // Set date and time state.
-    kExit              // Exit from configuration mode.
+    kIdle,              // In idle mode (Main state machine is not yet started).
+    kMainMenu,          // Main selection state.
+    kAddContact,        // Add contact state.
+    kEditContact,       // Edit contact state.
+    kDeleteContact,     // Delete contact state.
+    kDateTimeSet,       // Set date and time state.
+    kEditLocationName,  // Edit location name state.
+    kExit               // Exit from configuration mode.
   };
 
   enum class EditState {
@@ -39,84 +50,91 @@ class ConfigManager {
     kNotSelected  // Cancel selection process.
   };
 
-  enum class RecipientState {
-    kInit,          // Initializing state.
-    kNameSelect,    // Name selection state (in edit or delete flows).
-    kNameInput,     // Name input state.
-    kContactInput,  // Input contact number state.
-    kSiteInput,     // Location input state.
+  enum class ContactState {
+    kInit,              // Initializing state.
+    kNameSelect,        // Name selection state (in edit or delete flows).
+    kNameInput,         // Name input state.
+    kPhoneNumberInput,  // Input phone number state.
     kGroupDataMaintenanceInput,  // Setting up maintenance flag.
     kGroupDataManagementInput,   // Setting up management flag.
     kGroupDataStatisticsInput    // Setting up statistics flag.
   };
 
-  enum class SetDateTimeStage {
-    SDT_INIT,     // Initial state.
-    SDT_YEAR,     // Year input state.
-    SDT_MONTH,    // Month input state.
-    SDT_DAY,      // Day input state.
-    SDT_HOUR,     // Hour input state.
-    SDT_MINUTE,   // Minute input state.
-    SDT_SECOND    // Second input state.
+  enum class LocationEditState {
+    kLocationInit,  // Initial state.
+    kLocationInput  // Input location name state.
   };
 
-  // configuration manager's serial operations.
-  String inputBuffer;         // Buffer to store raw user input.
-  char choiceBuffer;          // Buffer to store last user choice.
-  int selectedBuffer;         // Buffer to store selected recipient index (in
-                              // edit and delete modes).
-  String selectedNameBuffer;  // Buffer to store selected recipient name.
-  RecipientData selectedRecipient;  // Pointer to the selected recipient data.
-  String selectionToEdit;  // Buffer to store the selected recipient to edit.
-  EditState editMode;      // Edit mode state.
-  PersonalInfoManager
-      infoManager;  // Manages personal information collection of recipients.
-
-  String tempName;     // Name of the recipient.
-  String tempContact;  // Contact number of the recipient.
-  String tempSite;     // Site name of the recipient.
-  String tempNumber;  // Temporary buffer to store the numbers input by the user
-                      // (mainly used in date/time input routines).
-  char tempMaintanence;  // Maintenance flag (extracted from group data).
-  char tempManagement;   // Management flag (extracted from group data).
-  char tempStatistics;   // Statistics flag (extracted from group data).
-
-  MenuState menuState;  // Current state of the menu.
-  RecipientState
-      recipientMenuState;  // Current state of the add recipient menu.
-
-  SetDateTimeStage
-      dateInputStage;  // Current stage of the date/time input process.
-  int inputYear, inputMonth, inputDay, inputHour, inputMinute,
-      inputSecond;  // Components of date/time input flow.
+  enum class SetDateTimeStage {
+    SDT_INIT,    // Initial state.
+    SDT_YEAR,    // Year input state.
+    SDT_MONTH,   // Month input state.
+    SDT_DAY,     // Day input state.
+    SDT_HOUR,    // Hour input state.
+    SDT_MINUTE,  // Minute input state.
+    SDT_SECOND   // Second input state.
+  };
 
   void printMenu();
   void resetSubState();
   void handleInput(char input);
 
-  void showAllRecipient();
-  bool addRecipient(char key);
-  void clearRecepientNameInEditMode(String &name);
-  SelectionType nameSelection(char key, String &lastName);
-  bool editRecipient(char key);
+  void showAllContacts();
+  bool addContact(char key);
+  void clearContactNameInEditMode(String &name);
+  SelectionType nameSelection(char key, String &last_name);
+  bool editContact(char key);
 
-  bool editRecipientField(String &receipentData, InputType type, char inKey);
+  bool editContactField(String &receipent_data, InputType type, char in_key);
 
   bool processInputBuffer(InputType type, char inKey, String &output);
-  bool getToggleInput(char inKey, char *returnChoice);
+  bool getGroupDataInput(char in_key, uint8_t group);
   bool isValidChar(InputType type, char c);
 
-  bool deleteRecipient(char key);
-  bool searchRecipient(char key);
+  bool deleteContact(char key);
 
   bool setSystemDateTime(char key);
 
- public:
-  void initConfigMenuManager();
-  void loop();
+  bool editLocationName(char key);
 
-  // Static function to display recipient details.
-  static void showPersonalInfo(const RecipientData &info);
+  void parseConfig(JsonObjectConst config);
+  void saveConfig();
+
+  static bool isValidLocation(const String &location);
+
+  // configuration manager's serial operations.
+  String input_buffer_;         // Buffer to store raw user input.
+  int selected_buffer_;         // Buffer to store selected contact index (in
+                                // edit and delete modes).
+  String selected_name_buffer;  // Buffer to store selected contact name.
+  Person selected_contact_;
+  String selection_to_edit_;  // Buffer to store the selected contact to edit.
+  EditState edit_mode_;
+  PersonManager person_manager_;
+  LocationEditState
+      location_edit_state;  // State of the location name editing process.
+
+  String temp_name_;      // Name of the contact.
+  String temp_contact_;   // Phone number of the contact.
+  String temp_number_;    // Temporary buffer to store the numbers input by the
+                          // user (mainly used in date/time input routines).
+  String temp_location_;  // Temporary buffer to store the location name
+                          // input by the user.
+  Person::GroupData temp_group_data_;
+
+  MenuState menu_state_;             // Current state of the menu.
+  ContactState contact_menu_state_;  // Current state of the add contact menu.
+
+  SetDateTimeStage
+      date_input_stage;  // Current stage of the date/time input process.
+  int input_year_, input_month_, input_day_, input_hour_, input_minute_,
+      input_second_;  // Components of date/time input flow.
+
+  String location_;
+
+  std::shared_ptr<Storage> storage_;
+
+  static const uint8_t kMaxLocationLength;
 };
 
 }  // namespace inamata

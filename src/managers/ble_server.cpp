@@ -32,7 +32,7 @@ NimBLEService* BleServer::createService(const NimBLEUUID& uuid) {
 }
 
 bool BleServer::setup() {
-  NimBLEDevice::init(String(Storage::device_type_name_).c_str());
+  NimBLEDevice::init(Storage::device_type_name_);
   // NimBLEDevice::setPower(ESP_PWR_LVL_P9);  // +9db (default is 3db)
   NimBLEDevice::setSecurityAuth(BLE_SM_PAIR_AUTHREQ_SC);
   server_ = NimBLEDevice::createServer();

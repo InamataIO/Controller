@@ -23,13 +23,12 @@ class ConfigurationManagementTask : public BaseTask {
   static const String& type();
 
  private:
-  bool OnTaskEnable() final;
   bool TaskCallback() final;
 
   Scheduler& scheduler_;
-  ServiceGetters services_;
 
   std::shared_ptr<ConfigManager> config_manager_;
+  static const std::chrono::milliseconds interval_;
 };
 
 }  // namespace config_man

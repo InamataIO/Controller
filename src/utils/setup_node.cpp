@@ -215,15 +215,6 @@ bool setupNode(Services& services) {
     return false;
   }
 
-  if (peripheral::fixed::configs[0] != nullptr) {
-    JsonDocument behavior_doc;
-    services.getStorage()->loadBehavior(behavior_doc);
-    JsonObjectConst behavior_config = behavior_doc.as<JsonObjectConst>();
-    Services::getBehaviorController().handleConfig(behavior_config);
-    tasks::fixed::startFixedTasks(services.getGetters(),
-                                  services.getScheduler(), behavior_config);
-  }
-
 #ifdef RTC_MANAGER
   TimeManager::initRTC();
 #endif
@@ -259,6 +250,15 @@ bool setupNode(Services& services) {
     delete gpio_task;
   }
 #endif
+
+  if (peripheral::fixed::configs[0] != nullptr) {
+    JsonDocument behavior_doc;
+    services.getStorage()->loadBehavior(behavior_doc);
+    JsonObjectConst behavior_config = behavior_doc.as<JsonObjectConst>();
+    Services::getBehaviorController().handleConfig(behavior_config);
+    tasks::fixed::startFixedTasks(services.getGetters(),
+                                  services.getScheduler(), behavior_config);
+  }
 
   success = createSystemTasks(services);
   if (!success) {

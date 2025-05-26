@@ -32,11 +32,17 @@ void GsmNetwork::enable() {
   digitalWrite(peripheral::fixed::gsm_reset_pin, HIGH);
   delay(2000);
   modem_.init();
+
+  is_enabled_ = true;
 }
 
 void GsmNetwork::disable() {
   digitalWrite(peripheral::fixed::gsm_enable_pin, LOW);
+
+  is_enabled_ = false;
 }
+
+bool GsmNetwork::isEnabled() const { return is_enabled_; }
 
 void GsmNetwork::syncTime() {
   modem_.sendAT(GF("+CNTP=\"pool.ntp.org\",0"));
@@ -134,6 +140,50 @@ bool GsmNetwork::isNetworkConnected() { return network_connected_; }
 bool GsmNetwork::isGprsConnected() { return gprs_connected_; }
 
 bool GsmNetwork::isTimeSynced() { return is_time_synced_; }
+
+String GsmNetwork::encodeSms(const char* text) {
+  const size_t text_length = strlen(text);
+  String gsm7;
+  gsm7.reserve(text_length);
+  for (size_t i = 0; i < text_length; i++) {
+    char c = *(text + i);
+    // Skip sections with matching encoding
+    if ((c >= '%' && c <= '?') || (c >= 'A' && c <= 'Z') ||
+        (c >= 'a' && c <= 'z') || (c >= ' ' && c <= '#') || c == '\n' ||
+        c == '\r') {
+      gsm7 += c;
+      continue;
+    }
+    // Handle mapping
+    if (c == '@') {
+      c = 0x00;
+    } else if (c == '$') {
+      c = 0x02;
+    } else if (c == '[') {
+      c = 0x28;
+    } else if (c == '\\') {
+      c = 0x2F;
+    } else if (c == ']') {
+      c = 0x29;
+    } else if (c == '_') {
+      c = 0x11;
+    } else if (c == '`') {
+      c = 0x27;
+    } else if (c == '{') {
+      c = 0x28;
+    } else if (c == '|') {
+      c = 'I';
+    } else if (c == '}') {
+      c = 0x29;
+    } else if (c == '~') {
+      c = 0x2D;
+    } else {
+      c = 0x11;
+    }
+    gsm7 += c;
+  }
+  return gsm7;
+}
 
 }  // namespace inamata
 

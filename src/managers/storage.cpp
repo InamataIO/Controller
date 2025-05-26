@@ -32,7 +32,7 @@ void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
                     tmstruct->tm_sec);
 
       if (levels) {
-        listDir(fs, file.name(), levels - 1);
+        listDir(fs, file.path(), levels - 1);
       }
     } else {
       Serial.print("  FILE: ");
@@ -62,7 +62,7 @@ void Storage::openFS() {
     }
   }
 #ifdef ENABLE_TRACE
-  listDir(LittleFS, "/", 1);
+  listDir(LittleFS, "/", 2);
 #endif
 }
 
@@ -304,23 +304,52 @@ ErrorResult Storage::storeBehavior(const JsonObjectConst& behavior) {
 
 void Storage::deleteBehavior() { LittleFS.remove(behavior_path_); }
 
-const __FlashStringHelper* Storage::arduino_board_ = FPSTR(ARDUINO_BOARD);
-const __FlashStringHelper* Storage::device_type_name_ = FPSTR(DEVICE_TYPE_NAME);
-const __FlashStringHelper* Storage::device_type_id_ = FPSTR(DEVICE_TYPE_ID);
+ErrorResult Storage::loadCustomConfig(JsonDocument& config_doc) {
+  fs::File file = LittleFS.open(custom_config_path_, "r+");
+  if (file) {
+    DeserializationError error = deserializeJson(config_doc, file);
+    TRACEKJSON("Custom config: ", config_doc);
+    file.close();
+    if (error) {
+      return ErrorResult(type_, F("Failed loading custom config doc"));
+    }
+  }
+  return ErrorResult();
+}
 
-const __FlashStringHelper* Storage::core_domain_key_ = FPSTR("core_domain");
-const __FlashStringHelper* Storage::ws_url_path_key_ = FPSTR("ws_url_path");
-const __FlashStringHelper* Storage::secure_url_key_ = FPSTR("secure_url");
-const __FlashStringHelper* Storage::ws_token_key_ = FPSTR("ws_token");
+ErrorResult Storage::storeCustomConfig(const JsonObjectConst& config) {
+  fs::File file = LittleFS.open(custom_config_path_, "w+");
+  if (!file) {
+    return ErrorResult(type_, F("Failed opening file"));
+  }
+  size_t bytes_written = serializeJson(config, file);
+  TRACEKJSON("Custom config: ", config);
+  file.close();
+  if (bytes_written == 0 && !config.isNull()) {
+    return ErrorResult(type_, F("Failed to write"));
+  }
+  return ErrorResult();
+}
 
-const __FlashStringHelper* Storage::wifi_aps_key_ = FPSTR("wifi_aps");
-const __FlashStringHelper* Storage::wifi_ap_ssid_key_ = FPSTR("ssid");
-const __FlashStringHelper* Storage::wifi_ap_password_key_ = FPSTR("password");
+void Storage::deleteCustomConfig() { LittleFS.remove(custom_config_path_); }
 
-const __FlashStringHelper* Storage::secrets_path_ = FPSTR("/secrets.json");
-const __FlashStringHelper* Storage::peripherals_path_ =
-    FPSTR("/peripherals.json");
-const __FlashStringHelper* Storage::behavior_path_ = FPSTR("/behavior.json");
-const __FlashStringHelper* Storage::type_ = FPSTR("storage");
+const char* Storage::arduino_board_ = ARDUINO_BOARD;
+const char* Storage::device_type_name_ = DEVICE_TYPE_NAME;
+const char* Storage::device_type_id_ = DEVICE_TYPE_ID;
+
+const char* Storage::core_domain_key_ = "core_domain";
+const char* Storage::ws_url_path_key_ = "ws_url_path";
+const char* Storage::secure_url_key_ = "secure_url";
+const char* Storage::ws_token_key_ = "ws_token";
+
+const char* Storage::wifi_aps_key_ = "wifi_aps";
+const char* Storage::wifi_ap_ssid_key_ = "ssid";
+const char* Storage::wifi_ap_password_key_ = "password";
+
+const char* Storage::secrets_path_ = "/secrets.json";
+const char* Storage::peripherals_path_ = "/peripherals.json";
+const char* Storage::behavior_path_ = "/behavior.json";
+const char* Storage::custom_config_path_ = "/custom_config.json";
+const char* Storage::type_ = "storage";
 
 }  // namespace inamata

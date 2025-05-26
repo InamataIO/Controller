@@ -97,24 +97,29 @@ class Storage {
   ErrorResult storeBehavior(const JsonObjectConst& behavior);
   void deleteBehavior();
 
-  static const __FlashStringHelper* arduino_board_;
-  static const __FlashStringHelper* device_type_name_;
-  static const __FlashStringHelper* device_type_id_;
+  ErrorResult loadCustomConfig(JsonDocument& config);
+  ErrorResult storeCustomConfig(const JsonObjectConst& config);
+  void deleteCustomConfig();
 
-  static const __FlashStringHelper* core_domain_key_;
-  static const __FlashStringHelper* ws_url_path_key_;
-  static const __FlashStringHelper* secure_url_key_;
-  static const __FlashStringHelper* ws_token_key_;
+  static const char* arduino_board_;
+  static const char* device_type_name_;
+  static const char* device_type_id_;
 
-  static const __FlashStringHelper* wifi_aps_key_;
-  static const __FlashStringHelper* wifi_ap_ssid_key_;
-  static const __FlashStringHelper* wifi_ap_password_key_;
+  static const char* core_domain_key_;
+  static const char* ws_url_path_key_;
+  static const char* secure_url_key_;
+  static const char* ws_token_key_;
+
+  static const char* wifi_aps_key_;
+  static const char* wifi_ap_ssid_key_;
+  static const char* wifi_ap_password_key_;
 
  private:
-  static const __FlashStringHelper* secrets_path_;
-  static const __FlashStringHelper* peripherals_path_;
-  static const __FlashStringHelper* behavior_path_;
-  static const __FlashStringHelper* type_;
+  static const char* secrets_path_;
+  static const char* peripherals_path_;
+  static const char* behavior_path_;
+  static const char* custom_config_path_;
+  static const char* type_;
 };
 
 }  // namespace inamata

@@ -8,16 +8,18 @@ ConfigurationManagementTask::ConfigurationManagementTask(
     const ServiceGetters& services, Scheduler& scheduler)
     : BaseTask(scheduler, Input(nullptr, true)),
       scheduler_(scheduler),
-      services_(services),
-      config_manager_(services_.getConfigManager()) {
+      config_manager_(services.getConfigManager()) {
   if (!isValid()) {
     return;
   }
 
-  setIterations(TASK_FOREVER);
-  Task::setInterval(
-      std::chrono::milliseconds(SERIAL_DATA_POLL_RATE_MS).count());
+  const String error = config_manager_->init(services.getStorage());
+  if (!error.isEmpty()) {
+    setInvalid(error);
+    return;
+  }
 
+  setIterations(TASK_FOREVER);
   enable();
 }
 
@@ -30,15 +32,13 @@ const String& ConfigurationManagementTask::type() {
   return name;
 }
 
-bool ConfigurationManagementTask::OnTaskEnable() {
-  config_manager_->initConfigMenuManager();
-  return true;
-}
-
 bool ConfigurationManagementTask::TaskCallback() {
+  Task::delay(std::chrono::milliseconds(interval_).count());
   config_manager_->loop();
   return true;
 }
+
+const std::chrono::milliseconds ConfigurationManagementTask::interval_(100);
 
 }  // namespace config_man
 }  // namespace tasks

@@ -2,19 +2,29 @@
 
 #include <Arduino.h>
 
-#include "managers/time_manager.h"
 #include "managers/log_manager.h"
-#include "utils/person_info.h"
-#include "utils/person_info_validator.h"
+#include "managers/services.h"
+#include "managers/time_manager.h"
+#include "utils/person.h"
 
 namespace inamata {
 
-void ConfigManager::initConfigMenuManager() {
+String ConfigManager::init(std::shared_ptr<Storage> storage) {
   resetSubState();
-  menuState = MenuState::kIdle;
+  menu_state_ = MenuState::kIdle;
+
+  if (!storage) {
+    return ServiceGetters::storage_nullptr_error_;
+  }
+  storage_ = storage;
+  JsonDocument config;
+  ErrorResult error = storage_->loadCustomConfig(config);
+  if (!error.isError() && !config.isNull()) {
+    parseConfig(config.as<JsonObjectConst>());
+  }
 
   Serial.println("Press [C] to enter configuration menu.");
-  return;
+  return "";
 }
 
 /**
@@ -28,7 +38,7 @@ void ConfigManager::initConfigMenuManager() {
  * - If the device is in IDLE state and receives 'C' or 'c', it enters config
  * mode.
  * - In MAIN_MENU state, it processes menu selections.
- * - In other states (ADD, EDIT, DELETE, SEARCH recipient), it handles the
+ * - In other states (ADD, EDIT, REMOVE contact), it handles the
  * respective actions.
  * - If a stateful operation completes, the menu is reprinted for user guidance.
  *
@@ -36,17 +46,17 @@ void ConfigManager::initConfigMenuManager() {
  * interaction.
  */
 void ConfigManager::loop() {
-  bool isStillInState = false;
+  bool is_still_in_state = false;
 
   if (Serial.available()) {
     char key = Serial.read();
 
-    if (menuState == MenuState::kIdle) {
+    if (menu_state_ == MenuState::kIdle) {
       if ((key == 'C') || (key == 'c')) {  // 'C' key enters config mode
         printMenu();
         return;
       }
-    } else if (menuState == MenuState::kMainMenu) {
+    } else if (menu_state_ == MenuState::kMainMenu) {
       if (!(key == '\r' || key == '\n')) {
         Serial.print(key);
         Serial.println("\r\n");
@@ -54,21 +64,23 @@ void ConfigManager::loop() {
       }
 
       return;
-    } else if (menuState == MenuState::kAddRecipient) {
-      isStillInState = addRecipient(key);
-    } else if (menuState == MenuState::kEditRecipient) {
-      isStillInState = editRecipient(key);
-    } else if (menuState == MenuState::kDeleteRecipient) {
-      isStillInState = deleteRecipient(key);
-    } else if (menuState == MenuState::kSearchRecipient) {
-      isStillInState = searchRecipient(key);
-#ifdef RTC_MANAGER      
-    } else if (menuState == MenuState::kDateTimeSet) {
-      isStillInState = setSystemDateTime(key);
+    } else if (menu_state_ == MenuState::kAddContact) {
+      is_still_in_state = addContact(key);
+    } else if (menu_state_ == MenuState::kEditContact) {
+      is_still_in_state = editContact(key);
+    } else if (menu_state_ == MenuState::kDeleteContact) {
+      is_still_in_state = deleteContact(key);
+    }
+#ifdef RTC_MANAGER
+    else if (menu_state_ == MenuState::kDateTimeSet) {
+      is_still_in_state = setSystemDateTime(key);
+    }
 #endif
+    else if (menu_state_ == MenuState::kEditLocationName) {
+      is_still_in_state = editLocationName(key);
     }
     // Show main menu if state machine is terminated or in idle mode.
-    if (!isStillInState) {
+    if (!is_still_in_state) {
       printMenu();
     }
   }
@@ -97,7 +109,7 @@ bool ConfigManager::isValidChar(InputType type, char c) {
     case InputType::kAlphaNumericInput:
       return isalnum(c) || c == ' ';
     case InputType::kPhoneNumInput:
-      return isdigit(c) || c == '+';
+      return isdigit(c) || c == '+' || c == ' ' || c == '(' || c == ')';
     case InputType::kNumberInput:
       return isdigit(c);
     case InputType::kAnyInput:
@@ -116,7 +128,7 @@ bool ConfigManager::isValidChar(InputType type, char c) {
  *
  * \param type The expected input type (ALPHA_NUMERIC_INPUT, NUMERIC_INPUT,
  * etc.).
- * \param inKey The character received from serial input.
+ * \param in_key The character received from serial input.
  * \param output Reference to a String where the processed input will be stored.
  * \return true if input is complete (Enter or Escape pressed), false otherwise.
  *
@@ -132,25 +144,25 @@ bool ConfigManager::isValidChar(InputType type, char c) {
  * \note This function should be called continuously in a loop to handle user
  * input dynamically.
  */
-bool ConfigManager::processInputBuffer(InputType type, char inKey,
+bool ConfigManager::processInputBuffer(InputType type, char in_key,
                                        String &output) {
-  if (inKey == '\r') {
-    output = inputBuffer;
-    inputBuffer = "";
+  if (in_key == '\r') {
+    output = input_buffer_;
+    input_buffer_ = "";
     Serial.println();
     return true;
-  } else if (inKey == 27) {
-    inputBuffer = "";
+  } else if (in_key == 27) {
+    input_buffer_ = "";
     Serial.println();
     return true;
-  } else if (inKey == 8 || inKey == 127) {
-    if (inputBuffer.length() > 0) {
-      inputBuffer.remove(inputBuffer.length() - 1);
+  } else if (in_key == 8 || in_key == 127) {
+    if (input_buffer_.length() > 0) {
+      input_buffer_.remove(input_buffer_.length() - 1);
       Serial.print("\b \b");
     }
-  } else if (isValidChar(type, inKey)) {
-    inputBuffer += inKey;
-    Serial.print(inKey);
+  } else if (isValidChar(type, in_key)) {
+    input_buffer_ += in_key;
+    Serial.print(in_key);
   }
 
   return false;
@@ -163,13 +175,12 @@ bool ConfigManager::processInputBuffer(InputType type, char inKey,
  * It prints the current selection (YES or NO) to the serial output
  * and allows the user to toggle the choice using space or specific key presses.
  *
- * \param inKey The character input from the user.
+ * \param in_key The character input from the user.
  *              - '\r' (Enter) or 27 (ESC) confirms the selection.
  *              - 'Y'/'y' sets the choice to YES (1).
  *              - 'N'/'n' sets the choice to NO (0).
  *              - Space (' ') toggles the current selection.
- * \param returnChoice Pointer to a char where the final selection will be
- * stored.
+ * \param group The bit in temp_group_data_ representing the group
  * \return true if the user confirms the selection (Enter or Escape pressed),
  * false otherwise.
  *
@@ -178,36 +189,35 @@ bool ConfigManager::processInputBuffer(InputType type, char inKey,
  * - Allows users to toggle the selection with the space key.
  * - Accepts case-insensitive inputs for YES ('Y', 'y') and NO ('N', 'n').
  * - Confirms the selection when Enter or ESC is pressed and updates
- * returnChoice.
+ * return_choice.
  *
  * \note The function should be called repeatedly in a loop to allow real-time
  * user interaction.
  */
-bool ConfigManager::getToggleInput(char inKey, char *returnChoice) {
-  Serial.print(choiceBuffer ? "YES" : "NO ");
+bool ConfigManager::getGroupDataInput(char in_key, uint8_t group) {
+  Serial.print(temp_group_data_[group] ? "YES" : "NO ");
   Serial.print("\b\b\b");
 
-  if (inKey == '\r' || inKey == 27) {  // Enter key
+  if (in_key == '\r' || in_key == 27) {  // Enter key
     Serial.println();
-    *returnChoice = choiceBuffer;
     return true;
-  } else if (inKey == 32 || inKey == 'Y' || inKey == 'y' || inKey == 'N' ||
-             inKey == 'n') {  // Accepted key strokes
-    switch (inKey) {
+  } else if (in_key == 32 || in_key == 'Y' || in_key == 'y' || in_key == 'N' ||
+             in_key == 'n') {  // Accepted key strokes
+    switch (in_key) {
       case 32:  // Space to toggle the selection.
-        choiceBuffer = !choiceBuffer;
+        temp_group_data_[group].flip();
         break;
       case 'Y':
       case 'y':
-        choiceBuffer = 1;
+        temp_group_data_[group] = 1;
         break;
       case 'N':
       case 'n':
-        choiceBuffer = 0;
+        temp_group_data_[group] = 0;
         break;
     }
 
-    Serial.print(choiceBuffer ? "YES" : "NO ");
+    Serial.print(temp_group_data_[group] ? "YES" : "NO ");
     Serial.print("\b\b\b");
   }
 
@@ -215,117 +225,102 @@ bool ConfigManager::getToggleInput(char inKey, char *returnChoice) {
 }
 
 /**
- * \brief Handles the process of adding a new recipient through user input.
+ * \brief Handles the process of adding a new contact through user input.
  *
  * This function guides the user through a step-by-step process to add a
- * recipient, collecting details such as name, contact number, site name, and
- * group data (Maintenance, Management, Statistics). It validates each input and
- * ensures uniqueness before adding the recipient to the system.
+ * contact, collecting details such as name, phone number, and group data
+ * (Maintenance, Management, Statistics). It validates each input and ensures
+ * uniqueness before adding the contact to the system.
  *
  * \param key The character received from serial input.
- * \return true if the process is ongoing, false when the recipient is
+ * \return true if the process is ongoing, false when the contact is
  * successfully added or an error occurs.
  *
  * Functionality:
- * - Ensures the maximum number of recipients is not exceeded.
+ * - Ensures the maximum number of contacts is not exceeded.
  * - Guides the user through the following input steps:
  *   1. **Full Name:** Must be valid and unique.
- *   2. **Contact Number:** Must be valid and unique.
- *   3. **Site Name:** Any non-empty alphanumeric input.
+ *   2. **Phone Number:** Must be valid and unique.
  *   4. **Group Data:** Toggles for Maintenance, Management, and Statistics.
- * - Stores recipient data upon successful entry.
+ * - Stores contact data upon successful entry.
  *
  * State Transitions:
- * - `INIT` -> `NAME_INPUT` -> `CONTACT_INPUT` -> `SITE_INPUT` ->
+ * - `INIT` -> `NAME_INPUT` -> `CONTACT_INPUT` -> `LOCATION_INPUT` ->
  *   `GROUP_DATA_MAINTEANCE_INPUT` -> `GROUP_DATA_MANAGEMENT_INPUT` ->
  * `GROUP_DATA_STATISTICS_INPUT`
- * - Upon completion, the recipient is stored, and the function exits.
+ * - Upon completion, the contact is stored, and the function exits.
  *
  * \note This function should be called continuously to handle interactive input
  * processing.
  */
-bool ConfigManager::addRecipient(char key) {
-  menuState = MenuState::kAddRecipient;
+bool ConfigManager::addContact(char key) {
+  menu_state_ = MenuState::kAddContact;
 
-  if (infoManager.getPersonalInfoCount() >= MAX_PERSONAL_INFO_COUNT) {
-    Serial.println("Maximum number of recipients reached.");
+  if (person_manager_.getCount() >= Person::kMaxEntries) {
+    Serial.println("Maximum number of contacts reached.");
     return false;
   }
 
-  switch (recipientMenuState) {
-    case RecipientState::kInit:
+  switch (contact_menu_state_) {
+    case ContactState::kInit:
       Serial.print("Full name: ");
-      recipientMenuState = RecipientState::kNameInput;
+      contact_menu_state_ = ContactState::kNameInput;
       return true;
 
-    case RecipientState::kNameInput:
-      if (processInputBuffer(InputType::kAlphaNumericInput, key, tempName)) {
-        if (tempName.isEmpty()) return false;
-        if (!Validator::isValidName(tempName)) {
+    case ContactState::kNameInput:
+      if (processInputBuffer(InputType::kAlphaNumericInput, key, temp_name_)) {
+        if (temp_name_.isEmpty()) return false;
+        if (!PersonManager::isValidName(temp_name_)) {
           Serial.println("Invalid name!");
           return false;
         }
-        if (infoManager.searchInfo(tempName)) {
+        if (person_manager_.search(temp_name_)) {
           Serial.println("Name already exists.");
           return false;
         }
-        Serial.print("Contact number: ");
-        recipientMenuState = RecipientState::kContactInput;
+        Serial.print("Phone number: ");
+        contact_menu_state_ = ContactState::kPhoneNumberInput;
       }
       return true;
 
-    case RecipientState::kContactInput:
-      if (processInputBuffer(InputType::kPhoneNumInput, key, tempContact)) {
-        if (tempContact.isEmpty()) return false;
-        if (!Validator::isValidPhoneNumber(tempContact)) {
-          Serial.println("Invalid contact number!");
+    case ContactState::kPhoneNumberInput:
+      if (processInputBuffer(InputType::kPhoneNumInput, key, temp_contact_)) {
+        if (temp_contact_.isEmpty()) return false;
+        if (!PersonManager::isValidPhoneNumber(temp_contact_)) {
+          Serial.println("Invalid phone number!");
           return false;
         }
-        if (infoManager.isNumberExists("", tempContact)) {
-          Serial.println("Contact number already exists.");
+        if (person_manager_.isNumberExists("", temp_contact_)) {
+          Serial.println("Phone number already exists.");
           return false;
         }
-        Serial.print("Site name: ");
-        recipientMenuState = RecipientState::kSiteInput;
-      }
-      return true;
-
-    case RecipientState::kSiteInput:
-      if (processInputBuffer(InputType::kAlphaNumericInput, key, tempSite)) {
-        if (tempSite.isEmpty()) return false;
         Serial.print("Maintenance: ");
-        recipientMenuState = RecipientState::kGroupDataMaintenanceInput;
-        choiceBuffer = 0;
-        getToggleInput(0, &tempMaintanence);
+        contact_menu_state_ = ContactState::kGroupDataMaintenanceInput;
+        getGroupDataInput(0, kGroupDataMaintenanceBit);
       }
       return true;
 
-    case RecipientState::kGroupDataMaintenanceInput:
-      if (getToggleInput(key, &tempMaintanence)) {
+    case ContactState::kGroupDataMaintenanceInput:
+      if (getGroupDataInput(key, kGroupDataMaintenanceBit)) {
         Serial.print("Management: ");
-        recipientMenuState = RecipientState::kGroupDataManagementInput;
-        choiceBuffer = 0;
-        getToggleInput(0, &tempManagement);
+        contact_menu_state_ = ContactState::kGroupDataManagementInput;
+        getGroupDataInput(0, kGroupDataManagementBit);
       }
       return true;
 
-    case RecipientState::kGroupDataManagementInput:
-      if (getToggleInput(key, &tempManagement)) {
+    case ContactState::kGroupDataManagementInput:
+      if (getGroupDataInput(key, kGroupDataMaintenanceBit)) {
         Serial.print("Statistics: ");
-        recipientMenuState = RecipientState::kGroupDataStatisticsInput;
-        choiceBuffer = 0;
-        getToggleInput(0, &tempStatistics);
+        contact_menu_state_ = ContactState::kGroupDataStatisticsInput;
+        getGroupDataInput(0, kGroupDataStatisticsBit);
       }
       return true;
 
-    case RecipientState::kGroupDataStatisticsInput:
-      if (getToggleInput(key, &tempStatistics)) {
-        char groupData = (tempMaintanence ? 0x01 : 0x00) |
-                         (tempManagement ? 0x02 : 0x00) |
-                         (tempStatistics ? 0x04 : 0x00);
-
-        infoManager.addInfo(tempName, tempContact, tempSite, groupData);
-        Serial.println("Recipient added successfully.");
+    case ContactState::kGroupDataStatisticsInput:
+      if (getGroupDataInput(key, kGroupDataStatisticsBit)) {
+        person_manager_.add(temp_name_, temp_contact_, temp_group_data_);
+        saveConfig();
+        Serial.println("Contact added successfully.");
         return false;
       }
       return true;
@@ -335,13 +330,13 @@ bool ConfigManager::addRecipient(char key) {
 }
 
 /**
- * \brief Clears the recipient name from the serial console in edit mode.
+ * \brief Clears the contact name from the serial console in edit mode.
  *
- * This function removes the displayed recipient name by printing backspace
+ * This function removes the displayed contact name by printing backspace
  * ('\b')s for each character in the string. This effectively erases the name
  * from the serial output.
  *
- * \param name The recipient name to be cleared from the serial console.
+ * \param name The contact name to be cleared from the serial console.
  *
  * Functionality:
  * - Iterates through each character in the provided name.
@@ -350,24 +345,24 @@ bool ConfigManager::addRecipient(char key) {
  * \note This function only affects the visual output on the serial monitor.
  *       It does not modify the actual string content.
  */
-void ConfigManager::clearRecepientNameInEditMode(String &name) {
+void ConfigManager::clearContactNameInEditMode(String &name) {
   for (int i = 0; i < name.length(); i++) {
     Serial.print("\b \b");
   }
 }
 
 /**
- * \brief Handles user input for selecting a recipient name from a list.
+ * \brief Handles user input for selecting a contact name from a list.
  *
- * This function processes user input to navigate through a list of recipient
+ * This function processes user input to navigate through a list of contact
  * names (using '<' or to go up and '>' to go down) and displays the selected
  * name. The function allows the user to select a name (Enter) or cancel the
  * selection (Escape).
  *
  * \param key The character received from serial input for navigation or
  * selection.
- * \param lastName The current recipient name displayed, which gets updated with
- * the selected name.
+ * \param name The current contact name displayed, which gets updated
+ * with the selected name.
  * \return SELECTION_TYPE The state of the selection process:
  *         - `SELECTING`: The user is still selecting.
  *         - `SELECTED`: The user has confirmed their selection (Enter pressed).
@@ -381,31 +376,31 @@ void ConfigManager::clearRecepientNameInEditMode(String &name) {
  * navigation.
  * - Selection: Pressing Enter confirms the selection, while Escape cancels it.
  *
- * \note This function modifies the `lastName` to reflect the current selection
- * and uses `clearRecepientNameInEditMode()` to remove the old name before
+ * \note This function modifies the `name` to reflect the current selection
+ * and uses `clearContactNameInEditMode()` to remove the old name before
  * displaying the new one.
  */
 ConfigManager::SelectionType ConfigManager::nameSelection(char key,
-                                                          String &lastName) {
+                                                          String &name) {
   if (key == '<' || key == ',') {
-    selectedBuffer = (selectedBuffer - 1);
-    if (selectedBuffer < 0) {
-      selectedBuffer = infoManager.getPersonalInfoCount() - 1;
+    selected_buffer_ = (selected_buffer_ - 1);
+    if (selected_buffer_ < 0) {
+      selected_buffer_ = person_manager_.getCount() - 1;
     }
 
-    clearRecepientNameInEditMode(lastName);
-    if (!infoManager.getNameAtPosition(selectedBuffer, lastName)) {
+    clearContactNameInEditMode(name);
+    if (!person_manager_.getNameAtPosition(selected_buffer_, name)) {
       return SelectionType::kNotSelected;
     }
-    Serial.print(lastName);
+    Serial.print(name);
   } else if (key == '>' || key == '.') {
-    selectedBuffer = (selectedBuffer + 1) % infoManager.getPersonalInfoCount();
+    selected_buffer_ = (selected_buffer_ + 1) % person_manager_.getCount();
 
-    clearRecepientNameInEditMode(lastName);
-    if (!infoManager.getNameAtPosition(selectedBuffer, lastName)) {
+    clearContactNameInEditMode(name);
+    if (!person_manager_.getNameAtPosition(selected_buffer_, name)) {
       return SelectionType::kNotSelected;
     }
-    Serial.print(lastName);
+    Serial.print(name);
   } else if (key == '\r') {
     return SelectionType::kSelected;
   } else if (key == 27) {
@@ -416,12 +411,12 @@ ConfigManager::SelectionType ConfigManager::nameSelection(char key,
 }
 
 /**
- * \brief Handles the process of editing an existing recipient's details.
+ * \brief Handles the process of editing an existing contact's details.
  *
- * This function allows the user to navigate through a list of recipients,
- * select one to edit, and then update details such as name, contact number,
- * site name, and group data (Maintenance, Management, Statistics). It performs
- * input validation and ensures data consistency during the editing process.
+ * This function allows the user to navigate through a list of contacts, select
+ * one to edit, and then update details such as name, phone number, and group
+ * data (Maintenance, Management, Statistics). It performs input validation and
+ * ensures data consistency during the editing process.
  *
  * \param key The character received from serial input to navigate or edit
  * fields.
@@ -429,51 +424,51 @@ ConfigManager::SelectionType ConfigManager::nameSelection(char key,
  * false when the editing process is complete or an error occurs.
  *
  * Functionality:
- * - Navigation: The user selects a recipient by navigating the list using the
+ * - Navigation: The user selects a contact by navigating the list using the
  * '<' or '>' keys.
- * - Name Editing: The user edits the recipient's name, ensuring it’s valid and
+ * - Name Editing: The user edits the contact's name, ensuring it’s valid and
  * unique.
- * - Contact Editing: The user updates the contact number, ensuring it’s valid
+ * - Contact Editing: The user updates the phone number, ensuring it’s valid
  * and unique.
- * - Site Editing: The user modifies the site name.
  * - Group Data Editing: The user toggles settings for Maintenance, Management,
  * and Statistics.
- * - Final Update: Upon completing the editing, the recipient’s data is saved
+ * - Final Update: Upon completing the editing, the contact’s data is saved
  * and updated.
  *
  * State Transitions:
- * - `INIT` -> `NAME_SELECT` -> `NAME_INPUT` -> `CONTACT_INPUT` -> `SITE_INPUT`
- * -> `GROUP_DATA_MAINTEANCE_INPUT` -> `GROUP_DATA_MANAGEMENT_INPUT` ->
+ * - `INIT` -> `NAME_SELECT` -> `NAME_INPUT` -> `CONTACT_INPUT` ->
+ * `GROUP_DATA_MAINTEANCE_INPUT` -> `GROUP_DATA_MANAGEMENT_INPUT` ->
  * `GROUP_DATA_STATISTICS_INPUT`
- * - Upon completion, the recipient’s information is updated, and the function
+ * - Upon completion, the contact’s information is updated, and the function
  * exits.
  *
- * \note This function ensures the recipient's data is validated and only
+ * \note This function ensures the contact's data is validated and only
  * updated if all fields are correctly filled.
  */
-bool ConfigManager::editRecipient(char key) {
-  menuState = MenuState::kEditRecipient;
+bool ConfigManager::editContact(char key) {
+  menu_state_ = MenuState::kEditContact;
 
-  if (infoManager.getPersonalInfoCount() == 0) {
-    Serial.println("No recipients to edit.");
+  if (person_manager_.getCount() == 0) {
+    Serial.println("No contacts to edit.");
     return false;
   }
 
-  switch (recipientMenuState) {
-    case RecipientState::kInit:
+  switch (contact_menu_state_) {
+    case ContactState::kInit:
       Serial.println(
           "Select the name to edit from the list below. Use < and > keys to "
           "navigate.\r\n");
       Serial.print("Full name: ");
-      if (!infoManager.getNameAtPosition(selectedBuffer, selectedNameBuffer)) {
+      if (!person_manager_.getNameAtPosition(selected_buffer_,
+                                             selected_name_buffer)) {
         return false;
       }
-      Serial.print(selectedNameBuffer);
-      recipientMenuState = RecipientState::kNameSelect;
+      Serial.print(selected_name_buffer);
+      contact_menu_state_ = ContactState::kNameSelect;
       return true;
 
-    case RecipientState::kNameSelect: {
-      SelectionType selectionType = nameSelection(key, selectedNameBuffer);
+    case ContactState::kNameSelect: {
+      SelectionType selectionType = nameSelection(key, selected_name_buffer);
 
       if (selectionType == SelectionType::kSelecting) {
         return true;
@@ -482,146 +477,119 @@ bool ConfigManager::editRecipient(char key) {
             "\r\n\nPress any key to edit the selected field or press Enter or "
             "Esc to skip the field.\r\n");
 
-        RecipientData *info = infoManager.searchInfo(selectedNameBuffer);
-        if (info == nullptr) {
-          Serial.println("Recipient details are not found.");
+        const Person *person = person_manager_.search(selected_name_buffer);
+        if (person == nullptr) {
+          Serial.println("Contact details are not found.");
           return false;
         }
 
-        selectedRecipient.contactNumber = info->contactNumber;
-        selectedRecipient.groupData = info->groupData;
-        selectedRecipient.name = info->name;
-        selectedRecipient.siteName = info->siteName;
+        selected_contact_.phone_number = person->phone_number;
+        selected_contact_.group_data = person->group_data;
+        selected_contact_.name = person->name;
 
-        tempContact = info->contactNumber;
-        tempName = info->name;
-        tempSite = info->siteName;
-        tempMaintanence = (info->groupData & 0x01) ? 1 : 0;
-        tempManagement = (info->groupData & 0x02) ? 1 : 0;
-        tempStatistics = (info->groupData & 0x04) ? 1 : 0;
+        temp_contact_ = person->phone_number;
+        temp_name_ = person->name;
+        temp_group_data_ = person->group_data;
 
         Serial.print("Full name: ");
-        selectionToEdit = tempName;
-        Serial.print(selectionToEdit);
+        selection_to_edit_ = temp_name_;
+        Serial.print(selection_to_edit_);
 
-        editMode = EditState::kEditInit;
-        recipientMenuState = RecipientState::kNameInput;
+        edit_mode_ = EditState::kEditInit;
+        contact_menu_state_ = ContactState::kNameInput;
         return true;
       }
     }
 
-    case RecipientState::kNameInput: {
-      if (!editRecipientField(selectionToEdit, InputType::kAlphaNumericInput,
-                              key)) {
-        if (selectionToEdit.isEmpty()) {
+    case ContactState::kNameInput: {
+      if (!editContactField(selection_to_edit_, InputType::kAlphaNumericInput,
+                            key)) {
+        if (selection_to_edit_.isEmpty()) {
           return false;
         }
 
-        if (Validator::isValidName(selectionToEdit) == false) {
+        if (PersonManager::isValidName(selection_to_edit_) == false) {
           Serial.println("Invalid name!");
           return false;
         }
 
-        if (infoManager.isDuplicateEntryExists(tempName, selectionToEdit)) {
+        if (person_manager_.isDuplicateEntryExists(temp_name_,
+                                                   selection_to_edit_)) {
           Serial.println("Name already exists.");
           return false;
         }
 
-        tempName = selectionToEdit;
+        temp_name_ = selection_to_edit_;
 
-        Serial.print("Contact number: ");
-        selectionToEdit = tempContact;
-        Serial.print(selectionToEdit);
+        Serial.print("Phone number: ");
+        selection_to_edit_ = temp_contact_;
+        Serial.print(selection_to_edit_);
 
-        editMode = EditState::kEditInit;
-        recipientMenuState = RecipientState::kContactInput;
+        edit_mode_ = EditState::kEditInit;
+        contact_menu_state_ = ContactState::kPhoneNumberInput;
       }
 
       return true;
     }
-    case RecipientState::kContactInput: {
-      if (!editRecipientField(selectionToEdit, InputType::kPhoneNumInput,
-                              key)) {
-        if (selectionToEdit.isEmpty()) {
+    case ContactState::kPhoneNumberInput: {
+      if (!editContactField(selection_to_edit_, InputType::kPhoneNumInput,
+                            key)) {
+        if (selection_to_edit_.isEmpty()) {
           return false;
         }
 
-        if (Validator::isValidPhoneNumber(selectionToEdit) == false) {
-          Serial.println("Invalid contact number!");
+        if (PersonManager::isValidPhoneNumber(selection_to_edit_) == false) {
+          Serial.println("Invalid phone number!");
           return false;
         }
 
-        if (infoManager.isNumberExists(tempContact, selectionToEdit)) {
-          Serial.println("Contact number already exists.");
+        if (person_manager_.isNumberExists(temp_contact_, selection_to_edit_)) {
+          Serial.println("Phone number already exists.");
           return false;
         }
 
-        tempContact = selectionToEdit;
-
-        Serial.print("Site name: ");
-        selectionToEdit = tempSite;
-        Serial.print(selectionToEdit);
-
-        editMode = EditState::kEditInit;
-        recipientMenuState = RecipientState::kSiteInput;
-      }
-
-      return true;
-    }
-    case RecipientState::kSiteInput: {
-      if (!editRecipientField(selectionToEdit, InputType::kAlphaNumericInput,
-                              key)) {
-        if (selectionToEdit.isEmpty()) {
-          return false;
-        }
-
-        tempSite = selectionToEdit;
+        temp_contact_ = selection_to_edit_;
 
         Serial.print("Maintenance: ");
 
-        editMode = EditState::kEditInit;
-        recipientMenuState = RecipientState::kGroupDataMaintenanceInput;
+        edit_mode_ = EditState::kEditInit;
+        contact_menu_state_ = ContactState::kGroupDataMaintenanceInput;
 
-        choiceBuffer = tempMaintanence;
-        getToggleInput(0, &tempMaintanence);
+        getGroupDataInput(0, kGroupDataMaintenanceBit);
       }
 
       return true;
     }
-    case RecipientState::kGroupDataMaintenanceInput: {
-      if (getToggleInput(key, &tempMaintanence)) {
+    case ContactState::kGroupDataMaintenanceInput: {
+      if (getGroupDataInput(key, kGroupDataMaintenanceBit)) {
         Serial.print("Management: ");
 
-        editMode = EditState::kEditInit;
-        recipientMenuState = RecipientState::kGroupDataManagementInput;
+        edit_mode_ = EditState::kEditInit;
+        contact_menu_state_ = ContactState::kGroupDataManagementInput;
 
-        choiceBuffer = tempManagement;
-        getToggleInput(0, &tempManagement);
+        getGroupDataInput(0, kGroupDataManagementBit);
       }
 
       return true;
     }
-    case RecipientState::kGroupDataManagementInput: {
-      if (getToggleInput(key, &tempManagement)) {
+    case ContactState::kGroupDataManagementInput: {
+      if (getGroupDataInput(key, kGroupDataManagementBit)) {
         Serial.print("Statistics: ");
 
-        editMode = EditState::kEditInit;
-        recipientMenuState = RecipientState::kGroupDataStatisticsInput;
+        edit_mode_ = EditState::kEditInit;
+        contact_menu_state_ = ContactState::kGroupDataStatisticsInput;
 
-        choiceBuffer = tempStatistics;
-        getToggleInput(0, &tempStatistics);
+        getGroupDataInput(0, kGroupDataStatisticsBit);
       }
 
       return true;
     }
-    case RecipientState::kGroupDataStatisticsInput: {
-      if (getToggleInput(key, &tempStatistics)) {
-        char groupData = (tempMaintanence ? 0x01 : 0x00) |
-                         (tempManagement ? 0x02 : 0x00) |
-                         (tempStatistics ? 0x04 : 0x00);
-        infoManager.editInfo(selectedRecipient.name, tempName, tempContact,
-                             tempSite, groupData);
-        Serial.println("Recipient edited successfully.");
+    case ContactState::kGroupDataStatisticsInput: {
+      if (getGroupDataInput(key, kGroupDataStatisticsBit)) {
+        person_manager_.edit(selected_contact_.name, temp_name_, temp_contact_,
+                             temp_group_data_);
+        saveConfig();
+        Serial.println("Contact edited successfully.");
         return false;
       }
 
@@ -633,18 +601,18 @@ bool ConfigManager::editRecipient(char key) {
 }
 
 /**
- * \brief Manages the editing of a recipient's field (name, contact, etc.).
+ * \brief Manages the editing of a contact's field (name, phone number, groups).
  *
- * This function allows the user to edit a specific recipient field by handling
+ * This function allows the user to edit a specific contact field by handling
  * the input character, processing it, and managing the edit state. The user can
  * cancel the edit process by pressing Enter or Escape, or they can modify the
  * field in edit mode.
  *
- * \param receipentData The recipient data to be edited. This will be updated
+ * \param contact_data The contact data to be edited. This will be updated
  * with new input.
  * \param type The expected input type (ALPHA_NUMERIC_INPUT, NUMERIC_INPUT,
  * etc.).
- * \param inKey The character received from serial input.
+ * \param in_key The character received from serial input.
  * \return true if the user is still in the editing mode and further input is
  * needed, false if the editing process is complete or canceled.
  *
@@ -658,32 +626,32 @@ bool ConfigManager::editRecipient(char key) {
  * - If editing is complete (Enter or Escape pressed), the edit state is reset
  * to `EDIT_INIT`.
  *
- * \note The function handles input validation and clears the recipient's data
+ * \note The function handles input validation and clears the contact's data
  * when transitioning into editing mode.
  */
-bool ConfigManager::editRecipientField(String &receipentData, InputType type,
-                                       char inKey) {
-  if ((editMode != EditState::kEditing) && (inKey == '\r' || inKey == 27)) {
+bool ConfigManager::editContactField(String &contact_data, InputType type,
+                                     char in_key) {
+  if ((edit_mode_ != EditState::kEditing) && (in_key == '\r' || in_key == 27)) {
     Serial.println();
-    editMode = EditState::kEditInit;
+    edit_mode_ = EditState::kEditInit;
     return false;
   }
 
-  if (editMode == EditState::kEditInit && isValidChar(type, inKey)) {
-    clearRecepientNameInEditMode(receipentData);
+  if (edit_mode_ == EditState::kEditInit && isValidChar(type, in_key)) {
+    clearContactNameInEditMode(contact_data);
 
-    editMode = EditState::kEditing;
+    edit_mode_ = EditState::kEditing;
 
-    receipentData = "";
-    inputBuffer = inKey;
+    contact_data = "";
+    input_buffer_ = in_key;
 
-    Serial.print(inKey);
+    Serial.print(in_key);
     return true;
   }
 
-  if (editMode == EditState::kEditing) {
-    if (processInputBuffer(type, inKey, receipentData)) {
-      editMode = EditState::kEditInit;
+  if (edit_mode_ == EditState::kEditing) {
+    if (processInputBuffer(type, in_key, contact_data)) {
+      edit_mode_ = EditState::kEditInit;
       return false;
     }
 
@@ -693,50 +661,49 @@ bool ConfigManager::editRecipientField(String &receipentData, InputType type,
   return false;
 }
 
+const std::vector<Person> &ConfigManager::getAllContacts() const {
+  return person_manager_.getAllPeople();
+}
+
+const String &ConfigManager::getLocation() const { return location_; }
+
 /**
- * \brief Displays the detailed information of a recipient on the specified
- * serial display.
+ * \brief Displays the detailed information of a contact
  *
- * This function prints the recipient's full name, contact number, site name,
- * and group data (Maintenance, Management, and Statistics) to the provided
- * serial display.
+ * This function prints the contact's full name, phone number, and group data
+ * (Maintenance, Management, and Statistics) to the provided serial display.
  *
- * \param info The `RecipientData` structure containing the recipient's
+ * \param person The `Person` structure containing the contact's
  * information to be displayed.
  *
  * Functionality:
- * - Displays the recipient's **Full Name**, **Contact Number**, and **Site
- * Name**.
+ * - Displays the contact's **Full Name** and **Phone Number**
  * - Displays the **Maintenance**, **Management**, and **Statistics** group data
  * as either "YES" or "NO" based on bit flags.
  * - Separates the data with a dashed line for clarity.
- *
- * \note This function is used to show the detailed recipient information on an
- * external display via Serial.
  */
-void ConfigManager::showPersonalInfo(const RecipientData &info) {
-  Serial.println("Full name: " + info.name);
-  Serial.println("Contact: " + info.contactNumber);
-  Serial.println("Site: " + info.siteName);
+void ConfigManager::printPerson(const Person &person) {
+  Serial.println("Full name: " + person.name);
+  Serial.println("Contact: " + person.phone_number);
 
   Serial.print("Maintenance: ");
-  Serial.println((info.groupData & 0x01) ? "YES" : "NO");
+  Serial.println((person.group_data[kGroupDataMaintenanceBit]) ? "YES" : "NO");
 
   Serial.print("Management: ");
-  Serial.println((info.groupData & 0x02) ? "YES" : "NO");
+  Serial.println((person.group_data[kGroupDataManagementBit]) ? "YES" : "NO");
 
   Serial.print("Statistics: ");
-  Serial.println((info.groupData & 0x04) ? "YES" : "NO");
+  Serial.println((person.group_data[kGroupDataStatisticsBit]) ? "YES" : "NO");
 
   Serial.println("-------------------");
 }
 
 /**
- * \brief Deletes a recipient from the list based on user selection.
+ * \brief Deletes a contact from the list based on user selection.
  *
- * This function allows the user to select a recipient to delete from the list.
+ * This function allows the user to select a contact to delete from the list.
  * The user can navigate through the list using the '<' and '>' keys, select a
- * recipient, and then confirm deletion. If no recipients are available, a
+ * contact, and then confirm deletion. If no contacts are available, a
  * message is shown.
  *
  * \param key The character received from serial input to navigate or confirm
@@ -745,53 +712,55 @@ void ConfigManager::showPersonalInfo(const RecipientData &info) {
  * is required, false when the deletion process is completed or canceled.
  *
  * Functionality:
- * - Navigation: The user selects a recipient to delete using the '<' or '>'
+ * - Navigation: The user selects a contact to delete using the '<' or '>'
  * keys.
- * - Deletion: Upon selection, the recipient’s information is deleted from the
+ * - Deletion: Upon selection, the contact’s information is deleted from the
  * list if found.
  * - Confirmation: Success or failure messages are shown after attempting to
- * delete the recipient.
+ * delete the contact.
  *
- * \note This function interacts with the `infoManager` to delete the selected
- * recipient’s data.
+ * \note This function interacts with the `PersonManager` to delete the selected
+ * contact’s data.
  */
-bool ConfigManager::deleteRecipient(char key) {
-  menuState = MenuState::kDeleteRecipient;
+bool ConfigManager::deleteContact(char key) {
+  menu_state_ = MenuState::kDeleteContact;
 
-  if (infoManager.getPersonalInfoCount() == 0) {
-    Serial.println("No recipients to delete.");
+  if (person_manager_.getCount() == 0) {
+    Serial.println("No contacts to delete.");
     return false;
   }
 
-  if (recipientMenuState == RecipientState::kInit) {
+  if (contact_menu_state_ == ContactState::kInit) {
     Serial.println(
         "Select the name to delete from the list below. Use < and > keys to "
         "navigate.\r\n");
     Serial.print("Full name: ");
-    if (!infoManager.getNameAtPosition(selectedBuffer, selectedNameBuffer)) {
+    if (!person_manager_.getNameAtPosition(selected_buffer_,
+                                           selected_name_buffer)) {
       return false;
     }
-    Serial.print(selectedNameBuffer);
-    recipientMenuState = RecipientState::kNameSelect;
+    Serial.print(selected_name_buffer);
+    contact_menu_state_ = ContactState::kNameSelect;
     return true;
   }
 
-  if (recipientMenuState == RecipientState::kNameSelect) {
-    SelectionType selectionType = nameSelection(key, selectedNameBuffer);
+  if (contact_menu_state_ == ContactState::kNameSelect) {
+    SelectionType selectionType = nameSelection(key, selected_name_buffer);
 
     if (selectionType == SelectionType::kSelecting) {
       return true;
     } else if (selectionType == SelectionType::kSelected) {
-      if (selectedNameBuffer.isEmpty()) {
+      if (selected_name_buffer.isEmpty()) {
         return false;
       }
 
       Serial.println();
 
-      if (infoManager.deleteInfo(selectedNameBuffer) == 0) {
-        Serial.println("Failed to delete recipient.");
+      if (person_manager_.remove(selected_name_buffer) == 0) {
+        Serial.println("Failed to delete contact.");
       } else {
-        Serial.println("Recipient deleted successfully.");
+        saveConfig();
+        Serial.println("Contact deleted successfully.");
       }
     }
   }
@@ -800,110 +769,51 @@ bool ConfigManager::deleteRecipient(char key) {
 }
 
 /**
- * \brief Searches for a recipient based on the provided name.
+ * \brief Displays a list of all contacts.
  *
- * This function allows the user to search for a recipient by entering their
- * name. If the recipient is found, their details are displayed. If no
- * recipients are available, or if no match is found, an appropriate message is
- * shown.
+ * This function displays all the contacts in the system. If no contacts are
+ * available, it will show a message indicating that there are no contacts to
+ * display. If contacts exist, their details are printed using the
+ * `printPerson` function.
  *
- * \param key The character received from serial input, used to build the search
- * query.
- * \return true if the user is still in the process of entering the name,
- *         false when the search is complete or canceled.
- *
- * Functionality:
- * - In the initial state (`NAME_INPUT`), the user inputs the recipient's name.
- * - If a match is found, the recipient's details are displayed using
- * `showPersonalInfo`.
- * - If no match is found, an error message is displayed.
- * - If no recipients are available in the list, a message indicating this is
- * shown.
- *
- * \note This function interacts with the `infoManager` to perform the search
- * and retrieve recipient information.
+ * \note This function relies on `person_manager_` to retrieve and print the
+ * contacts' details.
  */
-bool ConfigManager::searchRecipient(char key) {
-  menuState = MenuState::kSearchRecipient;
-
-  if (infoManager.getPersonalInfoCount() == 0) {
-    Serial.println("No recipients to search.");
-    return false;
-  }
-
-  if (recipientMenuState == RecipientState::kInit) {
-    Serial.print("Enter the name to search: ");
-    recipientMenuState = RecipientState::kNameInput;
-    return true;
-  }
-
-  if (recipientMenuState == RecipientState::kNameInput) {
-    if (processInputBuffer(InputType::kAlphaNumericInput, key, tempName)) {
-      if (tempName.isEmpty()) {
-        return false;
-      }
-
-      RecipientData *info = infoManager.searchInfo(tempName);
-      if (info == nullptr) {
-        Serial.println("Recipient details are not found.");
-        return false;
-      }
-
-      showPersonalInfo(*info);
-      return false;
-    }
-
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * \brief Displays a list of all recipients.
- *
- * This function displays all the recipients in the system. If no recipients are
- * available, it will show a message indicating that there are no recipients to
- * display. If recipients exist, their details are printed using the
- * `showPersonalInfo` function.
- *
- * \note This function relies on `infoManager` to retrieve and print the
- * recipients' details.
- */
-void ConfigManager::showAllRecipient() {
-  if (infoManager.getPersonalInfoCount() == 0) {
-    Serial.println("No recipients to show.");
+void ConfigManager::showAllContacts() {
+  if (person_manager_.getCount() == 0) {
+    Serial.println("No contacts to show.");
     return;
   }
 
-  infoManager.printAll(showPersonalInfo);
+  person_manager_.printAll(printPerson);
 }
 
 /**
  * \brief Prints the main configuration menu to the serial display.
  *
- * This function displays a menu with options for managing recipient data. The
- * available options include viewing the recipient list, adding, editing,
- * deleting, searching for recipients, and exiting the configuration menu.
+ * This function displays a menu with options for managing contact data. The
+ * available options include viewing the contact list, adding, editing,
+ * deleting and exiting the configuration menu.
  *
- * \note The `menuState` is updated to `MAIN_MENU` upon entering this function,
- * and the options are displayed to guide the user in making a selection.
+ * \note The `menu_state_` is updated to `MAIN_MENU` upon entering this
+ * function, and the options are displayed to guide the user in making a
+ * selection.
  */
 void ConfigManager::printMenu() {
-  menuState = MenuState::kMainMenu;
+  menu_state_ = MenuState::kMainMenu;
+  const String time = TimeManager::getFormattedTime();
 
   Serial.println("\r\nDevice Configuration Menu\r\n");
-  Serial.println("[1] Show Recipient List");
-  Serial.println("[2] Add Recipient");
-  Serial.println("[3] Edit Recipient Details");
-  Serial.println("[4] Remove Recipient");
-  Serial.println("[5] Search Recipient");
+  Serial.printf("[1] Show contact list (%d)\n", person_manager_.getCount());
+  Serial.println("[2] Add contact");
+  Serial.println("[3] Edit contact details");
+  Serial.println("[4] Remove contact");
 #ifdef RTC_MANAGER
-  Serial.println("[6] Set System Date/Time");
-  Serial.println("[7] Show System Date/Time");
+  Serial.printf("[5] Set system date/time (%s)\n", time.c_str());
 #endif
-  Serial.println("[8] Show Log Entries");
-  Serial.println("[X] Exit Configuration Menu");
+  Serial.println("[6] Show log entries");
+  Serial.printf("[7] Edit location name (%s)\n", location_.c_str());
+  Serial.println("[X] Exit configuration menu");
   Serial.print("\r\nSelection: ");
 }
 
@@ -928,26 +838,26 @@ void ConfigManager::printMenu() {
  * time.
  */
 bool ConfigManager::setSystemDateTime(char key) {
-  menuState = MenuState::kDateTimeSet;
+  menu_state_ = MenuState::kDateTimeSet;
 
-  switch (dateInputStage) {
+  switch (date_input_stage) {
     case SetDateTimeStage::SDT_INIT:
       Serial.print("Year: ");
-      dateInputStage = SetDateTimeStage::SDT_YEAR;
+      date_input_stage = SetDateTimeStage::SDT_YEAR;
       break;
     case SetDateTimeStage::SDT_YEAR:
-      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
-        if (tempNumber.isEmpty()) return false;
+      if (processInputBuffer(InputType::kNumberInput, key, temp_number_)) {
+        if (temp_number_.isEmpty()) return false;
 
-        if (!TimeManager::isValidYear(tempNumber)) {
+        if (!TimeManager::isValidYear(temp_number_)) {
           Serial.println("Invalid year!");
           return false;
         }
 
-        inputYear = tempNumber.toInt();
+        input_year_ = temp_number_.toInt();
 
-        dateInputStage = SetDateTimeStage::SDT_MONTH;
-        tempNumber = "";
+        date_input_stage = SetDateTimeStage::SDT_MONTH;
+        temp_number_ = "";
         Serial.print("Month: ");
 
         return true;
@@ -955,18 +865,18 @@ bool ConfigManager::setSystemDateTime(char key) {
       break;
 
     case SetDateTimeStage::SDT_MONTH:
-      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
-        if (tempNumber.isEmpty()) return false;
+      if (processInputBuffer(InputType::kNumberInput, key, temp_number_)) {
+        if (temp_number_.isEmpty()) return false;
 
-        if (!TimeManager::isValidMonth(tempNumber)) {
+        if (!TimeManager::isValidMonth(temp_number_)) {
           Serial.println("Invalid month!");
           return false;
         }
 
-        inputMonth = tempNumber.toInt();
+        input_month_ = temp_number_.toInt();
 
-        dateInputStage = SetDateTimeStage::SDT_DAY;
-        tempNumber = "";
+        date_input_stage = SetDateTimeStage::SDT_DAY;
+        temp_number_ = "";
         Serial.print("Day: ");
 
         return true;
@@ -974,76 +884,76 @@ bool ConfigManager::setSystemDateTime(char key) {
       break;
 
     case SetDateTimeStage::SDT_DAY:
-      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
-        if (tempNumber.isEmpty()) return false;
+      if (processInputBuffer(InputType::kNumberInput, key, temp_number_)) {
+        if (temp_number_.isEmpty()) return false;
 
-        if (!TimeManager::isValidDay(tempNumber, inputYear, inputMonth)) {
+        if (!TimeManager::isValidDay(temp_number_, input_year_, input_month_)) {
           Serial.println("Invalid day!");
           return false;
         }
 
-        inputDay = tempNumber.toInt();
+        input_day_ = temp_number_.toInt();
 
-        dateInputStage = SetDateTimeStage::SDT_HOUR;
-        tempNumber = "";
+        date_input_stage = SetDateTimeStage::SDT_HOUR;
+        temp_number_ = "";
         Serial.print("Hour: ");
 
         return true;
       }
       break;
     case SetDateTimeStage::SDT_HOUR:
-      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
-        if (tempNumber.isEmpty()) return false;
+      if (processInputBuffer(InputType::kNumberInput, key, temp_number_)) {
+        if (temp_number_.isEmpty()) return false;
 
-        if (!TimeManager::isValidHour(tempNumber)) {
+        if (!TimeManager::isValidHour(temp_number_)) {
           Serial.println("Invalid hour!");
           return false;
         }
 
-        inputHour = tempNumber.toInt();
+        input_hour_ = temp_number_.toInt();
 
-        dateInputStage = SetDateTimeStage::SDT_MINUTE;
-        tempNumber = "";
+        date_input_stage = SetDateTimeStage::SDT_MINUTE;
+        temp_number_ = "";
         Serial.print("Minute: ");
 
         return true;
       }
       break;
     case SetDateTimeStage::SDT_MINUTE:
-      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
-        if (tempNumber.isEmpty()) return false;
+      if (processInputBuffer(InputType::kNumberInput, key, temp_number_)) {
+        if (temp_number_.isEmpty()) return false;
 
-        if (!TimeManager::isValidMinute(tempNumber)) {
+        if (!TimeManager::isValidMinute(temp_number_)) {
           Serial.println("Invalid minute!");
           return false;
         }
 
-        inputMinute = tempNumber.toInt();
+        input_minute_ = temp_number_.toInt();
 
-        dateInputStage = SetDateTimeStage::SDT_SECOND;
-        tempNumber = "";
+        date_input_stage = SetDateTimeStage::SDT_SECOND;
+        temp_number_ = "";
         Serial.print("Second: ");
 
         return true;
       }
       break;
     case SetDateTimeStage::SDT_SECOND:
-      if (processInputBuffer(InputType::kNumberInput, key, tempNumber)) {
-        if (tempNumber.isEmpty()) return false;
+      if (processInputBuffer(InputType::kNumberInput, key, temp_number_)) {
+        if (temp_number_.isEmpty()) return false;
 
         // Check if the second is valid (using the same function as minute).
-        if (!TimeManager::isValidMinute(tempNumber)) {
+        if (!TimeManager::isValidMinute(temp_number_)) {
           Serial.println("Invalid second!");
           return false;
         }
 
-        inputSecond = tempNumber.toInt();
+        input_second_ = temp_number_.toInt();
 
-        TimeManager::setSystemTime(inputYear, inputMonth, inputDay, inputHour,
-                                   inputMinute, inputSecond);
+        TimeManager::setSystemTime(input_year_, input_month_, input_day_,
+                                   input_hour_, input_minute_, input_second_);
 
-        dateInputStage = SetDateTimeStage::SDT_INIT;
-        tempNumber = "";
+        date_input_stage = SetDateTimeStage::SDT_INIT;
+        temp_number_ = "";
         Serial.println("Date/Time set successfully.");
         return false;
       }
@@ -1054,39 +964,73 @@ bool ConfigManager::setSystemDateTime(char key) {
 }
 
 /**
+ * \brief Edits the location name based on user input.
+ *
+ * This function allows the user to edit the location name by entering a new
+ * name. It validates the input and updates the location name if valid. The
+ * function handles the input state and provides feedback to the user.
+ *
+ * \param key The character received from serial input for editing the location
+ * name.
+ * \return true if the process is ongoing, false when the location name is set
+ * or an error occurs.
+ *
+ */
+bool ConfigManager::editLocationName(char key) {
+  menu_state_ = MenuState::kEditLocationName;
+
+  if (location_edit_state == LocationEditState::kLocationInit) {
+    Serial.print("Enter the location name: ");
+    location_edit_state = LocationEditState::kLocationInput;
+    return true;
+  } else {
+    if (processInputBuffer(InputType::kAnyInput, key, temp_location_)) {
+      if (isValidLocation(temp_location_)) {
+        location_ = temp_location_;
+        saveConfig();
+      } else {
+        return false;
+      }
+
+      location_edit_state = LocationEditState::kLocationInit;
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
  * \brief Resets the internal states and buffers to their initial values.
  *
- * This function resets all relevant variables and states used in the recipient
+ * This function resets all relevant variables and states used in the contact
  * management process to their default or initial values. It ensures that any
  * data entered or selected during previous operations is cleared, effectively
  * resetting the configuration state.
  *
  * \note This function is useful for starting fresh or after completing certain
- * actions like adding, editing, or deleting recipients, ensuring no residual
+ * actions like adding, editing, or deleting contacts, ensuring no residual
  * data interferes with future operations.
  */
 void ConfigManager::resetSubState() {
-  recipientMenuState = RecipientState::kInit;
-  inputBuffer = "";
-  choiceBuffer = 0;
-  selectedNameBuffer = "";
-  selectedBuffer = 0;
-  selectionToEdit = "";
-  editMode = EditState::kEditInit;
+  contact_menu_state_ = ContactState::kInit;
+  input_buffer_ = "";
+  selected_name_buffer = "";
+  selected_buffer_ = 0;
+  selection_to_edit_ = "";
+  edit_mode_ = EditState::kEditInit;
 
-  tempName = "";
-  tempContact = "";
-  tempSite = "";
-  tempMaintanence = 0;
-  tempManagement = 0;
-  tempStatistics = 0;
+  temp_name_ = "";
+  temp_contact_ = "";
+  temp_group_data_.reset();
+  temp_location_ = "";
 
-  selectedRecipient.contactNumber = "";
-  selectedRecipient.groupData = 0;
-  selectedRecipient.name = "";
-  selectedRecipient.siteName = "";
+  selected_contact_.phone_number = "";
+  selected_contact_.group_data = 0;
+  selected_contact_.name = "";
 
-  dateInputStage = SetDateTimeStage::SDT_INIT;
+  date_input_stage = SetDateTimeStage::SDT_INIT;
+  location_edit_state = LocationEditState::kLocationInit;
 }
 
 /**
@@ -1094,60 +1038,98 @@ void ConfigManager::resetSubState() {
  *
  * This function processes a single user input, performs the corresponding
  * action based on the menu selection, and updates the menu state accordingly.
- * It supports operations like showing all recipients, adding, editing,
- * deleting, or searching recipients, and exiting the configuration menu.
+ * It supports operations like showing all contacts, adding, editing,
+ * deleting and exiting the configuration menu.
  *
  * \param input The character representing the user's menu selection.
  *
  * \note After processing a valid input, the menu state is updated, and the main
  * menu is reprinted unless the operation is still in progress (e.g., adding or
- * editing a recipient).
+ * editing a contact).
  */
 void ConfigManager::handleInput(char input) {
-  bool isStillInState = false;
+  bool is_still_in_state = false;
   resetSubState();
 
   switch (input) {
     case '1':
-      showAllRecipient();
+      showAllContacts();
       break;
     case '2':
-      isStillInState = addRecipient(input);
+      is_still_in_state = addContact(input);
       break;
     case '3':
-      isStillInState = editRecipient(input);
+      is_still_in_state = editContact(input);
       break;
     case '4':
-      isStillInState = deleteRecipient(input);
-      break;
-    case '5':
-      isStillInState = searchRecipient(input);
+      is_still_in_state = deleteContact(input);
       break;
 #ifdef RTC_MANAGER
-    case '6':
-      isStillInState = setSystemDateTime(input);
-      break;
-    case '7':
-      TimeManager::showSystemDateTime();
+    case '5':
+      is_still_in_state = setSystemDateTime(input);
       break;
 #endif
-    case '8':
+    case '6':
       LoggingManager::showAllLogs();
+      break;
+    case '7':
+      is_still_in_state = editLocationName(input);
       break;
     case 'x':
     case 'X':
       Serial.println("Exiting configuration menu.");
-      menuState = MenuState::kIdle;
+      menu_state_ = MenuState::kIdle;
       return;
     default:
       Serial.println("Invalid option.");
-      printMenu();
       break;
   }
 
-  if (!isStillInState) {
+  if (!is_still_in_state) {
     printMenu();
   }
 }
+
+void ConfigManager::parseConfig(JsonObjectConst config) {
+  location_ = config["location"].as<String>();
+  person_manager_.parseJson(config["people"].as<JsonArrayConst>());
+}
+
+void ConfigManager::saveConfig() {
+  JsonDocument doc;
+  JsonObject config = doc.to<JsonObject>();
+  config["location"] = location_;
+  person_manager_.serializeJson(config["people"].to<JsonArray>());
+  storage_->storeCustomConfig(config);
+}
+
+/**
+ * \brief Validates if a given location name is valid based on specified
+ * criteria.
+ *
+ * This function checks if the provided location name contains only valid
+ * characters: alphabets, spaces, hyphens, and apostrophes. The name must also
+ * not be empty. This function is useful for ensuring that location names
+ * conform to typical formats (e.g., "New York", "St. John's").
+ *
+ * \param location The location name string to be validated.
+ * \return `true` if the location name contains only valid characters and is not
+ * empty, `false` otherwise.
+ */
+bool ConfigManager::isValidLocation(const String &location) {
+  for (size_t i = 0; i < location.length(); i++) {
+    char c = location[i];
+    if (!(isAlpha(c) || c == ' ' || c == '-' || c == '\'' || c == '.')) {
+      return false;
+    }
+  }
+  if (location.length() > kMaxLocationLength) {
+    Serial.printf("Location max length is %d\n", kMaxLocationLength);
+    return false;
+  }
+  return !location.isEmpty();
+}
+
+const uint8_t ConfigManager::kMaxLocationLength = 30;
 
 }  // namespace inamata

@@ -43,6 +43,13 @@ class GsmNetwork {
   void disable();
 
   /**
+   * Whether GSM network is enabled
+   *
+   * \note Check isNetworkConnected and isGprsConnected for connection state
+   */
+  bool isEnabled() const;
+
+  /**
    * Start the time sync process
    */
   void syncTime();
@@ -67,6 +74,14 @@ class GsmNetwork {
    */
   bool isNetworkConnected();
 
+  /**
+   * Encode string into SMS GSM-7 encoding
+   *
+   * \param text The text to encode
+   * \return The encoded text
+   */
+  static String encodeSms(const char* text);
+
   bool network_connected_ = false;
   bool gprs_connected_ = false;
   int16_t signal_quality_ = 0;
@@ -74,12 +89,13 @@ class GsmNetwork {
 
   TinyGsm modem_;
   TinyGsmClient client_;
-  
-  private:
-  #ifdef DUMP_AT_COMMANDS
+
+ private:
+  bool is_enabled_ = false;
+#ifdef DUMP_AT_COMMANDS
   StreamDebugger debugger_;
-  #endif
-  
+#endif
+
   std::chrono::seconds check_period_ = std::chrono::seconds(2);
   std::chrono::steady_clock::time_point last_network_check_ =
       std::chrono::steady_clock::time_point::min();

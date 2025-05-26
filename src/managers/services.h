@@ -8,7 +8,6 @@
 #include "managers/behavior_controller.h"
 #include "managers/ota_updater.h"
 #include "managers/service_getters.h"
-#include "managers/ui_controller.h"
 #include "managers/web_socket.h"
 #include "managers/wifi_network.h"
 #include "peripheral/peripheral_controller.h"

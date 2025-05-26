@@ -33,7 +33,7 @@ class ErrorResult {
    *
    * \return String with who and detail
    */
-  String toString() { return who_ + F(": ") + detail_; }
+  String toString() const { return who_ + F(": ") + detail_; }
 
   String who_;
   String detail_;
