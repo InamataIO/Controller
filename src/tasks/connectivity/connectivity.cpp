@@ -49,10 +49,9 @@ bool CheckConnectivity::OnTaskEnable() {
     return false;
   }
   // If the WebSocket token has not been set, jump directly to provisioning
+  handleGsmWifiSwitch(std::chrono::steady_clock::now(), true);
   if (!web_socket_->isWsTokenSet()) {
     mode_ = Mode::ProvisionDevice;
-  } else {
-    handleGsmWifiSwitch(std::chrono::steady_clock::now(), true);
   }
 
   return true;
@@ -60,9 +59,7 @@ bool CheckConnectivity::OnTaskEnable() {
 
 bool CheckConnectivity::TaskCallback() {
   const auto now = std::chrono::steady_clock::now();
-  if (mode_ != Mode::ProvisionDevice) {
-    handleGsmWifiSwitch(now);
-  }
+  handleGsmWifiSwitch(now);
   if (mode_ == Mode::ConnectWiFi) {
     WiFiNetwork::ConnectMode connect_mode = wifi_network_->connect();
     // Disable starting WiFi captive portal if the WebSocket connects once
@@ -213,13 +210,15 @@ void CheckConnectivity::enterConnectMode() {
   switch (use_network_) {
     case UseNetwork::kWifi:
       NetworkClient::Impl::disableGsm();
-      setMode(Mode::ConnectWiFi);
+      gsm_network_->disable();
       NetworkClient::Impl::enableWifi();
+      setMode(Mode::ConnectWiFi);
       break;
     case UseNetwork::kGsm:
       NetworkClient::Impl::disableWifi();
-      setMode(Mode::ConnectGsm);
+      gsm_network_->enable();
       NetworkClient::Impl::enableGsm(&gsm_network_->modem_);
+      setMode(Mode::ConnectGsm);
   }
 #else
   setMode(Mode::ConnectWiFi);
@@ -234,11 +233,7 @@ void CheckConnectivity::setMode(Mode mode) {
 
   // Actions to run when leaving mode
   switch (mode_) {
-#ifdef GSM_NETWORK
-    case Mode::ConnectGsm:
-      gsm_network_->disable();
-      break;
-#endif
+      // Do not disable GSM network on provision as it blocks sending SMS
     case Mode::ProvisionDevice:
 #ifdef PROV_IMPROV
       if (improv_) {
@@ -269,7 +264,6 @@ void CheckConnectivity::setMode(Mode mode) {
       break;
 #ifdef GSM_NETWORK
     case Mode::ConnectGsm:
-      gsm_network_->enable();
       // If not reset, will fail on WS connection after being provisioned
       // and will require a reboot
       web_socket_->resetConnectAttempt();

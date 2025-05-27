@@ -8,9 +8,6 @@
 #include "managers/logging.h"
 
 struct NetworkClient::Impl {
-  Impl() { TRACELN("NC::Impl CSTR"); }
-  virtual ~Impl() { TRACELN("~NC::Impl DSTR"); };
-
   static void enableWifi() {
     // Do nothing if already enabled
     if (wifi_client_ && wifi_client_secure_) {

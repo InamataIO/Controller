@@ -3,12 +3,9 @@
 #include "managers/logging.h"
 #include "network_client_impl.h"
 
-NetworkClientSecure::NetworkClientSecure() { TRACELN("NC()"); }
-NetworkClientSecure::NetworkClientSecure(WiFiClient wifi_client) {
-  TRACELN("NC(WC)");
-}
+NetworkClientSecure::NetworkClientSecure() {}
+NetworkClientSecure::NetworkClientSecure(WiFiClient wifi_client) {}
 NetworkClientSecure::~NetworkClientSecure() {
-  TRACELN("~NC()");
   if (_impl->gsm_client_secure_) {
     _impl->gsm_client_secure_->stop();
   }

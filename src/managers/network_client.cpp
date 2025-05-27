@@ -3,14 +3,10 @@
 #include "managers/logging.h"
 #include "network_client_impl.h"
 
-NetworkClient::NetworkClient() : _impl(new NetworkClient::Impl()) {
-  TRACELN("NC()");
-}
+NetworkClient::NetworkClient() : _impl(new NetworkClient::Impl()) {}
 NetworkClient::NetworkClient(WiFiClient wifi_client)
-    : _impl(new NetworkClient::Impl()) {
-  TRACELN("NC(WC)");
-}
-NetworkClient::~NetworkClient() { TRACELN("~NC()"); }
+    : _impl(new NetworkClient::Impl()) {}
+NetworkClient::~NetworkClient() {}
 
 int NetworkClient::connect(IPAddress ip, uint16_t port) {
   if (_impl->gsm_client_) {

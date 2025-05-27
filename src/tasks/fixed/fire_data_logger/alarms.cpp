@@ -4,6 +4,7 @@
 
 #include "managers/time_manager.h"
 #include "peripheral/fixed.h"
+#include "utils/chrono_abs.h"
 
 namespace inamata {
 namespace tasks {
@@ -118,7 +119,9 @@ const String& Alarms::type() {
 
 bool Alarms::TaskCallback() {
   Task::delay(std::chrono::milliseconds(default_interval_).count());
+  now_ = std::chrono::steady_clock::now();
   handleMaintenanceMode();
+  handleSmsReminders();
 
   if (!is_maintenance_mode_) {
     auto result = input_bank_1_->getValues();
@@ -161,146 +164,146 @@ void Alarms::resetLimits() {
   }
 
   // Runtime alarms
-  resetDurationLimit(limit_duration_jockey_1_pump_run_);
-  resetDurationLimit(limit_duration_jockey_2_pump_run_);
-  resetActivationLimit(limit_activation_jockey_1_pump_run_);
-  resetActivationLimit(limit_activation_jockey_2_pump_run_);
+  resetDurationLimit(&limit_duration_jockey_1_pump_run_);
+  resetDurationLimit(&limit_duration_jockey_2_pump_run_);
+  resetActivationLimit(&limit_activation_jockey_1_pump_run_);
+  resetActivationLimit(&limit_activation_jockey_2_pump_run_);
+
+  // Clear all reminders
+  reminder_limits_.clear();
 }
 
 void Alarms::handleResult(const utils::ValueUnit& value_unit) {
-  const auto now = std::chrono::steady_clock::now();
   /// Digital alarms
   if (peripheral::fixed::dpt_diesel_1_fire_alarm_id ==
       value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_1_fire_alarm_, value_unit, now);
+    handleBoolLimit(limit_diesel_1_fire_alarm_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_2_fire_alarm_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_2_fire_alarm_, value_unit, now);
+    handleBoolLimit(limit_diesel_2_fire_alarm_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_3_fire_alarm_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_3_fire_alarm_, value_unit, now);
+    handleBoolLimit(limit_diesel_3_fire_alarm_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_4_fire_alarm_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_4_fire_alarm_, value_unit, now);
+    handleBoolLimit(limit_diesel_4_fire_alarm_, value_unit);
   }
 
   else if (peripheral::fixed::dpt_diesel_1_pump_fail_id ==
            value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_1_pump_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_1_pump_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_2_pump_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_2_pump_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_2_pump_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_3_pump_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_3_pump_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_3_pump_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_4_pump_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_4_pump_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_4_pump_fail_, value_unit);
   }
 
   else if (peripheral::fixed::dpt_diesel_1_battery_charger_fail_id ==
            value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_1_battery_charger_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_1_battery_charger_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_2_battery_charger_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_2_battery_charger_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_2_battery_charger_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_3_battery_charger_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_3_battery_charger_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_3_battery_charger_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_4_battery_charger_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_4_battery_charger_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_4_battery_charger_fail_, value_unit);
   }
 
   else if (peripheral::fixed::dpt_diesel_1_low_oil_level_fail_id ==
            value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_1_low_oil_level_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_1_low_oil_level_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_2_low_oil_level_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_2_low_oil_level_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_2_low_oil_level_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_3_low_oil_level_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_3_low_oil_level_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_3_low_oil_level_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_4_low_oil_level_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_4_low_oil_level_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_4_low_oil_level_fail_, value_unit);
   }
 
   else if (peripheral::fixed::dpt_diesel_control_circuit_fail_id ==
            value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_control_circuit_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_control_circuit_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_mains_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_mains_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_mains_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_pump_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_pump_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_pump_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_engine_overheat_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_engine_overheat_fail_, value_unit, now);
+    handleBoolLimit(limit_diesel_engine_overheat_fail_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_fuel_tank_low_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_diesel_fuel_tank_low_, value_unit, now);
+    handleBoolLimit(limit_diesel_fuel_tank_low_, value_unit);
   }
 
   else if (peripheral::fixed::dpt_electric_1_fire_alarm_id ==
            value_unit.data_point_type) {
-    handleBoolLimit(limit_electric_1_fire_alarm_, value_unit, now);
+    handleBoolLimit(limit_electric_1_fire_alarm_, value_unit);
   } else if (peripheral::fixed::dpt_electric_2_fire_alarm_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_electric_2_fire_alarm_, value_unit, now);
+    handleBoolLimit(limit_electric_2_fire_alarm_, value_unit);
   } else if (peripheral::fixed::dpt_electric_1_pump_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_electric_1_pump_fail_, value_unit, now);
+    handleBoolLimit(limit_electric_1_pump_fail_, value_unit);
   } else if (peripheral::fixed::dpt_electric_2_pump_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_electric_2_pump_fail_, value_unit, now);
+    handleBoolLimit(limit_electric_2_pump_fail_, value_unit);
   } else if (peripheral::fixed::dpt_electric_mains_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_electric_mains_fail_, value_unit, now);
+    handleBoolLimit(limit_electric_mains_fail_, value_unit);
   } else if (peripheral::fixed::dpt_electric_control_circuit_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_electric_control_circuit_fail_, value_unit, now);
+    handleBoolLimit(limit_electric_control_circuit_fail_, value_unit);
   }
 
   else if (peripheral::fixed::dpt_jockey_1_pump_fail_id ==
            value_unit.data_point_type) {
-    handleBoolLimit(limit_jockey_1_pump_fail_, value_unit, now);
+    handleBoolLimit(limit_jockey_1_pump_fail_, value_unit);
   } else if (peripheral::fixed::dpt_jockey_2_pump_fail_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_jockey_2_pump_fail_, value_unit, now);
+    handleBoolLimit(limit_jockey_2_pump_fail_, value_unit);
   } else if (peripheral::fixed::dpt_pumphouse_protection_alarm_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_pumphouse_protection_alarm_, value_unit, now);
+    handleBoolLimit(limit_pumphouse_protection_alarm_, value_unit);
   } else if (peripheral::fixed::dpt_annunciator_fault_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_annunciator_fault_, value_unit, now);
+    handleBoolLimit(limit_annunciator_fault_, value_unit);
   } else if (peripheral::fixed::dpt_pumphouse_flooding_alarm_id ==
              value_unit.data_point_type) {
-    handleBoolLimit(limit_pumphouse_flooding_alarm_, value_unit, now);
+    handleBoolLimit(limit_pumphouse_flooding_alarm_, value_unit);
   } else if (peripheral::fixed::dpt_i41_id == value_unit.data_point_type) {
-    handleBoolLimit(limit_i41_, value_unit, now);
+    handleBoolLimit(limit_i41_, value_unit);
   }
 
   /// Runtime alarms
   else if (peripheral::fixed::dpt_jockey_1_pump_run_id ==
            value_unit.data_point_type) {
-    handleDurationLimit(limit_duration_jockey_1_pump_run_, value_unit, now);
-    handleActivationLimit(limit_activation_jockey_1_pump_run_, value_unit, now);
+    handleDurationLimit(limit_duration_jockey_1_pump_run_, value_unit);
+    handleActivationLimit(limit_activation_jockey_1_pump_run_, value_unit);
   } else if (peripheral::fixed::dpt_jockey_2_pump_run_id ==
              value_unit.data_point_type) {
-    handleDurationLimit(limit_duration_jockey_2_pump_run_, value_unit, now);
-    handleActivationLimit(limit_activation_jockey_2_pump_run_, value_unit, now);
+    handleDurationLimit(limit_duration_jockey_2_pump_run_, value_unit);
+    handleActivationLimit(limit_activation_jockey_2_pump_run_, value_unit);
   }
 }
 
 void Alarms::handleBoolLimit(BoolLimit& limit_info,
-                             const utils::ValueUnit& value_unit,
-                             const std::chrono::steady_clock::time_point now) {
+                             const utils::ValueUnit& value_unit) {
   if (value_unit.value > 0.5) {
     // Low-pass filter if limit is crossed for longer than delay_duration
-    if (ignoreCrossedLimit(limit_info.delay_start, limit_info.delay_duration,
-                           now)) {
+    if (ignoreCrossedLimit(limit_info.delay_start, limit_info.delay_duration)) {
       return;
     }
 
@@ -308,13 +311,13 @@ void Alarms::handleBoolLimit(BoolLimit& limit_info,
     if (!limit_info.is_high) {
       // Check that this is the first limit crossing
       sendLimitEvent(&limit_info, value_unit, utils::LimitEvent::Type::kStart);
-      limit_info.last_continue_event_sent = now;
-    } else if (now - limit_info.last_continue_event_sent >
+      limit_info.last_continue_event_sent = now_;
+    } else if (now_ - limit_info.last_continue_event_sent >
                continue_event_period_) {
       // Send continue events periodically while limit is being crossed
       sendLimitEvent(&limit_info, value_unit,
                      utils::LimitEvent::Type::kContinue);
-      limit_info.last_continue_event_sent = now;
+      limit_info.last_continue_event_sent = now_;
     }
 
     limit_info.is_high = true;
@@ -332,28 +335,27 @@ void Alarms::handleBoolLimit(BoolLimit& limit_info,
   }
 }
 
-void Alarms::handleDurationLimit(
-    DurationLimit& limit_info, const utils::ValueUnit& value_unit,
-    const std::chrono::steady_clock::time_point now) {
+void Alarms::handleDurationLimit(DurationLimit& limit_info,
+                                 const utils::ValueUnit& value_unit) {
   if (value_unit.value > 0.5) {
     // Update continuous high start data. Mark start of continuous high period
     if (limit_info.high_start == std::chrono::steady_clock::time_point::min()) {
-      limit_info.high_start = std::chrono::steady_clock::now();
+      limit_info.high_start = now_;
     } else {
       // Check if the continuous high period was exceeded
-      if (now - limit_info.high_start > limit_info.high_duration) {
+      if (now_ - limit_info.high_start > limit_info.high_duration) {
         // Send start if no continue event sent yet
         if (limit_info.last_continue_event_sent ==
             std::chrono::steady_clock::time_point::min()) {
           sendLimitEvent(&limit_info, value_unit,
                          utils::LimitEvent::Type::kStart);
-          limit_info.last_continue_event_sent = now;
-        } else if (now - limit_info.last_continue_event_sent >
+          limit_info.last_continue_event_sent = now_;
+        } else if (now_ - limit_info.last_continue_event_sent >
                    continue_event_period_) {
           // Already sent start event, check if to send continue again
           sendLimitEvent(&limit_info, value_unit,
                          utils::LimitEvent::Type::kContinue);
-          limit_info.last_continue_event_sent = now;
+          limit_info.last_continue_event_sent = now_;
         }
       }
     }
@@ -374,9 +376,8 @@ void Alarms::handleDurationLimit(
   }
 }
 
-void Alarms::handleActivationLimit(
-    ActivationLimit& limit_info, const utils::ValueUnit& value_unit,
-    const std::chrono::steady_clock::time_point now) {
+void Alarms::handleActivationLimit(ActivationLimit& limit_info,
+                                   const utils::ValueUnit& value_unit) {
   // Count each high event
   if (value_unit.value > 0.5) {
     // Just transitioned to on/high
@@ -398,18 +399,18 @@ void Alarms::handleActivationLimit(
     if (limit_info.last_continue_event_sent ==
         std::chrono::steady_clock::time_point::min()) {
       sendLimitEvent(&limit_info, value_unit, utils::LimitEvent::Type::kStart);
-      limit_info.last_continue_event_sent = now;
-    } else if (now - limit_info.last_continue_event_sent >
+      limit_info.last_continue_event_sent = now_;
+    } else if (now_ - limit_info.last_continue_event_sent >
                continue_event_period_) {
       // Already sent start event, check if need to send continue again
       sendLimitEvent(&limit_info, value_unit,
                      utils::LimitEvent::Type::kContinue);
-      limit_info.last_continue_event_sent = now;
+      limit_info.last_continue_event_sent = now_;
     }
   }
 
   // At the end of the period, reset the counter
-  if (now - limit_info.period_start > limit_info.period) {
+  if (now_ - limit_info.period_start > limit_info.period) {
     // Only reset over limit if under the limit for a full period
     if (limit_info.is_over_limit &&
         limit_info.highs < limit_info.highs_per_period) {
@@ -418,19 +419,19 @@ void Alarms::handleActivationLimit(
           std::chrono::steady_clock::time_point::min();
       sendLimitEvent(&limit_info, value_unit, utils::LimitEvent::Type::kEnd);
     }
-    limit_info.period_start = now;
+    limit_info.period_start = now_;
     limit_info.highs = 0;
   }
 }
 
-void Alarms::sendLimitEvent(const BaseLimit* limit,
+void Alarms::sendLimitEvent(BaseLimit* limit,
                             const utils::ValueUnit& value_unit,
                             const utils::LimitEvent::Type type) {
   if (limit == nullptr) {
     Serial.println("Limit nullptr");
     return;
   }
-  sendSms(limit, value_unit, type);
+  sendStartStopSms(limit, value_unit, type);
 
   // Don't send if the controller limit ID or FP ID was not set
   if (!limit->limit_id.isValid() || limit->fixed_peripheral_id == nullptr) {
@@ -465,43 +466,143 @@ void Alarms::sendLimitEvent(const BaseLimit* limit,
   web_socket_->sendLimitEvent(limit_event.as<JsonObject>());
 }
 
-void Alarms::sendSms(const BaseLimit* limit, const utils::ValueUnit& value_unit,
-                     const utils::LimitEvent::Type type) {
-  // Check if in GSM mode, skip continue events, check nullptr and only send
-  // once
+void Alarms::sendStartStopSms(BaseLimit* limit,
+                              const utils::ValueUnit& value_unit,
+                              const utils::LimitEvent::Type type) {
+  // Check if in GSM mode, skip continue events, check nullptr and skip
+  // maintenance mode limit
   if (!gsm_network_->isEnabled() ||
-      type == utils::LimitEvent::Type::kContinue || !limit || sent_sms_) {
+      type == utils::LimitEvent::Type::kContinue || !limit ||
+      limit == &maintenance_limit_) {
+    TRACEF("GSM: %d, type: %d, maint: %d\n", gsm_network_->isEnabled(), type,
+           limit == &maintenance_limit_);
     return;
   }
 
+  // For fire alarms, send to both groups, otherwise only to maintenance
+  const String text = generateSmsAlertText(limit, type);
   if (limit == &limit_diesel_1_fire_alarm_ ||
       limit == &limit_diesel_2_fire_alarm_ ||
       limit == &limit_diesel_3_fire_alarm_ ||
       limit == &limit_diesel_4_fire_alarm_) {
-    const char* delimiter = "\n";
-    String text("Alarm ");
-    if (type == utils::LimitEvent::Type::kStart) {
-      text += "Start";
-    } else if (type == utils::LimitEvent::Type::kEnd) {
-      text += "End";
-    }
-    text += delimiter;
-    text += TimeManager::getFormattedTime();
-    text += delimiter;
-    text += GsmNetwork::encodeSms(limit->limit_name);
-    text += delimiter;
-    text += config_manager_->getLocation();
-
     for (const Person& contact : config_manager_->getAllContacts()) {
-      if (contact.group_data[kGroupDataManagementBit]) {
+      if (contact.group_data[kGroupDataMaintenanceBit] ||
+          contact.group_data[kGroupDataManagementBit]) {
         Serial.println(contact.cleanPhoneNumber());
         Serial.println(text);
-        gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
-        sent_sms_ = true;
-        return;
+        // gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
+      }
+    }
+  } else {
+    for (const Person& contact : config_manager_->getAllContacts()) {
+      if (contact.group_data[kGroupDataMaintenanceBit]) {
+        Serial.println(contact.cleanPhoneNumber());
+        Serial.println(text);
+        // gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
       }
     }
   }
+
+  // Set/reset the start time and SMS reminder state for start and end events
+  if (type == utils::LimitEvent::Type::kStart) {
+    limit->start_time = now_;
+    limit->sms_reminder = SmsReminder::kInitialMessage;
+    reminder_limits_.push_back(limit);
+  } else if (type == utils::LimitEvent::Type::kEnd) {
+    limit->start_time = std::chrono::steady_clock::time_point::min();
+    limit->sms_reminder = SmsReminder::kNone;
+    // Iterate through all items to ensure if a limit was added twice that no
+    // memory leak occurs
+    for (auto it = reminder_limits_.begin(); it != reminder_limits_.end();) {
+      if (*it == limit) {
+        // erase returns the next valid iterator
+        it = reminder_limits_.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+}
+
+void Alarms::handleSmsReminders() {
+  if (reminder_limits_.size() == 0 || !gsm_network_->isEnabled()) {
+    return;
+  }
+
+  for (BaseLimit* limit : reminder_limits_) {
+    // Check if reminder 1 should be sent. Requires the limit's initial SMS to
+    // have been sent and the delay to have elapsed.
+    if (limit->sms_reminder == SmsReminder::kInitialMessage) {
+      // Check if reminder 1 should be sent yet
+      if (utils::chrono_abs(now_ - limit->start_time) > reminder_1_delay_) {
+        limit->sms_reminder = SmsReminder::kReminder1;
+        const String text = generateSmsReminderText(limit);
+        for (const Person& contact : config_manager_->getAllContacts()) {
+          if (contact.group_data[kGroupDataMaintenanceBit] ||
+              contact.group_data[kGroupDataManagementBit]) {
+            Serial.println(contact.cleanPhoneNumber());
+            Serial.println(text);
+            // gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
+          }
+        }
+      }
+    } else if (limit->sms_reminder == SmsReminder::kReminder1) {
+      // Check if reminder 2 should be sent yet
+      if (utils::chrono_abs(now_ - limit->start_time) > reminder_2_delay_) {
+        limit->sms_reminder = SmsReminder::kReminder2;
+        const String text = generateSmsReminderText(limit);
+        for (const Person& contact : config_manager_->getAllContacts()) {
+          if (contact.group_data[kGroupDataMaintenanceBit] ||
+              contact.group_data[kGroupDataManagementBit]) {
+            Serial.println(contact.cleanPhoneNumber());
+            Serial.println(text);
+            // gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
+          }
+        }
+      }
+    }
+  }
+}
+
+String Alarms::generateSmsAlertText(const BaseLimit* limit,
+                                    const utils::LimitEvent::Type type) {
+  const char* delimiter = "\n";
+  String text("Alarm ");
+  if (type == utils::LimitEvent::Type::kStart) {
+    text += "Start";
+  } else if (type == utils::LimitEvent::Type::kEnd) {
+    text += "End";
+  }
+  text += delimiter;
+  text += TimeManager::getFormattedTime();
+  text += delimiter;
+  text += limit->limit_name;
+  text += delimiter;
+  text += config_manager_->getLocation();
+  return GsmNetwork::encodeSms(text.c_str());
+}
+
+String Alarms::generateSmsReminderText(const BaseLimit* limit) {
+  const char* delimiter = "\n";
+  String text("Reminder ");
+  if (limit->sms_reminder == SmsReminder::kReminder1) {
+    text += "1";
+  } else if (limit->sms_reminder == SmsReminder::kReminder2) {
+    text += "2";
+  }
+  text += delimiter;
+  text += TimeManager::getFormattedTime();
+  text += delimiter;
+  text += limit->limit_name;
+  text += delimiter;
+  text += config_manager_->getLocation();
+  text += delimiter;
+  if (limit->sms_reminder == SmsReminder::kReminder1) {
+    text += "1Hr ago";
+  } else if (limit->sms_reminder == SmsReminder::kReminder2) {
+    text += "2Hrs ago";
+  }
+  return GsmNetwork::encodeSms(text.c_str());
 }
 
 void Alarms::sendMaintenanceDataPoint(bool on) {
@@ -513,16 +614,14 @@ void Alarms::sendMaintenanceDataPoint(bool on) {
   web_socket_->sendTelemetry(result_object);
 }
 
-bool Alarms::ignoreCrossedLimit(
-    std::chrono::steady_clock::time_point& start,
-    const std::chrono::milliseconds duration,
-    const std::chrono::steady_clock::time_point now) {
+bool Alarms::ignoreCrossedLimit(std::chrono::steady_clock::time_point& start,
+                                const std::chrono::milliseconds duration) {
   if (duration > std::chrono::seconds::zero()) {
     if (start == std::chrono::steady_clock::time_point::min()) {
       // Delay / filter just started
-      start = now;
+      start = now_;
       return true;
-    } else if (start + duration > now) {
+    } else if (start + duration > now_) {
       // Delay / filter waiting for limit_delay_duration to be passed
       return true;
     }
@@ -531,9 +630,6 @@ bool Alarms::ignoreCrossedLimit(
 }
 
 void Alarms::handleMaintenanceMode() {
-  const std::chrono::steady_clock::time_point now =
-      std::chrono::steady_clock::now();
-
   const auto result = input_bank_3_->getValues();
   for (const auto& value : result.values) {
     if (value.data_point_type == peripheral::fixed::dpt_maintenance_mode_id) {
@@ -557,7 +653,7 @@ void Alarms::handleMaintenanceMode() {
           &maintenance_limit_,
           utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),
           utils::LimitEvent::Type::kStart);
-      maintenance_limit_.last_continue_event_sent = now;
+      maintenance_limit_.last_continue_event_sent = now_;
       // Reset limits to ensure a clean state when leaving mode
       resetLimits();
     } else {
@@ -576,13 +672,13 @@ void Alarms::handleMaintenanceMode() {
   }
   if (maintenance_limit_.last_continue_event_sent !=
           std::chrono::steady_clock::time_point::min() &&
-      now - maintenance_limit_.last_continue_event_sent >
+      now_ - maintenance_limit_.last_continue_event_sent >
           continue_event_period_) {
     sendLimitEvent(
         &maintenance_limit_,
         utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),
         utils::LimitEvent::Type::kContinue);
-    maintenance_limit_.last_continue_event_sent = now;
+    maintenance_limit_.last_continue_event_sent = now_;
   }
 }
 
@@ -668,30 +764,41 @@ void Alarms::resetBoolLimit(BoolLimit* limit) {
     TRACELN("Nullptr");
     return;
   }
+
   limit->is_high = false;
-  limit->sms_count = 0;
+  limit->sms_reminder = SmsReminder::kNone;
   limit->last_continue_event_sent =
       std::chrono::steady_clock::time_point::min();
   limit->delay_start = std::chrono::steady_clock::time_point::min();
 }
 
-void Alarms::resetDurationLimit(DurationLimit& limit) {
-  limit.is_high = false;
-  limit.sms_count = 0;
-  limit.last_continue_event_sent = std::chrono::steady_clock::time_point::min();
-  limit.high_start = std::chrono::steady_clock::time_point::min();
+void Alarms::resetDurationLimit(DurationLimit* limit) {
+  if (limit == nullptr) {
+    TRACELN("Nullptr");
+    return;
+  }
+
+  limit->is_high = false;
+  limit->sms_reminder = SmsReminder::kNone;
+  limit->last_continue_event_sent =
+      std::chrono::steady_clock::time_point::min();
+  limit->high_start = std::chrono::steady_clock::time_point::min();
 }
 
-void Alarms::resetActivationLimit(ActivationLimit& limit) {
-  limit.is_high = false;
-  limit.sms_count = 0;
-  limit.last_continue_event_sent = std::chrono::steady_clock::time_point::min();
-  limit.highs = 0;
-  limit.period_start = std::chrono::steady_clock::time_point::min();
-  limit.is_over_limit = false;
-}
+void Alarms::resetActivationLimit(ActivationLimit* limit) {
+  if (limit == nullptr) {
+    TRACELN("Nullptr");
+    return;
+  }
 
-const std::chrono::milliseconds Alarms::default_interval_{500};
+  limit->is_high = false;
+  limit->sms_reminder = SmsReminder::kNone;
+  limit->last_continue_event_sent =
+      std::chrono::steady_clock::time_point::min();
+  limit->highs = 0;
+  limit->period_start = std::chrono::steady_clock::time_point::min();
+  limit->is_over_limit = false;
+}
 
 }  // namespace fixed
 }  // namespace tasks

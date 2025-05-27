@@ -33,6 +33,8 @@ class Alarms : public BaseTask {
   void handleBehaviorConfig(const JsonObjectConst& config);
 
  private:
+  enum class SmsReminder { kNone, kInitialMessage, kReminder1, kReminder2 };
+
   struct BaseLimit {
     BaseLimit() = default;
     BaseLimit(const char* limit_name, const utils::UUID* fixed_peripheral_id)
@@ -43,8 +45,10 @@ class Alarms : public BaseTask {
     /// Invalid ID means server has not configured it
     utils::UUID limit_id = nullptr;
     const char* limit_name = "";
-    uint8_t sms_count = 0;
+    SmsReminder sms_reminder = SmsReminder::kNone;
     const utils::UUID* fixed_peripheral_id = nullptr;
+    std::chrono::steady_clock::time_point start_time =
+        std::chrono::steady_clock::time_point::min();
     std::chrono::steady_clock::time_point last_continue_event_sent =
         std::chrono::steady_clock::time_point::min();
   };
@@ -119,21 +123,36 @@ class Alarms : public BaseTask {
   void handleResult(const utils::ValueUnit& value);
 
   void handleBoolLimit(BoolLimit& limit_info,
-                       const utils::ValueUnit& value_unit,
-                       const std::chrono::steady_clock::time_point now);
+                       const utils::ValueUnit& value_unit);
   void handleDurationLimit(DurationLimit& limit_info,
-                           const utils::ValueUnit& value_unit,
-                           const std::chrono::steady_clock::time_point now);
+                           const utils::ValueUnit& value_unit);
   void handleActivationLimit(ActivationLimit& limit_info,
-                             const utils::ValueUnit& value_unit,
-                             const std::chrono::steady_clock::time_point now);
+                             const utils::ValueUnit& value_unit);
 
-  void sendLimitEvent(const BaseLimit* limit,
-                      const utils::ValueUnit& value_unit,
+  void sendLimitEvent(BaseLimit* limit, const utils::ValueUnit& value_unit,
                       const utils::LimitEvent::Type type);
 
-  void sendSms(const BaseLimit* limit, const utils::ValueUnit& value_unit,
-               const utils::LimitEvent::Type type);
+  void sendStartStopSms(BaseLimit* limit, const utils::ValueUnit& value_unit,
+                        const utils::LimitEvent::Type type);
+  void handleSmsReminders();
+
+  /**
+   * Generate the text for an SMS alert
+   *
+   * \param limit The limit for which the alert will be sent
+   * \param type Whether the alert started or ended
+   * \return A GSM-7 encoding string to be sent to the GSM modem
+   */
+  String generateSmsAlertText(const BaseLimit* limit,
+                              const utils::LimitEvent::Type type);
+
+  /**
+   * Generate the text for an SMS reminder
+   *
+   * \param limit The limit for which the reminder will be sent
+   * \return A GSM-7 encoding string to be sent to the GSM modem
+   */
+  String generateSmsReminderText(const BaseLimit* limit);
 
   void sendMaintenanceDataPoint(bool on);
 
@@ -143,8 +162,7 @@ class Alarms : public BaseTask {
    * \return True if should be ignored
    */
   bool ignoreCrossedLimit(std::chrono::steady_clock::time_point& start,
-                          const std::chrono::milliseconds duration,
-                          const std::chrono::steady_clock::time_point now);
+                          const std::chrono::milliseconds duration);
 
   void handleMaintenanceMode();
 
@@ -157,8 +175,8 @@ class Alarms : public BaseTask {
                                         JsonObjectConst config);
 
   static void resetBoolLimit(BoolLimit* limit);
-  static void resetDurationLimit(DurationLimit& limit);
-  static void resetActivationLimit(ActivationLimit& limit);
+  static void resetDurationLimit(DurationLimit* limit);
+  static void resetActivationLimit(ActivationLimit* limit);
 
   std::shared_ptr<GsmNetwork> gsm_network_;
   std::shared_ptr<ConfigManager> config_manager_;
@@ -302,6 +320,8 @@ class Alarms : public BaseTask {
       &limit_pumphouse_flooding_alarm_,
       &limit_i41_,
   };
+  /// Limits that should send reminders if not cleared by maintenance mode
+  std::vector<BaseLimit*> reminder_limits_;
 
   // Maintenance mode
   bool is_maintenance_mode_ = false;
@@ -310,10 +330,17 @@ class Alarms : public BaseTask {
 
   std::shared_ptr<peripheral::peripherals::neo_pixel::NeoPixel> status_led_;
 
+  std::chrono::steady_clock::time_point now_;
   std::chrono::seconds continue_event_period_ = std::chrono::minutes(15);
 
-  // Max time is ~72 minutes due to an overflow in the CPU load counter
-  static const std::chrono::milliseconds default_interval_;
+  /// Max time is ~72 minutes due to an overflow in the CPU load counter
+  static constexpr std::chrono::milliseconds default_interval_{500};
+  /// Send reminder 1 this delay after event start
+  static constexpr std::chrono::seconds reminder_1_delay_ =
+      std::chrono::hours{1};
+  /// Send reminder 2 this delay after event start
+  static constexpr std::chrono::seconds reminder_2_delay_ =
+      std::chrono::hours{2};
 };
 
 }  // namespace fixed
