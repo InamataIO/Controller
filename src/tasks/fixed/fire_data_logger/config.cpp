@@ -4,8 +4,8 @@
 
 #include "alarms.h"
 #include "configuration.h"
-#include "cycle_colors.h"
 #include "heartbeat.h"
+#include "network_state.h"
 #include "telemetry.h"
 
 namespace inamata {
@@ -14,8 +14,8 @@ namespace fixed {
 
 bool startFixedTasks(const ServiceGetters& services, Scheduler& scheduler,
                      const JsonObjectConst& behavior_config) {
-  CycleColors* cycle_colors_task =
-      new CycleColors(services, scheduler, behavior_config);
+  NetworkState* cycle_colors_task =
+      new NetworkState(services, scheduler, behavior_config);
   ErrorResult error = cycle_colors_task->getError();
   if (error.isError()) {
     Serial.println(error.toString());

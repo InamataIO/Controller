@@ -11,11 +11,11 @@ namespace inamata {
 namespace tasks {
 namespace fixed {
 
-class CycleColors : public BaseTask {
+class NetworkState : public BaseTask {
  public:
-  CycleColors(const ServiceGetters& services, Scheduler& scheduler,
-              const JsonObjectConst& behavior_config);
-  virtual ~CycleColors() = default;
+  NetworkState(const ServiceGetters& services, Scheduler& scheduler,
+               const JsonObjectConst& behavior_config);
+  virtual ~NetworkState() = default;
 
   const String& getType() const final;
   static const String& type();
@@ -23,15 +23,23 @@ class CycleColors : public BaseTask {
   bool TaskCallback();
 
  private:
+  enum class Mode { kDisplaySignalStrength, kDisplayProvisioning };
+
   /**
    * Set the VOC and RGB LED peripherals
    *
    * \return True on success
    */
   bool setFixedPeripherals();
+  void handleDisplaySignalStrength();
+  void handleDisplayProvisioning();
 
   Scheduler& scheduler_;
-  ServiceGetters services_;
+  std::shared_ptr<GsmNetwork> gsm_network_;
+  std::shared_ptr<BleServer> ble_server_;
+
+  Mode mode_ = Mode::kDisplaySignalStrength;
+  int8_t signal_strength_blinks_ = 127;
 
   std::shared_ptr<peripheral::peripherals::neo_pixel::NeoPixel> status_led_;
 
