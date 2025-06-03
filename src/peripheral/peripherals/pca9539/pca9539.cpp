@@ -102,6 +102,11 @@ void PCA9539::setValue(utils::ValueUnit value_unit) {
   driver_.digitalWrite(it->pin, bool(value_unit.value));
 }
 
+uint16_t PCA9539::getState() {
+  const uint16_t state = driver_.readGPIO();
+  return active_low_in_ ? ~state : state;
+}
+
 std::shared_ptr<Peripheral> PCA9539::factory(
     const ServiceGetters& services, const JsonObjectConst& parameters) {
   return std::make_shared<PCA9539>(parameters);

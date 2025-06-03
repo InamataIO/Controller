@@ -53,7 +53,7 @@ LoggingManager::LoggingManager() : file_number_(0), log_count_(0) {
   // Find the log file name to start from the next available number.
   do {
     file_number_++;
-    snprintf(buffer, sizeof(buffer), "%s%s/%d.log", LoggingManager::root_path_,
+    snprintf(buffer, sizeof(buffer), "%s/%s/%d.log", LoggingManager::root_path_,
              TimeManager::getCurrentDate().c_str(), file_number_);
 
     if (file_number_ >= 255) {
@@ -92,7 +92,7 @@ void LoggingManager::deleteOldLogs() {
   snprintf(oldDate, sizeof(oldDate), "%04d%02d%02d", st.year(), st.month(),
            st.day());
 
-  String oldPath = LoggingManager::root_path_ + String(oldDate);
+  String oldPath = String(LoggingManager::root_path_) + '/' + String(oldDate);
 
   if (LittleFS.exists(oldPath.c_str())) {
     LittleFS.remove(oldPath.c_str());
@@ -106,16 +106,14 @@ void LoggingManager::deleteOldLogs() {
  * YYYY-MM-DDTHH:MM:SS - event - status.
  *
  * @param event The event to log.
- * @param status The status of the event.
  */
-void LoggingManager::addLog(const String& event, const String& status) {
+void LoggingManager::addLog(const String& event) {
   char buffer[128];
 
-  snprintf(buffer, sizeof(buffer), "%s%s", LoggingManager::root_path_,
+  snprintf(buffer, sizeof(buffer), "%s/%s", LoggingManager::root_path_,
            TimeManager::getCurrentDate().c_str());
 
-  String logEntry =
-      TimeManager::getFormattedTime() + "," + event + "," + status;
+  String logEntry = TimeManager::getFormattedTime() + "," + event;
 
   // Create the daily log directory if it doesn't exist (can happen if clock is
   // running closer to 24:00)
@@ -127,10 +125,10 @@ void LoggingManager::addLog(const String& event, const String& status) {
     }
 
     // Delete log files older than RETENTION_DAYS.
-    deleteOldLogs();
+    // deleteOldLogs();
   }
 
-  snprintf(buffer, sizeof(buffer), "%s%s/%d.log", LoggingManager::root_path_,
+  snprintf(buffer, sizeof(buffer), "%s/%s/%d.log", LoggingManager::root_path_,
            TimeManager::getCurrentDate().c_str(), file_number_);
 
   fs::File file = LittleFS.open(buffer, FILE_APPEND);
@@ -173,7 +171,7 @@ void LoggingManager::addLog(const String& event, const String& status) {
 void LoggingManager::showCurrentLog() {
   char buffer[96];
 
-  snprintf(buffer, sizeof(buffer), "%s%s/%d.log", LoggingManager::root_path_,
+  snprintf(buffer, sizeof(buffer), "%s/%s/%d.log", LoggingManager::root_path_,
            TimeManager::getCurrentDate().c_str(), file_number_);
 
   fs::File file = LittleFS.open(buffer, FILE_READ);
@@ -201,43 +199,36 @@ void LoggingManager::showCurrentLog() {
  */
 std::vector<LoggingManager::LogPath> LoggingManager::getAllLogPaths() {
   std::vector<LoggingManager::LogPath> paths;
-  const char* log_root = LoggingManager::root_path_;
 
-  File root = LittleFS.open(log_root);
+  File root = LittleFS.open(LoggingManager::root_path_);
   if (!root || !root.isDirectory()) {
     Serial.println("Failed to open /logs/fdl or not a directory.");
     return paths;
   }
 
-  File dateDir;
-  while ((dateDir = root.openNextFile())) {
-    if (!dateDir.isDirectory()) {
-      dateDir.close();
+  File date_dir;
+  while ((date_dir = root.openNextFile())) {
+    if (!date_dir.isDirectory()) {
+      date_dir.close();
       continue;
     }
 
-    String dateTime = dateDir.name();
-    dateTime.replace(log_root, "");
-
-    File logFile;
-
-    while ((logFile = dateDir.openNextFile())) {
-      String name = logFile.name();
-      name.replace(log_root + dateTime + "/", "");
+    File log_file;
+    while ((log_file = date_dir.openNextFile())) {
+      String name = log_file.name();
 
       if (name.endsWith(".log")) {
-        int fileNum = name.substring(0, name.indexOf(".log")).toInt();
+        int file_num = name.substring(0, name.indexOf(".log")).toInt();
         LogPath lp;
-        lp.date_time = dateTime;
-        lp.file_num = fileNum;
-        lp.full_path = String(log_root) + dateTime + "/" + name;
+        lp.date_time = date_dir.name();
+        lp.file_num = file_num;
         paths.push_back(lp);
       }
 
-      logFile.close();
+      log_file.close();
     }
 
-    dateDir.close();
+    date_dir.close();
   }
 
   // Sort: first by date descending, then by file number descending.
@@ -261,7 +252,7 @@ void LoggingManager::showAllLogs() {
   Serial.println("Date/Time,Action,State,Full State");
 
   for (const auto& log : logPaths) {
-    File f = LittleFS.open(log.full_path, "r");
+    File f = LittleFS.open(log.fullPath(), "r");
     if (!f) {
       Serial.println("  (Could not open file)");
       continue;
@@ -276,7 +267,7 @@ void LoggingManager::showAllLogs() {
   }
 }
 
-const char* LoggingManager::root_path_ = "/logs/fdl/";
+const char* LoggingManager::root_path_ = "/logs/fdl";
 
 }  // namespace inamata
 

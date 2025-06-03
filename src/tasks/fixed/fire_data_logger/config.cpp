@@ -5,6 +5,7 @@
 #include "alarms.h"
 #include "configuration.h"
 #include "heartbeat.h"
+#include "log_inputs.h"
 #include "network_state.h"
 #include "telemetry.h"
 
@@ -14,40 +15,45 @@ namespace fixed {
 
 bool startFixedTasks(const ServiceGetters& services, Scheduler& scheduler,
                      const JsonObjectConst& behavior_config) {
-  NetworkState* cycle_colors_task =
+  NetworkState* network_state_task =
       new NetworkState(services, scheduler, behavior_config);
-  ErrorResult error = cycle_colors_task->getError();
+  ErrorResult error = network_state_task->getError();
   if (error.isError()) {
     Serial.println(error.toString());
-    cycle_colors_task->abort();
-    delete cycle_colors_task;
+    network_state_task->abort();
+    delete network_state_task;
     return false;
   }
 
   Alarms* alarms_task = new Alarms(services, scheduler, behavior_config);
-  error = alarms_task->getError();
-  if (error.isError()) {
-    Serial.println(error.toString());
+  if (!alarms_task->isValid()) {
+    Serial.println(alarms_task->getError().toString());
     alarms_task->abort();
     delete alarms_task;
     return false;
   }
 
   Heartbeat* heartbeat_task = new Heartbeat(scheduler);
-  error = heartbeat_task->getError();
-  if (error.isError()) {
-    Serial.println(error.toString());
+  if (!heartbeat_task->isValid()) {
+    Serial.println(heartbeat_task->getError().toString());
     heartbeat_task->abort();
     delete heartbeat_task;
     return false;
   }
 
   Telemetry* telemetry_task = new Telemetry(services, scheduler);
-  error = telemetry_task->getError();
-  if (error.isError()) {
-    Serial.println(error.toString());
+  if (!telemetry_task->isValid()) {
+    Serial.println(telemetry_task->getError().toString());
     telemetry_task->abort();
     delete telemetry_task;
+    return false;
+  }
+
+  LogInputs* log_inputs_task = new LogInputs(services, scheduler);
+  if (!log_inputs_task->isValid()) {
+    Serial.println(log_inputs_task->getError().toString());
+    log_inputs_task->abort();
+    delete log_inputs_task;
     return false;
   }
 

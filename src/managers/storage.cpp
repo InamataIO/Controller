@@ -62,7 +62,7 @@ void Storage::openFS() {
     }
   }
 #ifdef ENABLE_TRACE
-  listDir(LittleFS, "/", 2);
+  listDir(LittleFS, "/", 1);
 #endif
 }
 

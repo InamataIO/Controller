@@ -40,6 +40,13 @@ class PCA9539 : public peripherals::i2c::I2CAbstractPeripheral,
   capabilities::GetValues::Result getValues() final;
   void setValue(utils::ValueUnit value_unit) final;
 
+  /**
+   * Gets the 16-bit input state
+   *
+   * \return The 16-bit input state
+   */
+  uint16_t getState();
+
  private:
   static std::shared_ptr<Peripheral> factory(const ServiceGetters& services,
                                              const JsonObjectConst& parameters);

@@ -14,7 +14,7 @@ class LoggingManager {
   static void showAllLogs();
 
   LoggingManager();
-  void addLog(const String &event, const String &status);
+  void addLog(const String &event);
   void showCurrentLog();
 
   static const char *root_path_;
@@ -23,7 +23,10 @@ class LoggingManager {
   struct LogPath {
     String date_time;
     int file_num;
-    String full_path;
+    const String fullPath() const {
+      return String(LoggingManager::root_path_) + '/' + date_time + '/' +
+             file_num + ".log";
+    }
   };
 
   std::vector<String> log_buffer_;
