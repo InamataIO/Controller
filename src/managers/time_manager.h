@@ -1,4 +1,6 @@
-#include <Arduino.h>
+#ifdef RTC_MANAGER
+
+#include <ArduinoJson.h>
 #include <RTClib.h>
 
 namespace inamata {
@@ -14,6 +16,8 @@ class TimeManager {
   static String getFormattedTime();
   static String getCurrentDate();
 
+  static bool handleImprovUserData(const JsonObjectConst &data);
+
   static bool isValidYear(String year);
   static bool isValidMonth(String month);
   static bool isValidDay(String day, int in_year, int in_month);
@@ -21,3 +25,5 @@ class TimeManager {
   static bool isValidMinute(String minute);
 };
 }  // namespace inamata
+
+#endif

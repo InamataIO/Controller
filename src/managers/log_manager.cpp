@@ -1,3 +1,5 @@
+#ifdef RTC_MANAGER
+
 #include "log_manager.h"
 
 #include <Arduino.h>
@@ -141,14 +143,14 @@ void LoggingManager::addLog(const String& event, const String& status) {
     }
   }
 
-#ifdef FIRE_DATA_LOGGER_EXTEND_LOGS
+#ifdef ENABLE_TRACE
   Serial.print("Current Log File: ");
   Serial.println(buffer);
 #endif
 
   file.println(logEntry.c_str());
 
-#ifdef FIRE_DATA_LOGGER_EXTEND_LOGS
+#ifdef ENABLE_TRACE
   Serial.print("Log Entry: ");
   Serial.println(logEntry);
 #endif
@@ -277,3 +279,5 @@ void LoggingManager::showAllLogs() {
 const char* LoggingManager::root_path_ = "/logs/fdl/";
 
 }  // namespace inamata
+
+#endif

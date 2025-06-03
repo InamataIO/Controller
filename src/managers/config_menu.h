@@ -17,6 +17,13 @@ class ConfigManager {
   const std::vector<Person> &getAllContacts() const;
   const String &getLocation() const;
 
+  /**
+   * Handle user data sent during Improv provisioning
+   *
+   * \return True if handled the data without error
+   */
+  bool handleImprovUserData(const JsonObjectConst &data);
+
   // Static function to display contact details.
   static void printPerson(const Person &info);
 

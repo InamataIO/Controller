@@ -8,8 +8,6 @@
 namespace inamata {
 namespace tasks {
 
-using namespace std::placeholders;
-
 /**
  * Internal task to remove tasks that finished or are disabled
  *

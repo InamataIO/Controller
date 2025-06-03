@@ -8,6 +8,8 @@ namespace peripheral {
 namespace peripherals {
 namespace modbus {
 
+using namespace std::placeholders;
+
 ModbusClientAdapter::ModbusClientAdapter(const JsonObjectConst& parameters) {
   int rx_pin = -1;    // Receive pin
   int tx_pin = -1;    // Transmit pin

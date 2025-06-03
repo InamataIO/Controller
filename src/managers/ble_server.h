@@ -15,6 +15,8 @@ class BleServer {
   };
 
  public:
+  using UserDataHandler = std::function<bool(const JsonObjectConst& data)>;
+
   BleServer() = default;
   ~BleServer() = default;
 
@@ -23,6 +25,8 @@ class BleServer {
   bool isActive();
 
   NimBLEService* createService(const NimBLEUUID& uuid);
+
+  std::vector<UserDataHandler> user_data_handlers_;
 
  private:
   bool setup();

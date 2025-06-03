@@ -13,15 +13,38 @@ namespace connectivity {
 
 CheckConnectivity::CheckConnectivity(const ServiceGetters& services,
                                      Scheduler& scheduler)
-    : BaseTask(scheduler, Input(nullptr, true)), services_(services) {
+    : BaseTask(scheduler, Input(nullptr, true)),
+      services_(services),
+      ble_server_(services.getBleServer()),
+      wifi_network_(services.getWifiNetwork()),
+#ifdef GSM_NETWORK
+      gsm_network_(services.getGsmNetwork()),
+#endif
+      web_socket_(services.getWebSocket()) {
+  if (ble_server_ == nullptr) {
+    setInvalid(services.ble_server_nullptr_error_);
+    return;
+  }
+  if (wifi_network_ == nullptr) {
+    setInvalid(services.wifi_network_nullptr_error_);
+    return;
+  }
+#ifdef GSM_NETWORK
+  if (gsm_network_ == nullptr) {
+    setInvalid(services.gsm_network_nullptr_error_);
+    return;
+  }
+#endif
+  if (web_socket_ == nullptr) {
+    setInvalid(services.web_socket_nullptr_error_);
+    return;
+  }
   const bool success = initGsmWifiSwitch();
   if (!success) {
     return;
   }
   Task::setIterations(TASK_FOREVER);
 }
-
-CheckConnectivity::~CheckConnectivity() {}
 
 const String& CheckConnectivity::getType() const { return type(); }
 
@@ -31,23 +54,6 @@ const String& CheckConnectivity::type() {
 }
 
 bool CheckConnectivity::OnTaskEnable() {
-  wifi_network_ = services_.getWifiNetwork();
-  if (wifi_network_ == nullptr) {
-    setInvalid(services_.wifi_network_nullptr_error_);
-    return false;
-  }
-#ifdef GSM_NETWORK
-  gsm_network_ = services_.getGsmNetwork();
-  if (gsm_network_ == nullptr) {
-    setInvalid(services_.gsm_network_nullptr_error_);
-    return false;
-  }
-#endif
-  web_socket_ = services_.getWebSocket();
-  if (web_socket_ == nullptr) {
-    setInvalid(services_.web_socket_nullptr_error_);
-    return false;
-  }
   // If the WebSocket token has not been set, jump directly to provisioning
   handleGsmWifiSwitch(std::chrono::steady_clock::now(), true);
   if (!web_socket_->isWsTokenSet()) {
@@ -63,11 +69,13 @@ bool CheckConnectivity::TaskCallback() {
   if (mode_ == Mode::ConnectWiFi) {
     WiFiNetwork::ConnectMode connect_mode = wifi_network_->connect();
     // Disable starting WiFi captive portal if the WebSocket connects once
-    if (connect_mode == WiFiNetwork::ConnectMode::kPowerOff &&
-        !web_socket_connected_since_boot_) {
-      setMode(Mode::ProvisionDevice);
-    }
-    if (connect_mode == WiFiNetwork::ConnectMode::kConnected) {
+    if (connect_mode == WiFiNetwork::ConnectMode::kPowerOff) {
+      if (!web_socket_connected_since_boot_) {
+        setMode(Mode::ProvisionDevice);
+      } else {
+        wifi_network_->setMode(WiFiNetwork::ConnectMode::kFastConnect);
+      }
+    } else if (connect_mode == WiFiNetwork::ConnectMode::kConnected) {
       handleClockSync(now);
       if (isTimeSynced()) {
         handleWebSocket();
@@ -106,11 +114,12 @@ bool CheckConnectivity::TaskCallback() {
     if (now - mode_start_ > provision_timeout) {
       TRACELN(F("Improv setup timed out"));
       setMode(Mode::ConnectWiFi);
-    }
-    handleBleServer();
-    handleImprov();
-    if (improv_ && improv_->getState() == improv::STATE_STOPPED) {
-      handleGsmWifiSwitch(now, true);
+    } else {
+      handleBleServer();
+      handleImprov();
+      if (improv_ && improv_->getState() == improv::STATE_STOPPED) {
+        handleGsmWifiSwitch(now, true);
+      }
     }
 #endif
   }
@@ -240,7 +249,7 @@ void CheckConnectivity::setMode(Mode mode) {
         improv_->stop();
       }
       improv_ = nullptr;
-      services_.getBleServer()->disable();
+      ble_server_->disable();
 #endif
 #ifdef PROV_WIFI
       wifi_manager_ = nullptr;
@@ -278,12 +287,10 @@ void CheckConnectivity::setMode(Mode mode) {
 }
 
 #ifdef PROV_IMPROV
-void CheckConnectivity::handleBleServer() {
-  services_.getBleServer()->enable();
-}
+void CheckConnectivity::handleBleServer() { ble_server_->enable(); }
 
 void CheckConnectivity::handleImprov() {
-  if (!services_.getBleServer()->isActive()) {
+  if (!ble_server_->isActive()) {
     return;
   }
   if (!improv_) {

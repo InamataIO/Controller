@@ -53,6 +53,19 @@ ImprovCommand parse_improv_data(const uint8_t *data, size_t length, bool check_c
     return {.command = command, .ssid = ssid, .password = password};
   }
 
+  if (command == X_SET_USER_DATA) {
+    uint8_t user_data_length = data[2];
+    uint8_t user_data_start = 3;
+    size_t user_data_end = user_data_start + user_data_length;
+    if (user_data_end > length) {
+      improv_command.command = UNKNOWN;
+      return improv_command;
+    }
+
+    return {.command = command,
+             .ssid = {data + user_data_start, data + user_data_end}};
+  }
+
   improv_command.command = command;
   return improv_command;
 }

@@ -17,8 +17,6 @@
 
 namespace inamata {
 
-using namespace std::placeholders;
-
 /**
  * Connection to the server via WebSockets
  *

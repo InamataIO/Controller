@@ -11,6 +11,7 @@ void BleImprov::handle() {
   if (!services_.getBleServer()->isActive()) {
     state_ = improv::STATE_STOPPED;
     rpc_data_.clear();
+    user_data_ = "";
     return;
   }
   // If the BLE Improv service does not exist, set it up
@@ -181,19 +182,16 @@ void BleImprov::processRpcData() {
   if (rpc_data_.size() < 2) {
     return;
   }
-  uint8_t length = rpc_data_[1];
+  uint8_t data_length = rpc_data_[1];
+  uint8_t full_length = data_length + 3;
   // Wait for whole data frame (3 RPC control bytes)
-  if (rpc_data_.size() - 3 < length) {
-    return;
-  } else if (rpc_data_.size() - 3 != length) {
-    TRACELN("RPC data longer than length");
-    setError(improv::ERROR_INVALID_RPC);
-    rpc_data_.clear();
+  if (rpc_data_.size() < full_length) {
     return;
   }
 
   setError(improv::ERROR_NONE);
-  improv::ImprovCommand command = improv::parse_improv_data(rpc_data_);
+  improv::ImprovCommand command =
+      improv::parse_improv_data(rpc_data_.data(), full_length);
 
   // Handle the command and then clear RPC data
   switch (command.command) {
@@ -236,18 +234,26 @@ void BleImprov::processRpcData() {
       startGetWifiNetworks();
       break;
     case improv::X_SET_SERVER_AUTH: {
-      TRACELN("Got X_SET_SERVER_AUTH");
       if (state_ != improv::STATE_AUTHORIZED) {
         setError(improv::ERROR_NOT_AUTHORIZED);
         break;
       }
       handleSetServerAuth(command);
     } break;
+    case improv::X_SET_USER_DATA: {
+      handleSetUserData(command);
+      break;
+    }
     default:
       setError(improv::ERROR_UNKNOWN_RPC);
       break;
   }
-  rpc_data_.clear();
+
+  if (rpc_data_.size() > full_length) {
+    rpc_data_.erase(rpc_data_.begin(), rpc_data_.begin() + full_length);
+  } else {
+    rpc_data_.clear();
+  }
 }
 
 void BleImprov::handleSetServerAuth(const improv::ImprovCommand &command) {
@@ -443,6 +449,33 @@ void BleImprov::handleGetWifiNetworks() {
   scan_wifi_aps_ = false;
   WiFi.scanDelete();
   TRACELN(F("Sent wifi networks"));
+}
+
+void BleImprov::handleSetUserData(const improv::ImprovCommand &command) {
+  user_data_ += command.ssid.c_str();
+  // Accumulate all message parts before parsing and handling JSON
+  if (command.ssid.length() >= 200) {
+    return;
+  }
+
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, user_data_);
+  if (error) {
+    TRACEF("Failed parsing user data: %s\n", error.c_str());
+    setError(improv::Error::ERROR_UNKNOWN);
+    user_data_ = "";
+  }
+  TRACEF("User data: %d, %d\n", user_data_.length(),
+         services_.getBleServer()->user_data_handlers_.size());
+  for (const auto &handler : services_.getBleServer()->user_data_handlers_) {
+    const bool success = handler(doc.as<JsonObject>());
+    if (!success) {
+      setError(improv::Error::ERROR_UNKNOWN);
+      user_data_ = "";
+      break;
+    }
+  }
+  user_data_ = "";
 }
 
 }  // namespace inamata

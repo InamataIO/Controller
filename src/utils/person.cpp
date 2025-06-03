@@ -120,6 +120,11 @@ int PersonManager::remove(const String &name) {
 }
 
 /**
+ * \brief Remove all people
+ */
+void PersonManager::clear() { people_.clear(); }
+
+/**
  * \brief Searches for a contact by name in the list.
  *
  * This function performs a case-insensitive search for a contact's name in
@@ -143,12 +148,28 @@ const Person *PersonManager::search(const String &name) const {
   return nullptr;
 }
 
+/**
+ * \brief Parses a JSON object people.
+ *
+ * Expects a JSON array with objects in the format:
+ *   [{"name": "...", "phone": "...", "groups": 0-7}]
+ * Will replace duplicate names with the last one in the list. The groups are
+ * parsed by bit order, maintenance, management and statistics group.
+ */
 void PersonManager::parseJson(JsonArrayConst people_json) {
   for (JsonObjectConst person : people_json) {
+    remove(person["name"]);
     add(person["name"], person["phone"], person["groups"].as<u_long>());
   }
 }
 
+/**
+ * \brief Serializes saved people to a JSON array.
+ *
+ * Will produce a JSON array with objects in the format:
+ *   [{"name": "...", "phone": "...", "groups": 0-7}]
+ * The groups are bit ordered as, maintenance, management and statistics.
+ */
 void PersonManager::serializeJson(JsonArray people_json) const {
   for (const Person &person : people_) {
     JsonObject person_json = people_json.add<JsonObject>();

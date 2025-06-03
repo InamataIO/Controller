@@ -10,6 +10,8 @@
 namespace inamata {
 namespace tasks {
 
+using namespace std::placeholders;
+
 TaskRemovalTask::TaskRemovalTask(Scheduler& scheduler) : Task(&scheduler) {
   BaseTask::setTaskRemovalCallback(std::bind(&TaskRemovalTask::add, this, _1));
 }

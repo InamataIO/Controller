@@ -1,7 +1,11 @@
+#ifdef RTC_MANAGER
+
 #include "time_manager.h"
 
 #include <Arduino.h>
 #include <RTClib.h>
+
+#include "managers/logging.h"
 
 namespace inamata {
 
@@ -82,6 +86,91 @@ String TimeManager::getCurrentDate() {
            st.day());
 
   return buffer;
+}
+
+/**
+ * \brief Parses data during provisioning and sets the RTC
+ *
+ * Checked with the following 'now' values to work:
+ *   2025-02-01T12:01:06
+ *   2025-01-01T12:01:06
+ *   2025-12-01T12:01:06
+ *   2025-02-31T12:01:06
+ *   2025-02-01T23:01:06
+ *   2025-02-01T12:59:06
+ *   2025-02-01T12:59:59
+ * To fail on:
+ *   2024-02-01T12:01:06
+ *   2025--02-01T12:01:0
+ *   2025-00-01T12:01:06
+ *   2025-13-01T12:01:06
+ *   2025-02-00T12:01:06
+ *   2025-02-32T12:01:06
+ *   2025-02-01T-1:01:06
+ *   2025-02-01T24:01:06
+ *   2025-02-01T12:-1:06
+ *   2025-02-01T12:60:06
+ *   2025-02-01T12:01:-1
+ *   2025-02-01T12:01:60
+ *
+ * Checked with the following 'utc_offset' values to work:
+ *   -1:30
+ *   -10:00
+ *   -10:59
+ *   1:30
+ *   10:00
+ *   0:30
+ *   0:00
+ *   +1:30
+ *   +12:00
+ *   +0:30
+ *   +00:30
+ *
+ * \return True on success
+ */
+bool TimeManager::handleImprovUserData(const JsonObjectConst &data) {
+  JsonObjectConst time = data["time"].as<JsonObjectConst>();
+  if (time.isNull() || time.size() == 0) {
+    TRACELN("No time");
+    return true;
+  }
+
+  JsonVariantConst now = time["now"];
+  if (!now.is<const char *>()) {
+    TRACELN("No now");
+    return false;
+  }
+  DateTime date_time(now.as<const char *>());
+  if (!date_time.isValid()) {
+    TRACELN("Parsing failed");
+    return false;
+  }
+
+  JsonVariantConst utc_offset = time["utc_offset"];
+  if (utc_offset.is<const char *>()) {
+    int offset_hour, offset_minute;
+    char sign = '+';
+    int result = sscanf(utc_offset.as<const char *>(), "%c%d:%d", &sign,
+                        &offset_hour, &offset_minute);
+    if (result != 3 || !(sign == '-' || sign == '+')) {
+      result = sscanf(utc_offset.as<const char *>(), "%d:%d", &offset_hour,
+                      &offset_minute);
+      sign = '+';
+    }
+    TimeSpan time_offset;
+    if (result == 2 || result == 3) {
+      time_offset = TimeSpan(0, offset_hour, offset_minute, 0);
+      if (sign == '+') {
+        date_time = date_time + time_offset;
+      } else if (sign == '-') {
+        date_time = date_time - time_offset;
+      } else {
+        TRACEF("Invalid sign %c\n", sign);
+      }
+    }
+  }
+  rtc.adjust(date_time);
+  return true;
 }
 
 /**
@@ -237,3 +326,5 @@ bool TimeManager::isValidMinute(String minute) {
 }
 
 }  // namespace inamata.
+
+#endif

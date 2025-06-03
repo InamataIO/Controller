@@ -8,6 +8,8 @@ namespace peripheral {
 namespace peripherals {
 namespace modbus {
 
+using namespace std::placeholders;
+
 ModbusClientOutput::ModbusClientOutput(const JsonObjectConst& parameters)
     : ModbusClientAbstractPeripheral(parameters) {
   // If the base class constructor failed, abort the constructor

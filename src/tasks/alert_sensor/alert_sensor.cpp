@@ -6,6 +6,8 @@ namespace inamata {
 namespace tasks {
 namespace alert_sensor {
 
+using namespace std::placeholders;
+
 AlertSensor::AlertSensor(const ServiceGetters& services, Scheduler& scheduler,
                          const Input& input)
     : GetValuesTask(services, scheduler, input),

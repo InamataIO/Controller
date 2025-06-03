@@ -55,6 +55,7 @@ class PersonManager {
   void edit(const String &name, const String &newName,
             const String &new_contact, Person::GroupData new_group_data);
   int remove(const String &name);
+  void clear();
 
   const Person *search(const String &name) const;
 

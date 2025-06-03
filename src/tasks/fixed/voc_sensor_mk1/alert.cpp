@@ -8,6 +8,8 @@ namespace inamata {
 namespace tasks {
 namespace fixed {
 
+using namespace std::placeholders;
+
 Alert::Alert(const ServiceGetters& services, Scheduler& scheduler,
              const JsonObjectConst& behavior_config)
     : BaseTask(scheduler, Input(nullptr, true)),

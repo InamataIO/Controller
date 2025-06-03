@@ -667,6 +667,17 @@ const std::vector<Person> &ConfigManager::getAllContacts() const {
 
 const String &ConfigManager::getLocation() const { return location_; }
 
+bool ConfigManager::handleImprovUserData(const JsonObjectConst &data) {
+  JsonObjectConst config = data["config"].as<JsonObjectConst>();
+  if (config.isNull() || config.size() == 0) {
+    TRACELN("No config");
+    return true;
+  }
+  parseConfig(config);
+  saveConfig();
+  return true;
+}
+
 /**
  * \brief Displays the detailed information of a contact
  *
@@ -801,7 +812,6 @@ void ConfigManager::showAllContacts() {
  */
 void ConfigManager::printMenu() {
   menu_state_ = MenuState::kMainMenu;
-  const String time = TimeManager::getFormattedTime();
 
   Serial.println("\r\nDevice Configuration Menu\r\n");
   Serial.printf("[1] Show contact list (%d)\n", person_manager_.getCount());
@@ -809,6 +819,7 @@ void ConfigManager::printMenu() {
   Serial.println("[3] Edit contact details");
   Serial.println("[4] Remove contact");
 #ifdef RTC_MANAGER
+  const String time = TimeManager::getFormattedTime();
   Serial.printf("[5] Set system date/time (%s)\n", time.c_str());
 #endif
   Serial.println("[6] Show log entries");
@@ -817,6 +828,7 @@ void ConfigManager::printMenu() {
   Serial.print("\r\nSelection: ");
 }
 
+#ifdef RTC_MANAGER
 /**
  * \brief Sets the system date and time based on user input.
  *
@@ -962,6 +974,7 @@ bool ConfigManager::setSystemDateTime(char key) {
 
   return true;
 }
+#endif
 
 /**
  * \brief Edits the location name based on user input.
@@ -1090,8 +1103,14 @@ void ConfigManager::handleInput(char input) {
   }
 }
 
+/**
+ * \brief Parses a JSON object with location and contacts
+ *
+ * Expects a JSON in the form of {"location": "...", "people": [...]}
+ */
 void ConfigManager::parseConfig(JsonObjectConst config) {
   location_ = config["location"].as<String>();
+  person_manager_.clear();
   person_manager_.parseJson(config["people"].as<JsonArrayConst>());
 }
 

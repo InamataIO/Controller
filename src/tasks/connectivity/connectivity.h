@@ -40,7 +40,7 @@ class CheckConnectivity : public BaseTask {
   };
 
   CheckConnectivity(const ServiceGetters& services, Scheduler& scheduler);
-  virtual ~CheckConnectivity();
+  ~CheckConnectivity() = default;
 
   const String& getType() const final;
   static const String& type();
@@ -137,6 +137,7 @@ class CheckConnectivity : public BaseTask {
 #endif
 
   ServiceGetters services_;
+  std::shared_ptr<BleServer> ble_server_;
   std::shared_ptr<WiFiNetwork> wifi_network_;
 #ifdef GSM_NETWORK
   std::shared_ptr<GsmNetwork> gsm_network_;

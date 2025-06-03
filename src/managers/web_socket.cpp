@@ -5,6 +5,7 @@
 namespace inamata {
 
 WebSocketsClient websocket_client;
+using namespace std::placeholders;
 
 WebSocket::WebSocket(const WebSocket::Config& config)
     : core_domain_(config.core_domain),

@@ -13,6 +13,8 @@
 namespace inamata {
 namespace lac {
 
+using namespace std::placeholders;
+
 LocalActionChain::LocalActionChain(const ServiceGetters& services,
                                    const JsonVariantConst& config,
                                    Scheduler& scheduler)

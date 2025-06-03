@@ -97,6 +97,11 @@ class BleImprov : public NimBLECharacteristicCallbacks {
    */
   void handleGetWifiNetworks();
 
+  /**
+   * Handles user sending custom data
+   */
+  void handleSetUserData(const improv::ImprovCommand &command);
+
   NimBLEService *ble_improv_service_{nullptr};
   NimBLECharacteristic *ble_status_char_{nullptr};
   NimBLECharacteristic *ble_error_char_{nullptr};
@@ -113,6 +118,8 @@ class BleImprov : public NimBLECharacteristicCallbacks {
   // n: Checksum
   // https://www.improv-wifi.com/ble/
   std::vector<uint8_t> rpc_data_;
+
+  String user_data_;
 
   // Whether GET_WIFI_NETWORKS command is active
   bool scan_wifi_aps_ = false;
