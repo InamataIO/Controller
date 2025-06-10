@@ -39,11 +39,19 @@ class LogInputs : public BaseTask {
                         uint8_t pinOffset);
   InputBankState getInputBank3State();
 
+  /**
+   * Periodically check if old logs exceed max size and delete oldest
+   */
+  void handleDeleteLogs();
+
   std::shared_ptr<PCA9539> input_bank_1_;
   std::shared_ptr<PCA9539> input_bank_2_;
   std::array<std::shared_ptr<DigitalIn>, 9> input_bank_3_;
 
   std::shared_ptr<LoggingManager> logging_manager_;
+  std::chrono::steady_clock::time_point last_delete_logs_check_ =
+      std::chrono::steady_clock::time_point::min();
+  std::chrono::seconds delete_logs_check_period_ = std::chrono::hours(24);
 
   /// Max time is ~72 minutes due to an overflow in the CPU load counter
   static constexpr std::chrono::milliseconds default_interval_{1000};

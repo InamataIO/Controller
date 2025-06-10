@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <vector>
 
+#include "managers/logging.h"
+#include "managers/storage.h"
 #include "time_manager.h"
 
 namespace inamata {
@@ -55,14 +57,7 @@ LoggingManager::LoggingManager() : file_number_(0), log_count_(0) {
     file_number_++;
     snprintf(buffer, sizeof(buffer), "%s/%s/%d.log", LoggingManager::root_path_,
              TimeManager::getCurrentDate().c_str(), file_number_);
-
-    if (file_number_ >= 255) {
-      return;
-    }
   } while (LittleFS.exists(buffer));
-
-  // Delete log files older than RETENTION_DAYS.
-  deleteOldLogs();
 }
 
 /**
@@ -79,24 +74,62 @@ void LoggingManager::rotateLogFile() {
 /**
  * @brief Delete old log files.
  *
- * Deletes log files older than RETENTION_DAYS. The log file name format is
- * /logs/fdl/YYYYMMDD/N.log, where N is the next available file number.
+ * Deletes log files if the total storage exceeds kMaxTotalLogBytes. The log
+ * file name format is /logs/fdl/YYYYMMDD/N.log, where N is the next available
+ * file number.
  *
  * @note The log directory name is based on the current date in the format
  * YYYYMMDD.
  */
 void LoggingManager::deleteOldLogs() {
-  DateTime st = TimeManager::getPastDate(RETENTION_DAYS);
-  char oldDate[15];
-
-  snprintf(oldDate, sizeof(oldDate), "%04d%02d%02d", st.year(), st.month(),
-           st.day());
-
-  String oldPath = String(LoggingManager::root_path_) + '/' + String(oldDate);
-
-  if (LittleFS.exists(oldPath.c_str())) {
-    LittleFS.remove(oldPath.c_str());
+  File root = LittleFS.open(LoggingManager::root_path_, "r+");
+  if (!root || !root.isDirectory()) {
+    TRACEF("Can't open dir %s\n", LoggingManager::root_path_);
+    root.close();
+    return;
   }
+  long oldest_date = 0;
+  size_t total_log_size = 0;
+
+  // Calculate the total log file sizes, keep track of the oldest directory
+  for (File log_dir = root.openNextFile(); log_dir;
+       log_dir = root.openNextFile()) {
+    if (!log_dir.isDirectory()) {
+      continue;
+    }
+    char* endptr;
+    const long date_int = strtoul(log_dir.name(), &endptr, 10);
+    if (*endptr != '\0') {
+      TRACEF("Parsing date to int failed for %s\n", log_dir.name());
+      continue;
+    }
+    if (oldest_date == 0) {
+      oldest_date = date_int;
+      TRACEF("Init oldest_date: %lu\n", oldest_date);
+    } else if (oldest_date > date_int) {
+      TRACEF("Update oldest_date %lu -> %lu\n", oldest_date, date_int);
+      oldest_date = date_int;
+    }
+
+    // Sum the size of all logs for a given day
+    for (File log_file = log_dir.openNextFile(); log_file;
+         log_file = log_dir.openNextFile()) {
+      if (log_file.isDirectory()) {
+        TRACEF("Unexpected dir: %s\n", log_file.path());
+        continue;
+      }
+      total_log_size += log_file.size();
+    }
+    TRACEF("Total log size: %lu\n", total_log_size);
+  }
+
+  if (total_log_size > kMaxTotalLogBytes) {
+    String delete_path =
+        String(LoggingManager::root_path_) + '/' + String(oldest_date);
+    TRACEF("Deleting %s\n", delete_path.c_str());
+    Storage::recursiveRm(delete_path.c_str());
+  }
+  root.close();
 }
 
 /**
@@ -123,9 +156,6 @@ void LoggingManager::addLog(const String& event) {
       Serial.println(buffer);
       return;
     }
-
-    // Delete log files older than RETENTION_DAYS.
-    // deleteOldLogs();
   }
 
   snprintf(buffer, sizeof(buffer), "%s/%s/%d.log", LoggingManager::root_path_,
@@ -156,7 +186,7 @@ void LoggingManager::addLog(const String& event) {
   file.close();
 
   log_count_++;
-  if (log_count_ >= MAX_LOG_SIZE) {
+  if (log_count_ >= kMaxLogEntries) {
     rotateLogFile();
   }
 }
@@ -249,7 +279,7 @@ std::vector<LoggingManager::LogPath> LoggingManager::getAllLogPaths() {
 void LoggingManager::showAllLogs() {
   auto logPaths = getAllLogPaths();
 
-  Serial.println("Date/Time,Action,State,Full State");
+  Serial.println("Date/Time,Action,State");
 
   for (const auto& log : logPaths) {
     File f = LittleFS.open(log.fullPath(), "r");

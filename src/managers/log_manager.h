@@ -4,14 +4,24 @@
 
 #include <vector>
 
-#define MAX_LOG_SIZE 250
-#define RETENTION_DAYS 7
-
 namespace inamata {
 
 class LoggingManager {
  public:
+  /// Max size for all log files
+  static constexpr size_t kMaxTotalLogBytes = 27 * 5000;
+  /// Max log entries per file
+  static constexpr uint16_t kMaxLogEntries = 500;
+
+  /**
+   * Recursively prints all logs from all log files
+   */
   static void showAllLogs();
+
+  /**
+   * Check if log storage exceeds max size. Delete oldest day if exceeds.
+   */
+  static void deleteOldLogs();
 
   LoggingManager();
   void addLog(const String &event);
@@ -36,6 +46,5 @@ class LoggingManager {
   static std::vector<LoggingManager::LogPath> getAllLogPaths();
 
   void rotateLogFile();
-  void deleteOldLogs();
 };
 }  // namespace inamata

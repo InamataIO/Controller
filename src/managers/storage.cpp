@@ -8,7 +8,7 @@ namespace inamata {
 void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
   Serial.printf("Listing directory: %s\r\n", dirname);
 
-  File root = fs.open(dirname, "r+");
+  fs::File root = fs.open(dirname, "r+");
   if (!root) {
     Serial.println("- failed to open directory");
     return;
@@ -18,7 +18,7 @@ void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
     return;
   }
 
-  File file = root.openNextFile();
+  fs::File file = root.openNextFile();
   while (file) {
     if (file.isDirectory()) {
       Serial.print("  DIR : ");
@@ -81,6 +81,38 @@ ErrorResult Storage::loadSecrets(JsonDocument& secrets_doc) {
     TRACELN(F("Failed opening (r) secrets.json"));
   }
   return ErrorResult();
+}
+
+void Storage::recursiveRm(const char* path) {
+  if (strlen(path) == 0) {
+    return;
+  }
+  fs::File root = LittleFS.open(path, "r");
+  if (!root) {
+    TRACEF("Can't open: %s\n", path);
+    return;
+  }
+  if (!root.isDirectory()) {
+    root.close();
+    LittleFS.remove(path);
+  } else {
+    for (fs::File file = root.openNextFile(); file;
+         file = root.openNextFile()) {
+      if (!file) {
+        TRACEF("Skipping: %s\n", file.path());
+        continue;
+      }
+      if (file.isDirectory()) {
+        recursiveRm(file.path());
+      } else {
+        String file_path = file.path();
+        TRACEF("Delete %s\n", file_path.c_str());
+        file.close();
+        LittleFS.remove(file_path);
+      }
+    }
+    LittleFS.rmdir(path);
+  }
 }
 
 ErrorResult Storage::storeSecrets(JsonVariantConst secrets) {
@@ -228,9 +260,7 @@ ErrorResult Storage::loadPeripherals(JsonDocument& peripherals_doc) {
   }
   if (file) {
     DeserializationError error = deserializeJson(peripherals_doc, file);
-    Serial.print("Loaded peris: ");
-    serializeJson(peripherals_doc, Serial);
-    Serial.println();
+    TRACEKJSON("Peris", peripherals_doc);
     file.close();
     if (error) {
       return ErrorResult(type_, F("Failed loading peripheral doc"));

@@ -4,6 +4,7 @@
 
 #include "managers/services.h"
 #include "peripheral/fixed.h"
+#include "utils/chrono_abs.h"
 
 namespace inamata {
 namespace tasks {
@@ -84,6 +85,7 @@ const String& LogInputs::type() {
 }
 
 bool LogInputs::OnTaskEnable() {
+  logging_manager_->addLog("Power on");
   last_input_bank_1_state_ = input_bank_1_->getState();
   last_input_bank_2_state_ = input_bank_2_->getState();
   last_input_bank_3_state_ = getInputBank3State();
@@ -93,6 +95,7 @@ bool LogInputs::OnTaskEnable() {
 
 bool LogInputs::TaskCallback() {
   Task::delay(std::chrono::milliseconds(default_interval_).count());
+  handleDeleteLogs();
 
   InputBankState input_bank_1_state = input_bank_1_->getState();
   InputBankState input_bank_2_state = input_bank_2_->getState();
@@ -130,6 +133,15 @@ LogInputs::InputBankState LogInputs::getInputBank3State() {
     state[i] = input_bank_3_[i]->readState();
   }
   return state;
+}
+
+void LogInputs::handleDeleteLogs() {
+  const auto now = std::chrono::steady_clock::now();
+  if (utils::chrono_abs(now - last_delete_logs_check_) >
+      delete_logs_check_period_) {
+    last_delete_logs_check_ = now;
+    LoggingManager::deleteOldLogs();
+  }
 }
 
 }  // namespace fixed

@@ -10,7 +10,7 @@ namespace tasks {
 namespace fixed {
 
 NetworkState::NetworkState(const ServiceGetters& services, Scheduler& scheduler,
-                         const JsonObjectConst& behavior_config)
+                           const JsonObjectConst& behavior_config)
     : BaseTask(scheduler, Input(nullptr, true)),
       scheduler_(scheduler),
       gsm_network_(services.getGsmNetwork()),
@@ -130,9 +130,6 @@ void NetworkState::handleDisplaySignalStrength() {
       }
     }
     signal_strength_blinks_ *= 2;
-    Serial.printf("Blinks: %d, strength: %d, GSM: %d\n",
-                  signal_strength_blinks_, signal_quality,
-                  gsm_network_->isEnabled());
   }
 
   unsigned long delay_ms = 0;

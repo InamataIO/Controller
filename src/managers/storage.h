@@ -14,6 +14,13 @@ class Storage {
   void closeFS();
 
   /**
+   * Recursively deletes all files and the directory itself
+   *
+   * \param path Directory/file to be deleted
+   */
+  static void recursiveRm(const char* path);
+
+  /**
    * Load stored secrets into passed JSON doc
    *
    * \param secrets_doc The JSON doc to load secrets into
