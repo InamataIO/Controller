@@ -96,8 +96,8 @@ void BleImprov::setState(improv::State state) {
       ble_improv_service_->getServer()->getAdvertising();
   ble_advertising->stop();
   ble_advertising->setServiceData(ble_improv_service_->getUUID(), service_data);
-  ble_advertising->setScanResponse(true);
-  ble_advertising->setMinPreferred(0x06);
+  ble_advertising->enableScanResponse(true);
+  ble_advertising->setPreferredParams(0x1E, 0x4B);  // ~30 ms to ~75 ms
   ble_advertising->start();
 
   // Save new state
@@ -121,7 +121,8 @@ void BleImprov::setError(improv::Error error) {
   }
 }
 
-void BleImprov::onWrite(NimBLECharacteristic *characteristic) {
+void BleImprov::onWrite(NimBLECharacteristic *characteristic,
+                        NimBLEConnInfo &connInfo) {
   if (characteristic == ble_rpc_command_char_) {
     const char *data = characteristic->getValue().c_str();
     NimBLEAttValue rpc_data = characteristic->getValue();
@@ -162,8 +163,8 @@ void BleImprov::setupService() {
   ble_improv_service_->start();
 
   NimBLEAdvertising *ble_advertising = NimBLEDevice::getAdvertising();
-  ble_advertising->setScanResponse(true);
-  ble_advertising->setMinPreferred(0x06);
+  ble_advertising->enableScanResponse(true);
+  ble_advertising->setPreferredParams(0x1E, 0x4B);  // ~30 ms to ~75 ms
   ble_advertising->addServiceUUID(ble_improv_service_->getUUID());
   ble_advertising->start();
 }

@@ -52,7 +52,8 @@ class BleImprov : public NimBLECharacteristicCallbacks {
    *
    * \param characteristic The BLE char that received the data
    */
-  void onWrite(NimBLECharacteristic *characteristic) final;
+  void onWrite(NimBLECharacteristic *characteristic,
+               NimBLEConnInfo &connInfo) final;
 
  private:
   /**
