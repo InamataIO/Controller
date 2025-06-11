@@ -58,11 +58,9 @@ void ConfigManager::loop() {
       }
     } else if (menu_state_ == MenuState::kMainMenu) {
       if (!(key == '\r' || key == '\n')) {
-        Serial.print(key);
-        Serial.println("\r\n");
+        Serial.printf("%c\r\n", key);
         handleInput(key);
       }
-
       return;
     } else if (menu_state_ == MenuState::kAddContact) {
       is_still_in_state = addContact(key);
@@ -78,6 +76,8 @@ void ConfigManager::loop() {
 #endif
     else if (menu_state_ == MenuState::kEditLocationName) {
       is_still_in_state = editLocationName(key);
+    } else if (menu_state_ == MenuState::kFactoryReset) {
+      is_still_in_state = factoryReset(key);
     }
     // Show main menu if state machine is terminated or in idle mode.
     if (!is_still_in_state) {
@@ -824,6 +824,7 @@ void ConfigManager::printMenu() {
 #endif
   Serial.println("[6] Show log entries");
   Serial.printf("[7] Edit location name (%s)\n", location_.c_str());
+  Serial.println("[R] Factory reset");
   Serial.println("[X] Exit configuration menu");
   Serial.print("\r\nSelection: ");
 }
@@ -852,10 +853,10 @@ void ConfigManager::printMenu() {
 bool ConfigManager::setSystemDateTime(char key) {
   menu_state_ = MenuState::kDateTimeSet;
 
-  switch (date_input_stage) {
+  switch (date_input_stage_) {
     case SetDateTimeStage::SDT_INIT:
       Serial.print("Year: ");
-      date_input_stage = SetDateTimeStage::SDT_YEAR;
+      date_input_stage_ = SetDateTimeStage::SDT_YEAR;
       break;
     case SetDateTimeStage::SDT_YEAR:
       if (processInputBuffer(InputType::kNumberInput, key, temp_number_)) {
@@ -868,7 +869,7 @@ bool ConfigManager::setSystemDateTime(char key) {
 
         input_year_ = temp_number_.toInt();
 
-        date_input_stage = SetDateTimeStage::SDT_MONTH;
+        date_input_stage_ = SetDateTimeStage::SDT_MONTH;
         temp_number_ = "";
         Serial.print("Month: ");
 
@@ -887,7 +888,7 @@ bool ConfigManager::setSystemDateTime(char key) {
 
         input_month_ = temp_number_.toInt();
 
-        date_input_stage = SetDateTimeStage::SDT_DAY;
+        date_input_stage_ = SetDateTimeStage::SDT_DAY;
         temp_number_ = "";
         Serial.print("Day: ");
 
@@ -906,7 +907,7 @@ bool ConfigManager::setSystemDateTime(char key) {
 
         input_day_ = temp_number_.toInt();
 
-        date_input_stage = SetDateTimeStage::SDT_HOUR;
+        date_input_stage_ = SetDateTimeStage::SDT_HOUR;
         temp_number_ = "";
         Serial.print("Hour: ");
 
@@ -924,7 +925,7 @@ bool ConfigManager::setSystemDateTime(char key) {
 
         input_hour_ = temp_number_.toInt();
 
-        date_input_stage = SetDateTimeStage::SDT_MINUTE;
+        date_input_stage_ = SetDateTimeStage::SDT_MINUTE;
         temp_number_ = "";
         Serial.print("Minute: ");
 
@@ -942,7 +943,7 @@ bool ConfigManager::setSystemDateTime(char key) {
 
         input_minute_ = temp_number_.toInt();
 
-        date_input_stage = SetDateTimeStage::SDT_SECOND;
+        date_input_stage_ = SetDateTimeStage::SDT_SECOND;
         temp_number_ = "";
         Serial.print("Second: ");
 
@@ -964,7 +965,7 @@ bool ConfigManager::setSystemDateTime(char key) {
         TimeManager::setSystemTime(input_year_, input_month_, input_day_,
                                    input_hour_, input_minute_, input_second_);
 
-        date_input_stage = SetDateTimeStage::SDT_INIT;
+        date_input_stage_ = SetDateTimeStage::SDT_INIT;
         temp_number_ = "";
         Serial.println("Date/Time set successfully.");
         return false;
@@ -987,14 +988,13 @@ bool ConfigManager::setSystemDateTime(char key) {
  * name.
  * \return true if the process is ongoing, false when the location name is set
  * or an error occurs.
- *
  */
 bool ConfigManager::editLocationName(char key) {
   menu_state_ = MenuState::kEditLocationName;
 
-  if (location_edit_state == LocationEditState::kLocationInit) {
+  if (location_edit_state_ == LocationEditState::kLocationInit) {
     Serial.print("Enter the location name: ");
-    location_edit_state = LocationEditState::kLocationInput;
+    location_edit_state_ = LocationEditState::kLocationInput;
     return true;
   } else {
     if (processInputBuffer(InputType::kAnyInput, key, temp_location_)) {
@@ -1005,7 +1005,45 @@ bool ConfigManager::editLocationName(char key) {
         return false;
       }
 
-      location_edit_state = LocationEditState::kLocationInit;
+      location_edit_state_ = LocationEditState::kLocationInit;
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * \brief Performs a factory reset and reboots the device.
+ *
+ * This function allows the perform a factory reset by deleting all files. It
+ * confirms the action by asking the user to type 'reset'. The function handles
+ * the input state and provides feedback to the user.
+ *
+ * \param key The character received from serial input for confirming the action
+ * \return true if the process is ongoing, false when the factory reset is
+ * confirmed or an error occurs.
+ */
+bool ConfigManager::factoryReset(char key) {
+  menu_state_ = MenuState::kFactoryReset;
+
+  if (factory_reset_state_ == FactoryResetState::kConfirmInit) {
+    Serial.println(
+        "Confirm factory reset by typing 'reset' and pressing Enter: ");
+    factory_reset_state_ = FactoryResetState::kConfirmInput;
+    return true;
+  } else {
+    if (processInputBuffer(InputType::kAlphaNumericInput, key,
+                           temp_factory_reset_)) {
+      if (temp_factory_reset_ == "reset") {
+        Serial.println("Deleting all files and then resetting");
+        Storage::recursiveRm("/");
+        ESP.restart();
+      } else {
+        return false;
+      }
+
+      factory_reset_state_ = FactoryResetState::kConfirmInit;
       return false;
     }
   }
@@ -1037,13 +1075,15 @@ void ConfigManager::resetSubState() {
   temp_contact_ = "";
   temp_group_data_.reset();
   temp_location_ = "";
+  temp_factory_reset_ = "";
 
   selected_contact_.phone_number = "";
   selected_contact_.group_data = 0;
   selected_contact_.name = "";
 
-  date_input_stage = SetDateTimeStage::SDT_INIT;
-  location_edit_state = LocationEditState::kLocationInit;
+  date_input_stage_ = SetDateTimeStage::SDT_INIT;
+  location_edit_state_ = LocationEditState::kLocationInit;
+  factory_reset_state_ = FactoryResetState::kConfirmInit;
 }
 
 /**
@@ -1087,6 +1127,10 @@ void ConfigManager::handleInput(char input) {
       break;
     case '7':
       is_still_in_state = editLocationName(input);
+      break;
+    case 'r':
+    case 'R':
+      is_still_in_state = factoryReset(input);
       break;
     case 'x':
     case 'X':
@@ -1148,7 +1192,5 @@ bool ConfigManager::isValidLocation(const String &location) {
   }
   return !location.isEmpty();
 }
-
-const uint8_t ConfigManager::kMaxLocationLength = 30;
 
 }  // namespace inamata
