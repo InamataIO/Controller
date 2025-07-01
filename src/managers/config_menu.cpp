@@ -201,10 +201,10 @@ bool ConfigManager::getGroupDataInput(char in_key, uint8_t group) {
   if (in_key == '\r' || in_key == 27) {  // Enter key
     Serial.println();
     return true;
-  } else if (in_key == 32 || in_key == 'Y' || in_key == 'y' || in_key == 'N' ||
+  } else if (in_key == ' ' || in_key == 'Y' || in_key == 'y' || in_key == 'N' ||
              in_key == 'n') {  // Accepted key strokes
     switch (in_key) {
-      case 32:  // Space to toggle the selection.
+      case ' ':  // Space to toggle the selection.
         temp_group_data_[group].flip();
         break;
       case 'Y':
@@ -309,7 +309,7 @@ bool ConfigManager::addContact(char key) {
       return true;
 
     case ContactState::kGroupDataManagementInput:
-      if (getGroupDataInput(key, kGroupDataMaintenanceBit)) {
+      if (getGroupDataInput(key, kGroupDataManagementBit)) {
         Serial.print("Statistics: ");
         contact_menu_state_ = ContactState::kGroupDataStatisticsInput;
         getGroupDataInput(0, kGroupDataStatisticsBit);
@@ -637,15 +637,16 @@ bool ConfigManager::editContactField(String &contact_data, InputType type,
     return false;
   }
 
-  if (edit_mode_ == EditState::kEditInit && isValidChar(type, in_key)) {
+  if (edit_mode_ == EditState::kEditInit &&
+      (isValidChar(type, in_key) || in_key == 8)) {
     clearContactNameInEditMode(contact_data);
-
+    contact_data = "";
     edit_mode_ = EditState::kEditing;
 
-    contact_data = "";
-    input_buffer_ = in_key;
-
-    Serial.print(in_key);
+    if (isValidChar(type, in_key)) {
+      input_buffer_ = in_key;
+      Serial.print(in_key);
+    }
     return true;
   }
 
