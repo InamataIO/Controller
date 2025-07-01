@@ -63,7 +63,7 @@ class Alarms : public BaseTask {
 
     std::chrono::steady_clock::time_point delay_start =
         std::chrono::steady_clock::time_point::min();
-    std::chrono::milliseconds delay_duration = std::chrono::seconds(5);
+    std::chrono::milliseconds delay_duration = std::chrono::milliseconds(500);
   };
 
   /**
@@ -334,7 +334,7 @@ class Alarms : public BaseTask {
   std::chrono::seconds continue_event_period_ = std::chrono::minutes(15);
 
   /// Max time is ~72 minutes due to an overflow in the CPU load counter
-  static constexpr std::chrono::milliseconds default_interval_{500};
+  static constexpr std::chrono::milliseconds default_interval_{250};
   /// Send reminder 1 this delay after event start
   static constexpr std::chrono::seconds reminder_1_delay_ =
       std::chrono::hours{1};
