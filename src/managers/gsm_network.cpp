@@ -7,6 +7,10 @@
 #include "peripheral/fixed.h"
 #include "utils/chrono_abs.h"
 
+#ifdef RTC_MANAGER
+#include "managers/time_manager.h"
+#endif
+
 namespace inamata {
 
 GsmNetwork::GsmNetwork()
@@ -105,6 +109,13 @@ void GsmNetwork::syncTime() {
   settimeofday(&tv, NULL);
 
   is_time_synced_ = true;
+
+#ifdef RTC_MANAGER
+  if (TimeManager::lostPower()) {
+    TimeManager::setSystemTime(DateTime(epoch));
+    TRACELN("GSM updated RTC clock");
+  }
+#endif
 }
 
 void GsmNetwork::handleConnection() {

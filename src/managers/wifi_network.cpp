@@ -2,6 +2,10 @@
 
 #include "esp_sntp.h"
 
+#ifdef RTC_MANAGER
+#include "managers/time_manager.h"
+#endif
+
 namespace inamata {
 
 bool is_time_synced = false;
@@ -14,6 +18,12 @@ void timeSyncCallback(struct timeval* tv) {
   struct tm timeinfo;
   gmtime_r(&nowSecs, &timeinfo);
   TRACEF("Time synced: %s\n", asctime(&timeinfo));
+#endif
+#ifdef RTC_MANAGER
+  if (TimeManager::lostPower()) {
+    TimeManager::setSystemTime(DateTime(nowSecs));
+    TRACELN("WiFi updated RTC clock");
+  }
 #endif
 }
 

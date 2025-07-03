@@ -55,6 +55,15 @@ String TimeManager::getFormattedTime() {
 /**
  * \brief Sets the system time.
  *
+ * \param date_time The DateTime object with a specified date and time
+ */
+void TimeManager::setSystemTime(const DateTime &date_time) {
+  rtc.adjust(date_time);
+}
+
+/**
+ * \brief Sets the system time.
+ *
  * This function sets the system time using the provided year, month, day, hour,
  * minute, and second values.
  *
@@ -69,6 +78,8 @@ void TimeManager::setSystemTime(int year, int month, int day, int hour,
                                 int minute, int second) {
   rtc.adjust(DateTime(year, month, day, hour, minute, second));
 }
+
+bool TimeManager::lostPower() { return rtc.lostPower(); }
 
 /**
  * \brief Gets the current date in "YYYY-MM-DD" format.
