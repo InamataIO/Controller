@@ -187,7 +187,8 @@ class Alarms : public BaseTask {
   std::shared_ptr<PCA9539> input_bank_1_;
   std::shared_ptr<PCA9539> input_bank_2_;
   std::shared_ptr<PCA9536D> input_bank_3_;
-  std::array<std::shared_ptr<DigitalIn>, 9> input_bank_4_;
+  // All digital inputs connected directly to the ESP32
+  std::array<std::shared_ptr<DigitalIn>, 8> input_bank_4_;
 
   std::shared_ptr<DigitalOut> relay_1_;
   std::shared_ptr<DigitalOut> relay_2_;
@@ -269,7 +270,6 @@ class Alarms : public BaseTask {
   BoolLimit limit_pumphouse_flooding_alarm_ = {
       "pumphouse_flooding_alarm",
       &peripheral::fixed::peripheral_pumphouse_flooding_alarm_id};
-  BoolLimit limit_i41_ = {"i41", &peripheral::fixed::peripheral_i41_id};
 
   // Runtime alarms
   DurationLimit limit_duration_jockey_1_pump_run_ = {
@@ -285,7 +285,7 @@ class Alarms : public BaseTask {
       "activation_jockey_2_pump_run",
       &peripheral::fixed::peripheral_jockey_2_pump_run_id};
 
-  std::array<BoolLimit*, 33> bool_limits_ = {
+  std::array<BoolLimit*, 32> bool_limits_ = {
       &limit_diesel_1_fire_alarm_,
       &limit_diesel_2_fire_alarm_,
       &limit_diesel_3_fire_alarm_,
@@ -318,13 +318,13 @@ class Alarms : public BaseTask {
       &limit_pumphouse_protection_alarm_,
       &limit_annunciator_fault_,
       &limit_pumphouse_flooding_alarm_,
-      &limit_i41_,
   };
   /// Limits that should send reminders if not cleared by maintenance mode
   std::vector<BaseLimit*> reminder_limits_;
 
   // Maintenance mode
   bool is_maintenance_mode_ = false;
+  std::shared_ptr<DigitalIn> maintenance_input_;
   ManualDebouncer maintenance_button_;
   BaseLimit maintenance_limit_;
 

@@ -86,7 +86,7 @@ extern const utils::UUID peripheral_jockey_2_pump_fail_id;
 extern const utils::UUID peripheral_pumphouse_protection_alarm_id;
 extern const utils::UUID peripheral_annunciator_fault_id;
 extern const utils::UUID peripheral_pumphouse_flooding_alarm_id;
-extern const utils::UUID peripheral_i41_id;
+extern const utils::UUID peripheral_maintenance_input_id;
 
 extern const utils::UUID peripheral_relay_1_id;
 extern const utils::UUID peripheral_relay_2_id;
@@ -140,7 +140,7 @@ extern const utils::UUID dpt_jockey_2_pump_fail_id;
 extern const utils::UUID dpt_pumphouse_protection_alarm_id;
 extern const utils::UUID dpt_annunciator_fault_id;
 extern const utils::UUID dpt_pumphouse_flooding_alarm_id;
-extern const utils::UUID dpt_i41_id;
+extern const utils::UUID dpt_maintenance_input_id;
 
 extern const utils::UUID dpt_mem_wr_led_id;
 extern const utils::UUID dpt_gsm_wifi_toggle_id;
