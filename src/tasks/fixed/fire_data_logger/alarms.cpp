@@ -69,9 +69,9 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
   input_bank_4_[7] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_pumphouse_flooding_alarm_id));
-  input_bank_4_[8] =
+  maintenance_input_ =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
-          peripheral::fixed::peripheral_i41_id));
+          peripheral::fixed::peripheral_maintenance_input_id));
   status_led_ =
       std::dynamic_pointer_cast<NeoPixel>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_status_led_id));
@@ -85,7 +85,7 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
   if (!input_bank_1_ || !input_bank_2_ || !input_bank_3_ || !input_bank_4_[0] ||
       !input_bank_4_[1] || !input_bank_4_[2] || !input_bank_4_[3] ||
       !input_bank_4_[4] || !input_bank_4_[5] || !input_bank_4_[6] ||
-      !input_bank_4_[7] || !input_bank_4_[8] || !status_led_ || !relay_1_ ||
+      !input_bank_4_[7] || !maintenance_input_ || !status_led_ || !relay_1_ ||
       !relay_2_) {
     char buffer[54];
     const int len = snprintf(
@@ -94,8 +94,9 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
         bool(input_bank_1_), bool(input_bank_2_), bool(input_bank_3_),
         bool(input_bank_4_[0]), bool(input_bank_4_[1]), bool(input_bank_4_[2]),
         bool(input_bank_4_[3]), bool(input_bank_4_[4]), bool(input_bank_4_[5]),
-        bool(input_bank_4_[6]), bool(input_bank_4_[7]), bool(input_bank_4_[8]),
-        bool(status_led_), bool(relay_1_), bool(relay_2_));
+        bool(input_bank_4_[6]), bool(input_bank_4_[7]),
+        bool(maintenance_input_), bool(status_led_), bool(relay_1_),
+        bool(relay_2_));
     setInvalid(buffer);
     return;
   }
@@ -285,8 +286,6 @@ void Alarms::handleResult(const utils::ValueUnit& value_unit) {
   } else if (peripheral::fixed::dpt_pumphouse_flooding_alarm_id ==
              value_unit.data_point_type) {
     handleBoolLimit(limit_pumphouse_flooding_alarm_, value_unit);
-  } else if (peripheral::fixed::dpt_i41_id == value_unit.data_point_type) {
-    handleBoolLimit(limit_i41_, value_unit);
   }
 
   /// Runtime alarms
@@ -632,6 +631,7 @@ bool Alarms::ignoreCrossedLimit(std::chrono::steady_clock::time_point& start,
 }
 
 void Alarms::handleMaintenanceMode() {
+  // Set state of on-board maintenance button
   const auto result = input_bank_3_->getValues();
   for (const auto& value : result.values) {
     if (value.data_point_type == peripheral::fixed::dpt_maintenance_mode_id) {
@@ -641,7 +641,11 @@ void Alarms::handleMaintenanceMode() {
     }
   }
   maintenance_button_.update();
-  if (maintenance_button_.rose()) {
+
+  // Set state of external maintenance input button
+  maintenance_input_->update();
+
+  if (maintenance_button_.rose() || maintenance_input_->rose()) {
     is_maintenance_mode_ = !is_maintenance_mode_;
     const utils::UUID relay_dpt =
         utils::UUID::fromFSH(peripheral::fixed::dpt_relay_id);
@@ -649,7 +653,6 @@ void Alarms::handleMaintenanceMode() {
       // Entered maintenance mode
       status_led_->setOverride(utils::Color::fromRgbw(100, 0, 0, 0));
       relay_1_->setValue(utils::ValueUnit(1, relay_dpt));
-      relay_2_->setValue(utils::ValueUnit(0, relay_dpt));
       sendMaintenanceDataPoint(true);
       sendLimitEvent(
           &maintenance_limit_,
@@ -662,7 +665,6 @@ void Alarms::handleMaintenanceMode() {
       // Left maintenace mode
       status_led_->clearOverride();
       relay_1_->setValue(utils::ValueUnit(0, relay_dpt));
-      relay_2_->setValue(utils::ValueUnit(1, relay_dpt));
       sendMaintenanceDataPoint(false);
       sendLimitEvent(
           &maintenance_limit_,

@@ -55,7 +55,7 @@ LogInputs::LogInputs(const ServiceGetters& services, Scheduler& scheduler)
           peripheral::fixed::peripheral_pumphouse_flooding_alarm_id));
   input_bank_3_[8] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
-          peripheral::fixed::peripheral_i41_id));
+          peripheral::fixed::peripheral_maintenance_input_id));
 
   if (!input_bank_1_ || !input_bank_2_ || !input_bank_3_[0] ||
       !input_bank_3_[1] || !input_bank_3_[2] || !input_bank_3_[3] ||

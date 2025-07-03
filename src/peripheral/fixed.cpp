@@ -196,7 +196,8 @@ const utils::UUID peripheral_annunciator_fault_id =
     "76581861-7c3b-4480-ab60-44682c8d606b";
 const utils::UUID peripheral_pumphouse_flooding_alarm_id =
     "90d8fd97-5cc7-4241-9c60-f6c0f6f79287";
-const utils::UUID peripheral_i41_id = "6e3f58b2-89ba-4e4c-9a7a-8eaec27c0ed5";
+const utils::UUID peripheral_maintenance_input_id =
+    "6e3f58b2-89ba-4e4c-9a7a-8eaec27c0ed5";
 
 const utils::UUID peripheral_relay_1_id =
     "3faabb21-e3f0-49bb-a84c-3e47a6e935fb";
@@ -304,7 +305,8 @@ const utils::UUID dpt_annunciator_fault_id =
     "4bc1b31d-3610-45bf-baf0-503afd45f6b5";
 const utils::UUID dpt_pumphouse_flooding_alarm_id =
     "25a58394-1d7b-4645-8e08-a47952a49c1e";
-const utils::UUID dpt_i41_id = "cd9f1cd2-0252-4c6e-b9eb-7868de72face";
+const utils::UUID dpt_maintenance_input_id =
+    "cd9f1cd2-0252-4c6e-b9eb-7868de72face";
 
 // Buttons, switches and LEDs
 const utils::UUID dpt_mem_wr_led_id = "7699a3b3-ebf5-444a-8cd8-49776dba5f5d";
@@ -437,11 +439,6 @@ void setRegisterFixedPeripherals(JsonObject msg) {
   fp["fid"] = peripheral_pumphouse_flooding_alarm_id;
   fdpts = fp["fdpts"].to<JsonArray>();
   addDptToJson(dpt_pumphouse_flooding_alarm_id.toString(), nullptr, fdpts);
-
-  fp = fps.add<JsonObject>();
-  fp["fid"] = peripheral_i41_id;
-  fdpts = fp["fdpts"].to<JsonArray>();
-  addDptToJson(dpt_i41_id.toString(), nullptr, fdpts);
 
   fp = fps.add<JsonObject>();
   fp["fid"] = peripheral_io_3_id;

@@ -46,22 +46,18 @@ Telemetry::Telemetry(const ServiceGetters& services, Scheduler& scheduler)
   input_bank_3_[7] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_pumphouse_flooding_alarm_id));
-  input_bank_3_[8] =
-      std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
-          peripheral::fixed::peripheral_i41_id));
 
   if (!input_bank_1_ || !input_bank_2_ || !input_bank_3_[0] ||
       !input_bank_3_[1] || !input_bank_3_[2] || !input_bank_3_[3] ||
       !input_bank_3_[4] || !input_bank_3_[5] || !input_bank_3_[6] ||
-      !input_bank_3_[7] || !input_bank_3_[8]) {
+      !input_bank_3_[7]) {
     char buffer[46];
     const int len = snprintf(
         buffer, sizeof(buffer),
         "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d", bool(input_bank_1_),
         bool(input_bank_2_), bool(input_bank_3_[0]), bool(input_bank_3_[1]),
         bool(input_bank_3_[2]), bool(input_bank_3_[3]), bool(input_bank_3_[4]),
-        bool(input_bank_3_[5]), bool(input_bank_3_[6]), bool(input_bank_3_[7]),
-        bool(input_bank_3_[8]));
+        bool(input_bank_3_[5]), bool(input_bank_3_[6]), bool(input_bank_3_[7]));
     setInvalid(buffer);
     return;
   }
@@ -222,7 +218,6 @@ const std::array<const utils::UUID*, kInputCount> Telemetry::dpts_ = {
     &peripheral::fixed::dpt_pumphouse_protection_alarm_id,
     &peripheral::fixed::dpt_annunciator_fault_id,
     &peripheral::fixed::dpt_pumphouse_flooding_alarm_id,
-    &peripheral::fixed::dpt_i41_id,
 };
 
 const std::chrono::milliseconds Telemetry::default_interval_{1000};

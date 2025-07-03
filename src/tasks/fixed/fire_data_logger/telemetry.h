@@ -15,7 +15,7 @@ namespace inamata {
 namespace tasks {
 namespace fixed {
 
-constexpr size_t kInputCount = 41;
+constexpr size_t kInputCount = 40;
 
 class Telemetry : public BaseTask {
  public:
@@ -47,7 +47,7 @@ class Telemetry : public BaseTask {
 
   std::shared_ptr<PCA9539> input_bank_1_;
   std::shared_ptr<PCA9539> input_bank_2_;
-  std::array<std::shared_ptr<DigitalIn>, 9> input_bank_3_;
+  std::array<std::shared_ptr<DigitalIn>, 8> input_bank_3_;
 
   std::bitset<kInputCount> previous_states_;
   static const std::array<const utils::UUID*, kInputCount> dpts_;
