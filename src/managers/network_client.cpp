@@ -49,7 +49,7 @@ size_t NetworkClient::write(uint8_t data) {
 }
 
 size_t NetworkClient::write(const uint8_t *buf, size_t size) {
-  Serial.printf("Send_: %zu\n", size);
+  Serial.printf("Send_: %zu\r\n", size);
   if (_impl->gsm_client_) {
     return _impl->gsm_client_->write(buf, size);
   } else if (_impl->wifi_client_) {
@@ -61,7 +61,7 @@ size_t NetworkClient::write(const uint8_t *buf, size_t size) {
 
 size_t NetworkClient::write(const char *str) {
   const int size = strlen(str);
-  Serial.printf("Send: %zu\n", size);
+  Serial.printf("Send: %zu\r\n", size);
   if (_impl->gsm_client_) {
     return _impl->gsm_client_->write((const uint8_t *)str, size);
   } else if (_impl->wifi_client_) {

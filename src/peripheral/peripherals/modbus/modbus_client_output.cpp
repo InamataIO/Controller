@@ -79,7 +79,8 @@ void ModbusClientOutput::setValue(utils::ValueUnit value_unit) {
     }
   }
   if (!added_request) {
-    TRACEF("No DPT match: %s\n", value_unit.data_point_type.toString().c_str());
+    TRACEF("No DPT match: %s\r\n",
+           value_unit.data_point_type.toString().c_str());
   }
 }
 
@@ -90,7 +91,8 @@ void ModbusClientOutput::handleResponse(ModbusMessage& response) {
 
 #ifdef ENABLE_TRACE
     ModbusError modbus_error(request_error_);
-    TRACEF("Error: %02X - %s\n", (int)modbus_error, (const char*)modbus_error);
+    TRACEF("Error: %02X - %s\r\n", (int)modbus_error,
+           (const char*)modbus_error);
 #endif
     // TODO: Return?
     return;

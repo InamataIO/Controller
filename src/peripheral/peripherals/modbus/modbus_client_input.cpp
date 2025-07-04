@@ -150,7 +150,8 @@ void ModbusClientInput::handleResponse(ModbusMessage& response) {
   if (response_error_ != Modbus::Error::SUCCESS) {
 #ifdef ENABLE_TRACE
     ModbusError modbus_error(response_error_);
-    TRACEF("Error: %02X - %s\n", (int)modbus_error, (const char*)modbus_error);
+    TRACEF("Error: %02X - %s\r\n", (int)modbus_error,
+           (const char*)modbus_error);
 #endif
     // TODO: Return?
     return;

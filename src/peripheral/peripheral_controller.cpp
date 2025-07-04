@@ -58,7 +58,7 @@ void PeripheralController::handleCallback(const JsonObjectConst& message) {
       if (!error.isError()) {
         ErrorResult error = services_.getStorage()->savePeripheral(add_command);
         if (error.isError()) {
-          Serial.printf("Saving err: %s\n", error.toString().c_str());
+          Serial.printf("Saving err: %s\r\n", error.toString().c_str());
         }
       }
       WebSocket::addResultEntry(add_command[Peripheral::uuid_key_], error,

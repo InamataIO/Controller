@@ -1,7 +1,7 @@
-#include "light_sensors.h"
-
 #include <array>
 #include <type_traits>
+
+#include "light_sensors.h"
 
 namespace inamata {
 namespace tasks {
@@ -41,7 +41,7 @@ bool LightSensors::Callback() {
 
   for (const auto& max44009 : io_.max44009s_) {
     float value = io_.readMax44009Light(max44009.first);
-    Serial.printf("Ambient brightness (ID: %u) is %f %s\n",
+    Serial.printf("Ambient brightness (ID: %u) is %f %s\r\n",
                   static_cast<int>(max44009.first), value,
                   max44009.second.unit.c_str());
     mqtt_.send(max44009.second.name.c_str(), value);

@@ -95,7 +95,7 @@ LocalActionChain::LocalActionChain(const ServiceGetters& services,
 
     } else {
       // Unknown action
-      TRACEF("Unknown action type: %s\n",
+      TRACEF("Unknown action type: %s\r\n",
              action_config["type"].as<const char*>());
       actions_.pop_back();
     }
@@ -114,13 +114,13 @@ const String& LocalActionChain::type() {
 }
 
 bool LocalActionChain::TaskCallback() {
-  TRACEF("Actions: %i\n", actions_.size());
+  TRACEF("Actions: %i\r\n", actions_.size());
   Action* action = getCurrentAction();
   if (!action) {
     TRACELN(F("Stop LAC nullptr"));
     return false;
   }
-  TRACEF("Action type %d, # %d\n", action->type, current_action_num_);
+  TRACEF("Action type %d, # %d\r\n", action->type, current_action_num_);
   switch (action->type) {
     case Action::Type::AlertSensor:
       handleAlertSensor(*action);
@@ -267,12 +267,12 @@ void LocalActionChain::handleReadSensor(Action& action) {
 
 void LocalActionChain::handleSetValueOutput(utils::ValueUnit& value,
                                             tasks::set_value::SetValue& task) {
-  TRACEF("Results: %f, dpt: %s\n", value.value,
+  TRACEF("Results: %f, dpt: %s\r\n", value.value,
          value.data_point_type.toString().c_str());
   Action* action = getCurrentAction();
-  TRACEF("Outs: %d\n", action->action_outs.size());
+  TRACEF("Outs: %d\r\n", action->action_outs.size());
   for (const ActionOut& action_out : action->action_outs) {
-    TRACEF("Type: %d\n", action_out.type);
+    TRACEF("Type: %d\r\n", action_out.type);
     switch (action_out.type) {
       case ActionOut::Type::Telemetry: {
         task.sendTelemetry(value, &getTaskID());
@@ -283,12 +283,12 @@ void LocalActionChain::handleSetValueOutput(utils::ValueUnit& value,
         Variable& variable = getVariableOrCreate(action_out.name);
         variable.value = value.value;
         variable.data_point_type = value.data_point_type;
-        TRACEF("Var set %s : %s : %f\n", variable.name.c_str(),
+        TRACEF("Var set %s : %s : %f\r\n", variable.name.c_str(),
                variable.data_point_type.toString().c_str(), variable.value);
         break;
       }
       default:
-        TRACEF("Unknown out: %i\n", action_out.type);
+        TRACEF("Unknown out: %i\r\n", action_out.type);
         break;
     }
   }
@@ -297,12 +297,12 @@ void LocalActionChain::handleSetValueOutput(utils::ValueUnit& value,
 void LocalActionChain::handleGetValuesOutput(
     peripheral::capabilities::GetValues::Result& result,
     tasks::get_values_task::GetValuesTask& task) {
-  TRACEF("Results: %d, error: %s\n", result.values.size(),
+  TRACEF("Results: %d, error: %s\r\n", result.values.size(),
          result.error.detail_.c_str());
   Action* action = getCurrentAction();
-  TRACEF("Outs: %d\n", action->action_outs.size());
+  TRACEF("Outs: %d\r\n", action->action_outs.size());
   for (const ActionOut& action_out : action->action_outs) {
-    TRACEF("Type: %d\n", action_out.type);
+    TRACEF("Type: %d\r\n", action_out.type);
     switch (action_out.type) {
       case ActionOut::Type::Telemetry: {
         task.sendTelemetry(result);
@@ -315,7 +315,7 @@ void LocalActionChain::handleGetValuesOutput(
           if (value.data_point_type == action_out.data_point_type) {
             variable.value = value.value;
             variable.data_point_type = value.data_point_type;
-            TRACEF("Var set %s : %s : %f\n", variable.name.c_str(),
+            TRACEF("Var set %s : %s : %f\r\n", variable.name.c_str(),
                    variable.data_point_type.toString().c_str(), variable.value);
             continue;
           }
@@ -323,7 +323,7 @@ void LocalActionChain::handleGetValuesOutput(
         break;
       }
       default:
-        TRACEF("Unknown out: %i\n", action_out.type);
+        TRACEF("Unknown out: %i\r\n", action_out.type);
         break;
     }
   }
@@ -332,11 +332,11 @@ void LocalActionChain::handleGetValuesOutput(
 void LocalActionChain::handleMath(Action& action) {
   // Prepare TinyExpr variables from LAC variables
   std::vector<te_variable> vars(variables_.size());
-  TRACEF("Vars: %d\n", variables_.size());
+  TRACEF("Vars: %d\r\n", variables_.size());
   for (uint8_t i = 0; i < variables_.size(); i++) {
     vars[i].name = variables_[i].name.c_str();
     vars[i].address = &variables_[i].value;
-    TRACEF("Var %s: %f\n", vars[i].name,
+    TRACEF("Var %s: %f\r\n", vars[i].name,
            *(static_cast<const float*>(vars[i].address)));
   }
   MathAction::Config* math_config =
@@ -348,11 +348,11 @@ void LocalActionChain::handleMath(Action& action) {
       te_compile(math_config->query.c_str(), vars.data(), vars.size(), &err);
   if (!expr) {
     // Compile failed
-    TRACEF("Parse error at %d : %s\n", err, math_config->query.c_str());
+    TRACEF("Parse error at %d : %s\r\n", err, math_config->query.c_str());
     endRoutine("If compile failed");
   }
   const float value = te_eval(expr);
-  TRACEF("Math eval: %f\n", value);
+  TRACEF("Math eval: %f\r\n", value);
 
   // Set outputs
   for (const ActionOut& action_out : action.action_outs) {
@@ -364,7 +364,7 @@ void LocalActionChain::handleMath(Action& action) {
         break;
       }
       default:
-        TRACEF("Unknown out: %i\n", action_out.type);
+        TRACEF("Unknown out: %i\r\n", action_out.type);
         break;
     }
   }
@@ -389,11 +389,11 @@ void LocalActionChain::handleIf(Action& action) {
   if (!expr) {
   }
   const float value = te_eval(expr);
-  TRACEF("If eval: %f\n", value);
+  TRACEF("If eval: %f\r\n", value);
 
   // Run then branch or skip (0 == false, 1 == true)
   if (value < 0.5) {
-    TRACEF("Skipping %d\n", if_config->action_count);
+    TRACEF("Skipping %d\r\n", if_config->action_count);
     skipActions(if_config->action_count);
   } else {
     TRACELN(F("Run then actions"));
@@ -484,10 +484,10 @@ Variable& LocalActionChain::getVariableOrCreate(const String& name) {
 
   auto it = std::find_if(begin(variables_), end(variables_), by_name);
   if (it != std::end(variables_)) {
-    TRACEF("Get %s\n", name.c_str());
+    TRACEF("Get %s\r\n", name.c_str());
     return *it;
   } else {
-    TRACEF("Create %s\n", name.c_str());
+    TRACEF("Create %s\r\n", name.c_str());
     variables_.push_back({.name = name});
     return variables_.back();
   }

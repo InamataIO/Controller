@@ -17,15 +17,13 @@ void AciditySensor::setSensorId(const int sensor_id) {
   used_sensor_ = sensor_id;
 }
 
-bool AciditySensor::isReady() {
-  return used_sensor_ > -1;
-}
+bool AciditySensor::isReady() { return used_sensor_ > -1; }
 
 float AciditySensor::getMedianMeasurement() {
   for (const auto& it : samples_) {
     Serial.printf("%f, ", it);
   }
-  Serial.printf("\n");
+  Serial.printf("\r\n");
 
   // Find how many measurements have been stored. Either the first element
   // before a NaN element, or the complete vector
@@ -47,8 +45,8 @@ float AciditySensor::getMedianMeasurement() {
   for (const auto& it : samples_) {
     Serial.printf("%f, ", it);
   }
-  Serial.printf("\n");
-  Serial.printf("Median: %f\n", median);
+  Serial.printf("\r\n");
+  Serial.printf("Median: %f\r\n", median);
 
   // Returns the middle element
   return median;
@@ -61,19 +59,20 @@ void AciditySensor::takeMeasurement() {
   float analog_v = io_.readAnalogV(used_sensor_);
 
   if (std::isnan(analog_v)) {
-    Serial.printf("Error updating acidity sensor. Returned NAN\n");
+    Serial.printf("Error updating acidity sensor. Returned NAN\r\n");
     return;
   }
 
   // Check that the value is non-zero
   if (abs(analog_v) < almost_zero) {
-    Serial.printf("Discarding acidity measurement (%fV) as almost zero (%f)\n",
-                  analog_v, almost_zero);
+    Serial.printf(
+        "Discarding acidity measurement (%fV) as almost zero (%f)\r\n",
+        analog_v, almost_zero);
     return;
   }
 
   float acidity_ph = analog_v * acidity_factor_v_to_ph - acidity_offset_ph;
-  Serial.printf("Acidity: %fV -> %fpH\n", analog_v, acidity_ph);
+  Serial.printf("Acidity: %fV -> %fpH\r\n", analog_v, acidity_ph);
 
   // Reuse current slot if it is unused
   if (!std::isnan(samples_[sample_index_])) {
@@ -94,7 +93,7 @@ void AciditySensor::clearMeasurements() {
 
 bool AciditySensor::OnEnable() {
   const char* who = __PRETTY_FUNCTION__;
-  if(used_sensor_ < 0) {
+  if (used_sensor_ < 0) {
     mqtt_.sendError(who, "Unknown sensor defined as ID < 0");
     return false;
   }
@@ -128,10 +127,10 @@ bool AciditySensor::OnEnable() {
 
 bool AciditySensor::Callback() {
   // Skip first measurement since it requires a grace period
-  if(isFirstIteration()) {
+  if (isFirstIteration()) {
     return true;
   }
-  
+
   io_.setStatusLed(true);
 
   takeMeasurement();

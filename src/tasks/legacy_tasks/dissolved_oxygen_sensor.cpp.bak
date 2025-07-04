@@ -40,8 +40,8 @@ float DissolvedOxygenSensor::getMedianMeasurement() {
   for (const auto& it : samples_) {
     Serial.printf("%f, ", it);
   }
-  Serial.printf("\n");
-  Serial.printf("Median: %f\n", median);
+  Serial.printf("\r\n");
+  Serial.printf("Median: %f\r\n", median);
 
   // Returns the middle element
   return median;
@@ -64,14 +64,15 @@ void DissolvedOxygenSensor::takeMeasurement() {
   float analog_v = io_.readAnalogV(used_sensor_);
 
   if (std::isnan(analog_v)) {
-    Serial.printf("Error updating acidity sensor. Returned NAN\n");
+    Serial.printf("Error updating acidity sensor. Returned NAN\r\n");
     return;
   }
 
   // Check that the value is non-zero
   if (fabs(analog_v) < almost_zero) {
-    Serial.printf("Discarding acidity measurement (%fV) as almost zero (%f)\n",
-                  analog_v, almost_zero);
+    Serial.printf(
+        "Discarding acidity measurement (%fV) as almost zero (%f)\r\n",
+        analog_v, almost_zero);
     return;
   }
 
@@ -85,7 +86,7 @@ void DissolvedOxygenSensor::takeMeasurement() {
         analog_v * temperatureCoefficient[temperature_c_at_saturated_do + 0.5] /
         voltage_v_at_saturated_do_;
     sample_value = do_percent;
-    Serial.printf("DO = %fmg/L, Spannung = %fV\n", do_percent, analog_v);
+    Serial.printf("DO = %fmg/L, Spannung = %fV\r\n", do_percent, analog_v);
   }
 
   // Reuse current slot if it is unused

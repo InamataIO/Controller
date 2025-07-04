@@ -10,11 +10,11 @@ void Action::parseOuts(JsonArrayConst out_configs, Action& action) {
   action.action_outs.reserve(out_configs.size());
   size_t current_target_num = 0;
 
-  TRACEF("Out configs %d\n", out_configs.size());
+  TRACEF("Out configs %d\r\n", out_configs.size());
   // Loop through target in JSON config and create parsed structs
   for (const JsonObjectConst& out_config : out_configs) {
     JsonVariantConst type = out_config["type"];
-    TRACEF("Type %s\n", type.as<const char*>());
+    TRACEF("Type %s\r\n", type.as<const char*>());
 
     if (type == ActionOut::telemetry_key_) {
       // Telemetry
@@ -34,7 +34,7 @@ void Action::parseOuts(JsonArrayConst out_configs, Action& action) {
   }
   // Incase unknown outs are found, shrink to free unneeded memory
   action.action_outs.shrink_to_fit();
-  TRACEF("Outs parsed %d\n", action.action_outs.size());
+  TRACEF("Outs parsed %d\r\n", action.action_outs.size());
 }
 
 const __FlashStringHelper* Action::query_key_ = FPSTR("query");

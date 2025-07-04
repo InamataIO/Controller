@@ -90,7 +90,7 @@ Modbus::Error ModbusClientAdapter::preRequest() {
   // If callbacks aren't removed, remove oldest
   if (callbacks_.size() > 10) {
     const auto& callback = callbacks_.begin();
-    TRACEF("Callbacks overflow: %u\n", callback->first);
+    TRACEF("Callbacks overflow: %u\r\n", callback->first);
     callbacks_.erase(callback);
   }
   return Modbus::Error::SUCCESS;
@@ -109,7 +109,7 @@ void ModbusClientAdapter::postRequest(
     callbacks_[request_token_] = response_callback;
   } else {
     ModbusError e(error);
-    TRACEF("Error creating request: %02X - %s\n", (int)e, (const char*)e);
+    TRACEF("Error creating request: %02X - %s\r\n", (int)e, (const char*)e);
   }
 }
 
@@ -117,13 +117,13 @@ void ModbusClientAdapter::modbusResponseHandler(ModbusMessage response,
                                                 uint32_t token) {
   auto callback = callbacks_.find(token);
   if (callback == callbacks_.end()) {
-    TRACEF("Callback not found: %d\n", token);
+    TRACEF("Callback not found: %d\r\n", token);
     return;
   }
   if (callback->second) {
     callback->second(response);
   } else {
-    TRACEF("Null callback: %d\n", token);
+    TRACEF("Null callback: %d\r\n", token);
   }
   callbacks_.erase(callback);
 }

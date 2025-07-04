@@ -24,12 +24,13 @@ MeasurementProtocol::~MeasurementProtocol() {}
 
 bool MeasurementProtocol::OnEnable() {
   const char* who = __PRETTY_FUNCTION__;
-  if(!acidity_sensor_task_.isReady()) {
+  if (!acidity_sensor_task_.isReady()) {
     mqtt_.sendError(who, String(F("Acidity sensor task is not ready")));
     return false;
   }
-  if(!dissolved_oxygen_sensor_task_.isReady()) {
-    mqtt_.sendError(who, String(F("Dissolved oxygen sensor task is not ready")));
+  if (!dissolved_oxygen_sensor_task_.isReady()) {
+    mqtt_.sendError(who,
+                    String(F("Dissolved oxygen sensor task is not ready")));
     return false;
   }
 
@@ -44,7 +45,7 @@ bool MeasurementProtocol::OnEnable() {
 }
 
 bool MeasurementProtocol::Callback() {
-  Serial.printf("Running measurement protocol action: %s\n",
+  Serial.printf("Running measurement protocol action: %s\r\n",
                 getCurrentActionName());
 
   if (report_index_ < report_list_.size()) {
@@ -64,7 +65,7 @@ bool MeasurementProtocol::Callback() {
         if (dallas_temperature_task_.has_new_samples_) {
           const inamata::Measurement& measurement =
               dallas_temperature_task_.getLastSample();
-          Serial.printf("Temperature is %f °C\n", measurement.value);
+          Serial.printf("Temperature is %f °C\r\n", measurement.value);
           mqtt_.send("water_temperature_c", measurement.value);
 
           dallas_temperature_task_.disable();
@@ -87,7 +88,7 @@ bool MeasurementProtocol::Callback() {
           float dissolved_oxygen_percent =
               dissolved_oxygen_sensor_task_.getLastMeasurement();
 
-          Serial.printf("Dissolved oxygen is %fmg/L\n",
+          Serial.printf("Dissolved oxygen is %fmg/L\r\n",
                         dissolved_oxygen_percent);
           mqtt_.send("dissolved_oxygen_mg_L", dissolved_oxygen_percent);
 
@@ -116,12 +117,14 @@ bool MeasurementProtocol::Callback() {
       //   float compensation_v = analog_v / temperature_coefficient;
       //   float tds =
       //       (133.42 * std::pow(compensation_v, 3) -
-      //        255.86 * std::pow(compensation_v, 2) + 857.39 * compensation_v) *
+      //        255.86 * std::pow(compensation_v, 2) + 857.39 * compensation_v)
+      //        *
       //       0.5;
       //   Serial.printf(
-      //       "TDS = %fmg/L, Compensation = %f, TempCoef = %f, °C = %f, Analog V "
+      //       "TDS = %fmg/L, Compensation = %f, TempCoef = %f, °C = %f, Analog
+      //       V "
       //       "= "
-      //       "%f\n",
+      //       "%f\r\n",
       //       tds, compensation_v, temperature_coefficient, temperature_c,
       //       analog_v);
 
@@ -156,7 +159,7 @@ bool MeasurementProtocol::Callback() {
 
           float acidity_ph = acidity_sensor_task_.getMedianMeasurement();
 
-          Serial.printf("Acidity is %f pH\n", acidity_ph);
+          Serial.printf("Acidity is %f pH\r\n", acidity_ph);
           mqtt_.send("acidity_ph", acidity_ph);
 
           report_index_++;
@@ -172,11 +175,11 @@ bool MeasurementProtocol::Callback() {
 
       //   float turbidity_v = io_.readAnalog(inamata::Sensor::kTurbidity) *
       //                       io_.analog_reference_v_ / io_.analog_raw_range_;
-      //   Serial.printf("Turbidity is %fV\n", turbidity_v);
+      //   Serial.printf("Turbidity is %fV\r\n", turbidity_v);
 
       //   // End once an update has been saved
       //   if (!pump_task_.isEnabled()) {
-      //     Serial.printf("Turbidity is %fV\n", turbidity_v);
+      //     Serial.printf("Turbidity is %fV\r\n", turbidity_v);
       //     mqtt_.send(io_.adcs_.at(inamata::Sensor::kTurbidity).name,
       //                turbidity_v);
 
@@ -223,7 +226,7 @@ bool MeasurementProtocol::Callback() {
 }
 
 void MeasurementProtocol::OnDisable() {
-  Serial.printf("Measurement report finished after %llums\n",
+  Serial.printf("Measurement report finished after %llums\r\n",
                 (std::chrono::milliseconds(millis()) - start_time_).count());
   mqtt_.send("measurement_report_active", "false");
 }

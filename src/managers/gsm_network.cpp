@@ -84,7 +84,7 @@ void GsmNetwork::syncTime() {
     tz_offset = -tz_offset;
   }
 
-  TRACEF("DT: 20%02d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d\n", year, month, day,
+  TRACEF("DT: 20%02d-%02d-%02dT%02d:%02d:%02d%c%02d:%02d\r\n", year, month, day,
          hour, minute, second, tz_sign, std::abs(tz_offset) / 4,
          (std::abs(tz_offset) % 4) * 15);
   if (result < 6) {
@@ -131,7 +131,7 @@ void GsmNetwork::handleConnection() {
       gprs_connected_ = false;
       signal_quality_ = 0;
     }
-    TRACEF("Network: %d GPRS: %d CSQ: %d\n", network_connected_,
+    TRACEF("Network: %d GPRS: %d CSQ: %d\r\n", network_connected_,
            gprs_connected_, signal_quality_);
 
     if (network_connected_ && !gprs_connected_) {

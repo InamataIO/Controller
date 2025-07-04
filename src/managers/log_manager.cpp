@@ -84,7 +84,7 @@ void LoggingManager::rotateLogFile() {
 void LoggingManager::deleteOldLogs() {
   File root = LittleFS.open(LoggingManager::root_path_, "r+");
   if (!root || !root.isDirectory()) {
-    TRACEF("Can't open dir %s\n", LoggingManager::root_path_);
+    TRACEF("Can't open dir %s\r\n", LoggingManager::root_path_);
     root.close();
     return;
   }
@@ -100,14 +100,14 @@ void LoggingManager::deleteOldLogs() {
     char* endptr;
     const long date_int = strtoul(log_dir.name(), &endptr, 10);
     if (*endptr != '\0') {
-      TRACEF("Parsing date to int failed for %s\n", log_dir.name());
+      TRACEF("Parsing date to int failed for %s\r\n", log_dir.name());
       continue;
     }
     if (oldest_date == 0) {
       oldest_date = date_int;
-      TRACEF("Init oldest_date: %lu\n", oldest_date);
+      TRACEF("Init oldest_date: %lu\r\n", oldest_date);
     } else if (oldest_date > date_int) {
-      TRACEF("Update oldest_date %lu -> %lu\n", oldest_date, date_int);
+      TRACEF("Update oldest_date %lu -> %lu\r\n", oldest_date, date_int);
       oldest_date = date_int;
     }
 
@@ -115,18 +115,18 @@ void LoggingManager::deleteOldLogs() {
     for (File log_file = log_dir.openNextFile(); log_file;
          log_file = log_dir.openNextFile()) {
       if (log_file.isDirectory()) {
-        TRACEF("Unexpected dir: %s\n", log_file.path());
+        TRACEF("Unexpected dir: %s\r\n", log_file.path());
         continue;
       }
       total_log_size += log_file.size();
     }
-    TRACEF("Total log size: %lu\n", total_log_size);
+    TRACEF("Total log size: %lu\r\n", total_log_size);
   }
 
   if (total_log_size > kMaxTotalLogBytes) {
     String delete_path =
         String(LoggingManager::root_path_) + '/' + String(oldest_date);
-    TRACEF("Deleting %s\n", delete_path.c_str());
+    TRACEF("Deleting %s\r\n", delete_path.c_str());
     Storage::recursiveRm(delete_path.c_str());
   }
   root.close();

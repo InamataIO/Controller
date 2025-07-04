@@ -67,7 +67,7 @@ void BleImprov::stop() {
 }
 
 void BleImprov::setState(improv::State state) {
-  TRACEF("Setting state: %d\n", state);
+  TRACEF("Setting state: %d\r\n", state);
 
   // Update the status BLE characteristic data
   if (state_ != state) {
@@ -108,7 +108,7 @@ const improv::State BleImprov::getState() const { return state_; }
 
 void BleImprov::setError(improv::Error error) {
   if (error != improv::ERROR_NONE) {
-    TRACEF("Error: %d\n", error);
+    TRACEF("Error: %d\r\n", error);
   }
   NimBLEAttValue ble_error_value = ble_error_char_->getValue();
   // Broadcast error if value was empty or has changed
@@ -212,7 +212,7 @@ void BleImprov::processRpcData() {
         setError(improv::ERROR_UNABLE_TO_CONNECT);
         break;
       }
-      TRACEF("Connecting to: %s - %s\n", command.ssid.c_str(),
+      TRACEF("Connecting to: %s - %s\r\n", command.ssid.c_str(),
              command.password.c_str());
       wifi_connect_start_ = std::chrono::steady_clock::now();
       setState(improv::STATE_PROVISIONING);
@@ -277,7 +277,7 @@ void BleImprov::handleSetServerAuth(const improv::ImprovCommand &command) {
       }
       String path("/");
       path += url.path;
-      TRACEF("Setting URL: %s, %s, %d, %s, %d\n", url.scheme, url.host,
+      TRACEF("Setting URL: %s, %s, %d, %s, %d\r\n", url.scheme, url.host,
              url.port, path.c_str(), secure_url);
       web_socket->setUrl(url.host, path.c_str(), secure_url);
       storage->saveWsUrl(url.host, path.c_str(), secure_url);
@@ -373,7 +373,7 @@ void BleImprov::sendDeviceTypeResponse() {
       improv::build_rpc_response(improv::X_GET_DEVICE_TYPE, device_type);
   ble_rpc_response_char_->setValue(data);
   ble_rpc_response_char_->notify();
-  TRACEF("Sent device type: %s\n", device_type[0].c_str());
+  TRACEF("Sent device type: %s\r\n", device_type[0].c_str());
 }
 
 void BleImprov::startGetWifiNetworks() {
@@ -462,11 +462,11 @@ void BleImprov::handleSetUserData(const improv::ImprovCommand &command) {
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, user_data_);
   if (error) {
-    TRACEF("Failed parsing user data: %s\n", error.c_str());
+    TRACEF("Failed parsing user data: %s\r\n", error.c_str());
     setError(improv::Error::ERROR_UNKNOWN);
     user_data_ = "";
   }
-  TRACEF("User data: %d, %d\n", user_data_.length(),
+  TRACEF("User data: %d, %d\r\n", user_data_.length(),
          services_.getBleServer()->user_data_handlers_.size());
   for (const auto &handler : services_.getBleServer()->user_data_handlers_) {
     const bool success = handler(doc.as<JsonObject>());

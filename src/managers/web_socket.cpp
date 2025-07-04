@@ -54,14 +54,14 @@ WebSocket::ConnectState WebSocket::connect() {
   // reconnect interval
   if (!is_setup_) {
     is_setup_ = true;
-    TRACEF("Connect: %s:%d%s : %s\n", core_domain_.c_str(),
+    TRACEF("Connect: %s:%d%s : %s\r\n", core_domain_.c_str(),
            secure_url_ ? 443 : 8000, ws_url_path_.c_str(), ws_token_.c_str());
     // WS token has to be set in LittleFS, EEPROM or via captive portal
     if (!isWsTokenSet()) {
       TRACELN(F("ws_token not set"));
       return ConnectState::kFailed;
     }
-    TRACEF("Connecting: %s, %s, %d, %s\n", core_domain_.c_str(),
+    TRACEF("Connecting: %s, %s, %d, %s\r\n", core_domain_.c_str(),
            ws_url_path_.c_str(), secure_url_, ws_token_.c_str());
     if (secure_url_) {
       websocket_client.beginSslWithBundle(
@@ -297,7 +297,7 @@ void WebSocket::setWsToken(const char* ws_token) {
   ws_token_.reserve(strlen(token_prefix) + strlen(ws_token));
   ws_token_ = token_prefix;
   ws_token_ += ws_token;
-  TRACEF("Set token: %s\n", ws_token_.c_str());
+  TRACEF("Set token: %s\r\n", ws_token_.c_str());
 }
 
 const bool WebSocket::isWsTokenSet() const { return !ws_token_.isEmpty(); }
@@ -309,10 +309,10 @@ void WebSocket::handleEvent(WStype_t type, uint8_t* payload, size_t length) {
       TRACELN(F("WS disconnected"));
     } break;
     case WStype_CONNECTED: {
-      TRACEF("Connected to: %s\n", reinterpret_cast<char*>(payload));
+      TRACEF("Connected to: %s\r\n", reinterpret_cast<char*>(payload));
     } break;
     case WStype_TEXT: {
-      TRACEF("Got text %u: %s\n", length, reinterpret_cast<char*>(payload));
+      TRACEF("Got text %u: %s\r\n", length, reinterpret_cast<char*>(payload));
       handleData(payload, length);
     } break;
     case WStype_PING:
@@ -325,7 +325,7 @@ void WebSocket::handleEvent(WStype_t type, uint8_t* payload, size_t length) {
     case WStype_FRAGMENT:
     case WStype_FRAGMENT_FIN:
     case WStype_PONG:
-      TRACEF("Unhandled message type: %u\n", type);
+      TRACEF("Unhandled message type: %u\r\n", type);
       break;
   }
 }

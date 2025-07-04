@@ -46,7 +46,7 @@ void PollAbstract::startMeasurement(
     errors_since_last_success_++;
     onError();
     markMeasurementDone(now, true);
-    TRACEF("Start fail: %s - %d\n", result.error.toString().c_str(),
+    TRACEF("Start fail: %s - %d\r\n", result.error.toString().c_str(),
            errors_since_last_success_);
     return;
   }
@@ -63,7 +63,7 @@ void PollAbstract::handleMeasurement(
     errors_since_last_success_++;
     onError();
     markMeasurementDone(now, true);
-    TRACEF("Handle fail: %s - %u\n", m_result.error.toString().c_str(),
+    TRACEF("Handle fail: %s - %u\r\n", m_result.error.toString().c_str(),
            errors_since_last_success_);
     return;
   }
@@ -80,7 +80,7 @@ void PollAbstract::handleMeasurement(
     errors_since_last_success_++;
     onError();
     markMeasurementDone(now, true);
-    TRACEF("Get values fail: %s - %u\n", v_result.error.toString().c_str(),
+    TRACEF("Get values fail: %s - %u\r\n", v_result.error.toString().c_str(),
            errors_since_last_success_);
     return;
   }

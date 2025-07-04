@@ -35,7 +35,7 @@ void BehaviorController::handleConfig(const JsonObjectConst& config) {
   for (const auto& handler : handlers_) {
     handler(config);
   }
-  TRACEF("bid: %s, update: %lld\n", behavior_id_.toString().c_str(),
+  TRACEF("bid: %s, update: %lld\r\n", behavior_id_.toString().c_str(),
          updated_at_);
 }
 

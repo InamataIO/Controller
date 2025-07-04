@@ -20,7 +20,7 @@ void ActionController::handleCallback(const JsonObjectConst& message) {
   } else if (action == action_identify_) {
     identify();
   } else {
-    TRACEF("Unknown action: %s\n", action);
+    TRACEF("Unknown action: %s\r\n", action);
   }
 }
 

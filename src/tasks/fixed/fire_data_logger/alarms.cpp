@@ -436,7 +436,7 @@ void Alarms::sendLimitEvent(BaseLimit* limit,
 
   // Don't send if the controller limit ID or FP ID was not set
   if (!limit->limit_id.isValid() || limit->fixed_peripheral_id == nullptr) {
-    Serial.printf("Limit event: %d : %s\n", int(type),
+    Serial.printf("Limit event: %d : %s\r\n", int(type),
                   value_unit.data_point_type.toString().c_str());
     return;
   }
@@ -475,7 +475,7 @@ void Alarms::sendStartStopSms(BaseLimit* limit,
   if (!gsm_network_->isEnabled() ||
       type == utils::LimitEvent::Type::kContinue || !limit ||
       limit == &maintenance_limit_) {
-    TRACEF("GSM: %d, type: %d, maint: %d\n", gsm_network_->isEnabled(), type,
+    TRACEF("GSM: %d, type: %d, maint: %d\r\n", gsm_network_->isEnabled(), type,
            limit == &maintenance_limit_);
     return;
   }
@@ -567,7 +567,7 @@ void Alarms::handleSmsReminders() {
 
 String Alarms::generateSmsAlertText(const BaseLimit* limit,
                                     const utils::LimitEvent::Type type) {
-  const char* delimiter = "\n";
+  const char* delimiter = "\r\n";
   String text("Alarm ");
   if (type == utils::LimitEvent::Type::kStart) {
     text += "Start";
@@ -584,7 +584,7 @@ String Alarms::generateSmsAlertText(const BaseLimit* limit,
 }
 
 String Alarms::generateSmsReminderText(const BaseLimit* limit) {
-  const char* delimiter = "\n";
+  const char* delimiter = "\r\n";
   String text("Reminder ");
   if (limit->sms_reminder == SmsReminder::kReminder1) {
     text += "1";

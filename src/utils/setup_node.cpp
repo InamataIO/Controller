@@ -13,7 +13,7 @@ namespace inamata {
 
 bool loadNetwork(Services& services, JsonObjectConst secrets) {
   JsonArrayConst wifi_aps_doc = secrets[Storage::wifi_aps_key_];
-  TRACEF("Found %u APs in secrets\n", wifi_aps_doc.size());
+  TRACEF("Found %u APs in secrets\r\n", wifi_aps_doc.size());
 
   std::vector<WiFiAP> wifi_aps;
   for (const JsonObjectConst i : wifi_aps_doc) {
@@ -125,7 +125,7 @@ bool loadLocalPeripherals(Services& services) {
                               : peripheral_doc.as<JsonArray>();
   for (JsonVariantConst peripheral : peripherals) {
     ErrorResult error = services.getPeripheralController().add(peripheral);
-    TRACEF("Local peri: %s : %d\n",
+    TRACEF("Local peri: %s : %d\r\n",
            peripheral[peripheral::Peripheral::uuid_key_].as<const char*>(),
            error.isError());
     if (error.isError()) {
@@ -150,13 +150,13 @@ bool loadFixedPeripherals(Services& services) {
     }
     DeserializationError error = deserializeJson(peripherals_doc, config);
     if (error) {
-      TRACEF("Fixed peri JSON fail: %s\n", error.c_str());
+      TRACEF("Fixed peri JSON fail: %s\r\n", error.c_str());
       return false;
     }
     for (auto peripheral : peripherals_doc.as<JsonArray>()) {
       ErrorResult error = services.getPeripheralController().add(peripheral);
       if (error.isError()) {
-        TRACEF("Init fixed peri fail: %s\n", error.toString().c_str());
+        TRACEF("Init fixed peri fail: %s\r\n", error.toString().c_str());
         TRACEJSON(peripheral);
         return false;
       }

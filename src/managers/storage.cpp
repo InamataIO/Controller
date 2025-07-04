@@ -26,7 +26,7 @@ void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
       Serial.print(file.name());
       time_t t = file.getLastWrite();
       struct tm* tmstruct = localtime(&t);
-      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n",
+      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\r\n",
                     (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1,
                     tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min,
                     tmstruct->tm_sec);
@@ -42,7 +42,7 @@ void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
       Serial.print(file.size());
       time_t t = file.getLastWrite();
       struct tm* tmstruct = localtime(&t);
-      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\n",
+      Serial.printf("  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d\r\n",
                     (tmstruct->tm_year) + 1900, (tmstruct->tm_mon) + 1,
                     tmstruct->tm_mday, tmstruct->tm_hour, tmstruct->tm_min,
                     tmstruct->tm_sec);
@@ -74,7 +74,7 @@ ErrorResult Storage::loadSecrets(JsonDocument& secrets_doc) {
     DeserializationError error = deserializeJson(secrets_doc, secrets_file);
     secrets_file.close();
     if (error) {
-      TRACEF("Failed parsing secrets.json: %s\n", error.c_str());
+      TRACEF("Failed parsing secrets.json: %s\r\n", error.c_str());
       return ErrorResult(type_, error.c_str());
     }
   } else {
@@ -89,7 +89,7 @@ void Storage::recursiveRm(const char* path) {
   }
   fs::File root = LittleFS.open(path, "r");
   if (!root) {
-    TRACEF("Can't open: %s\n", path);
+    TRACEF("Can't open: %s\r\n", path);
     return;
   }
   if (!root.isDirectory()) {
@@ -99,14 +99,14 @@ void Storage::recursiveRm(const char* path) {
     for (fs::File file = root.openNextFile(); file;
          file = root.openNextFile()) {
       if (!file) {
-        TRACEF("Skipping: %s\n", file.path());
+        TRACEF("Skipping: %s\r\n", file.path());
         continue;
       }
       if (file.isDirectory()) {
         recursiveRm(file.path());
       } else {
         String file_path = file.path();
-        TRACEF("Delete %s\n", file_path.c_str());
+        TRACEF("Delete %s\r\n", file_path.c_str());
         file.close();
         LittleFS.remove(file_path);
       }
@@ -122,7 +122,7 @@ ErrorResult Storage::storeSecrets(JsonVariantConst secrets) {
   }
 
   size_t bytes_written = serializeJson(secrets, secrets_file);
-  TRACEF("Saved secrets: %d : %d\n", bytes_written, measureJson(secrets));
+  TRACEF("Saved secrets: %d : %d\r\n", bytes_written, measureJson(secrets));
   if (bytes_written == 0 && secrets.size()) {
     return ErrorResult(type_, F("Failed to write secrets"));
   }

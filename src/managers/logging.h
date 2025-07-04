@@ -10,8 +10,8 @@
 #define TRACELN(msg)                                              \
   Serial.printf("%s::%s(%d) ", __FILE__, __FUNCTION__, __LINE__); \
   Serial.println(msg)
-#define TRACESTACK                                       \
-  Serial.printf("%s(%d) stack %u\n", __FILE__, __LINE__, \
+#define TRACESTACK                                         \
+  Serial.printf("%s(%d) stack %u\r\n", __FILE__, __LINE__, \
                 ESP.getFreeContStack());
 #define TRACEJSON(json)        \
   serializeJson(json, Serial); \

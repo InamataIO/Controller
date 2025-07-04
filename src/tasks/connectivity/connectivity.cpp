@@ -359,7 +359,7 @@ void CheckConnectivity::saveCaptivePortalWifi() {
   // Save the WiFi credentials by updating or adding the new AP
   String ssid = wifi_manager_->getWiFiSSID(false);
   String wifi_password = wifi_manager_->getWiFiPass(false);
-  TRACEF("Connected to %s:%s\n", ssid.c_str(), wifi_password.c_str());
+  TRACEF("Connected to %s:%s\r\n", ssid.c_str(), wifi_password.c_str());
   bool saved = false;
   for (WiFiAP& wifi_ap : wifi_network_->wifi_aps_) {
     if (ssid == wifi_ap.ssid) {

@@ -176,7 +176,7 @@ bool TimeManager::handleImprovUserData(const JsonObjectConst &data) {
       } else if (sign == '-') {
         date_time = date_time - time_offset;
       } else {
-        TRACEF("Invalid sign %c\n", sign);
+        TRACEF("Invalid sign %c\r\n", sign);
       }
     }
   }

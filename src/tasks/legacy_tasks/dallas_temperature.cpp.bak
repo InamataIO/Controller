@@ -65,7 +65,7 @@ bool DallasTemperature::Callback() {
       result = io_.readDallasTemperature(dallas.second, true, temperature_c);
       if (result == inamata::Result::kSuccess) {
         pushSample(temperature_c, dallas.first);
-        Serial.printf("Temperature of %s = %.2f %s\n",
+        Serial.printf("Temperature of %s = %.2f %s\r\n",
                       dallas.second.name.c_str(), temperature_c,
                       dallas.second.unit.c_str());
         next_activation_ms =

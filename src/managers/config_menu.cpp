@@ -815,16 +815,16 @@ void ConfigManager::printMenu() {
   menu_state_ = MenuState::kMainMenu;
 
   Serial.println("\r\nDevice Configuration Menu\r\n");
-  Serial.printf("[1] Show contact list (%d)\n", person_manager_.getCount());
+  Serial.printf("[1] Show contact list (%d)\r\n", person_manager_.getCount());
   Serial.println("[2] Add contact");
   Serial.println("[3] Edit contact details");
   Serial.println("[4] Remove contact");
 #ifdef RTC_MANAGER
   const String time = TimeManager::getFormattedTime();
-  Serial.printf("[5] Set system date/time (%s)\n", time.c_str());
+  Serial.printf("[5] Set system date/time (%s)\r\n", time.c_str());
 #endif
   Serial.println("[6] Show log entries");
-  Serial.printf("[7] Edit location name (%s)\n", location_.c_str());
+  Serial.printf("[7] Edit location name (%s)\r\n", location_.c_str());
   Serial.println("[R] Factory reset");
   Serial.println("[X] Exit configuration menu");
   Serial.print("\r\nSelection: ");
@@ -1188,7 +1188,7 @@ bool ConfigManager::isValidLocation(const String &location) {
     }
   }
   if (location.length() > kMaxLocationLength) {
-    Serial.printf("Location max length is %d\n", kMaxLocationLength);
+    Serial.printf("Location max length is %d\r\n", kMaxLocationLength);
     return false;
   }
   return !location.isEmpty();

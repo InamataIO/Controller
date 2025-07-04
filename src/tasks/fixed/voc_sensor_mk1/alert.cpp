@@ -100,9 +100,9 @@ void Alert::handleBehaviorConfig(const JsonObjectConst& config) {
       limit_2_delay_duration = std::chrono::seconds(limit_delay_s);
     }
   }
-  TRACEF("1: id: %s, lim: %f, del: %d\n", limit_1_id_.toString().c_str(),
+  TRACEF("1: id: %s, lim: %f, del: %d\r\n", limit_1_id_.toString().c_str(),
          voc_alert_limit_1_, limit_1_delay_duration.count());
-  TRACEF("2: id: %s, lim: %f, del: %d\n", limit_2_id_.toString().c_str(),
+  TRACEF("2: id: %s, lim: %f, del: %d\r\n", limit_2_id_.toString().c_str(),
          voc_alert_limit_2_, limit_2_delay_duration.count());
 }
 

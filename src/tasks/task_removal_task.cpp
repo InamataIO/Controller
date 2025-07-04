@@ -46,7 +46,7 @@ bool TaskRemovalTask::Callback() {
   for (auto it = tasks_.begin(); it != tasks_.end();) {
     Task* task = *it;
     BaseTask* base_task = dynamic_cast<BaseTask*>(task);
-    TRACEF("Deleting: %s (l: %i, s: %i, id: %s)\n", base_task->getType(),
+    TRACEF("Deleting: %s (l: %i, s: %i, id: %s)\r\n", base_task->getType(),
            base_task->local_task_, base_task->isSystemTask(),
            base_task->getTaskID().toString().c_str());
 

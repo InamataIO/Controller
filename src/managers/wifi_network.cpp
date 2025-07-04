@@ -17,7 +17,7 @@ void timeSyncCallback(struct timeval* tv) {
   time_t nowSecs = time(nullptr);
   struct tm timeinfo;
   gmtime_r(&nowSecs, &timeinfo);
-  TRACEF("Time synced: %s\n", asctime(&timeinfo));
+  TRACEF("Time synced: %s\r\n", asctime(&timeinfo));
 #endif
 #ifdef RTC_MANAGER
   if (TimeManager::lostPower()) {
@@ -33,7 +33,7 @@ WiFiNetwork::WiFiNetwork(std::vector<WiFiAP>& wifi_aps, String& controller_name)
 #ifdef ENABLE_TRACE
   TRACELN(F("Searching for APs:"));
   for (const WiFiAP& wifi_ap : wifi_aps_) {
-    TRACEF("\t%s\n", wifi_ap.ssid.c_str());
+    TRACEF("\t%s\r\n", wifi_ap.ssid.c_str());
   }
 #endif
 }
@@ -89,7 +89,7 @@ bool WiFiNetwork::isConnected(wl_status_t* wifi_status) {
     connect_mode_ = ConnectMode::kFastConnect;
 #ifdef ENABLE_TRACE
     if (connect_start_ != std::chrono::steady_clock::time_point::min()) {
-      Serial.printf("Network: Connected to %s, IP: %s\n", WiFi.SSID().c_str(),
+      Serial.printf("Network: Connected to %s, IP: %s\r\n", WiFi.SSID().c_str(),
                     WiFi.localIP().toString().c_str());
     }
 #endif
@@ -106,7 +106,7 @@ bool WiFiNetwork::tryFastConnect() {
     Serial.println(F("WiFi: FastConnect start"));
     connect_start_ = std::chrono::steady_clock::now();
     if (strlen(WiFi.SSID().c_str())) {
-      TRACEF("FastConnect: %s\n", WiFi.SSID().c_str());
+      TRACEF("FastConnect: %s\r\n", WiFi.SSID().c_str());
       // Connect to previous saved WiFi, if one exists,
       wifi_status = WiFi.begin();
     } else {
@@ -120,7 +120,7 @@ bool WiFiNetwork::tryFastConnect() {
     // Subsequent attempt to fast connect, update connection status
     wifi_status = WiFi.status();
   }
-  TRACEF("FastConnect: wifi_status: %d\n", wifi_status);
+  TRACEF("FastConnect: wifi_status: %d\r\n", wifi_status);
   // Return connected, reset fast connect, but stay in fast connect mode
   if (isConnected(&wifi_status)) {
     return true;
@@ -132,7 +132,7 @@ bool WiFiNetwork::tryFastConnect() {
   // will return that error
   if (connect_duration > connect_timeout_) {
     TRACEF(
-        "Failed connecting to %s after %lldms\n", WiFi.SSID().c_str(),
+        "Failed connecting to %s after %lldms\r\n", WiFi.SSID().c_str(),
         std::chrono::duration_cast<std::chrono::milliseconds>(connect_duration)
             .count());
     connect_start_ = std::chrono::steady_clock::time_point::min();
@@ -150,7 +150,7 @@ bool WiFiNetwork::tryScanning() {
   std::chrono::steady_clock::duration scan_duration =
       std::chrono::steady_clock::now() - scan_start_;
   if (scan_result > 0) {
-    TRACEF("Scan found %d APs after %lldms\n", scan_result,
+    TRACEF("Scan found %d APs after %lldms\r\n", scan_result,
            std::chrono::duration_cast<std::chrono::milliseconds>(scan_duration)
                .count());
     // If scan finished and found networks
@@ -170,16 +170,16 @@ bool WiFiNetwork::tryScanning() {
         if (network_info.ssid == wifi_ap.ssid) {
           if (wifi_ap.id == -1) {
             // ... if it is the first AP for a given SSID
-            TRACEF("Found AP %s, RSSI: %d, ID: %d\n", wifi_ap.ssid.c_str(),
+            TRACEF("Found AP %s, RSSI: %d, ID: %d\r\n", wifi_ap.ssid.c_str(),
                    WiFi.RSSI(i), i);
             wifi_ap.id = i;
           } else if (WiFi.RSSI(i) > WiFi.RSSI(wifi_ap.id)) {
             // ... set the ID of the one with the strongest signal
-            TRACEF("Update AP %s, RSSI: %d, ID: %d\n", wifi_ap.ssid.c_str(),
+            TRACEF("Update AP %s, RSSI: %d, ID: %d\r\n", wifi_ap.ssid.c_str(),
                    WiFi.RSSI(i), i);
             wifi_ap.id = i;
           } else {
-            TRACEF("Weaker AP %s ignored, RSSI: %d, ID: %d\n",
+            TRACEF("Weaker AP %s ignored, RSSI: %d, ID: %d\r\n",
                    wifi_ap.ssid.c_str(), WiFi.RSSI(i), i);
           }
           break;
@@ -195,7 +195,7 @@ bool WiFiNetwork::tryScanning() {
   } else if (scan_result == 0 || scan_duration > scan_timeout_) {
     // If the scan finished but didn't find any networks or it timed out,
     // try to connect to hidden networks
-    TRACEF("No APs found after %lldms\n",
+    TRACEF("No APs found after %lldms\r\n",
            std::chrono::duration_cast<std::chrono::milliseconds>(scan_duration)
                .count());
     connect_mode_ = ConnectMode::kHiddenConnect;
@@ -250,7 +250,7 @@ bool WiFiNetwork::tryMultiConnect() {
 
     // If the SSID matches, try connecting, else skip it
     if (current_wifi_ap_->ssid == network_info.ssid) {
-      TRACEF("Connecting to %s\n", network_info.ssid.c_str());
+      TRACEF("Connecting to %s\r\n", network_info.ssid.c_str());
       wifi_status = WiFi.begin(network_info.ssid.c_str(),
                                current_wifi_ap_->password.c_str(),
                                network_info.channel, network_info.bssid);
@@ -272,7 +272,7 @@ bool WiFiNetwork::tryMultiConnect() {
   if (wifi_status == WL_CONNECT_FAILED || connect_duration > connect_timeout_) {
     // On connection failure, mark AP as failed, reset connection timer, try
     // next AP
-    TRACEF("Failed connecting to %s after %lldms\n",
+    TRACEF("Failed connecting to %s after %lldms\r\n",
            current_wifi_ap_->ssid.c_str(),
            std::chrono::duration_cast<std::chrono::seconds>(connect_duration)
                .count());
@@ -308,7 +308,7 @@ bool WiFiNetwork::tryHiddenConnect() {
     if (current_wifi_ap_ == wifi_aps_.end()) {
       return false;
     }
-    TRACEF("Connecting to %s\n", current_wifi_ap_->ssid.c_str());
+    TRACEF("Connecting to %s\r\n", current_wifi_ap_->ssid.c_str());
     // Try to connect to the next elligible AP
     wifi_status = WiFi.begin(current_wifi_ap_->ssid.c_str(),
                              current_wifi_ap_->password.c_str());
@@ -325,7 +325,7 @@ bool WiFiNetwork::tryHiddenConnect() {
   if (wifi_status == WL_CONNECT_FAILED || connect_duration > connect_timeout_) {
     // On failure, reset connection timer, try next AP
     TRACEF(
-        "Failed connecting to %s after %lldms\n",
+        "Failed connecting to %s after %lldms\r\n",
         current_wifi_ap_->ssid.c_str(),
         std::chrono::duration_cast<std::chrono::milliseconds>(connect_duration)
             .count());
@@ -340,7 +340,7 @@ bool WiFiNetwork::tryHiddenConnect() {
 bool WiFiNetwork::tryCyclePower() {
   const auto mode = WiFi.getMode();
   // If WiFi modem is not powered off, turn it off
-  TRACEF("Changing from WiFi mode: %d\n", mode);
+  TRACEF("Changing from WiFi mode: %d\r\n", mode);
   if (mode != WIFI_OFF) {
     Serial.println(F("WiFi: CyclePower start"));
     WiFi.mode(WIFI_OFF);

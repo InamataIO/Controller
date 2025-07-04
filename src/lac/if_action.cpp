@@ -72,7 +72,7 @@ void IfAction::populateConfig(const JsonObjectConst& json, Config& config,
 
     } else {
       // Unknown action
-      TRACEF("Unknown action type: %s\n",
+      TRACEF("Unknown action type: %s\r\n",
              action_config["type"].as<const char*>());
       actions.pop_back();
       config.action_count--;

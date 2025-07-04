@@ -6,7 +6,7 @@ namespace inamata {
 namespace tasks {
 
 TaskController::TaskController(Scheduler& scheduler, TaskFactory& factory)
-    : scheduler_(scheduler), factory_(factory){};
+    : scheduler_(scheduler), factory_(factory) {};
 
 const String& TaskController::type() {
   static const String name{"TaskController"};
@@ -95,7 +95,7 @@ ErrorResult TaskController::startTask(const ServiceGetters& services,
     if (base_task->local_task_) {
       return ErrorResult(type(), F("Can't restart local tasks"));
     }
-    TRACEF("Restarting task: %s\n", task_id.toString().c_str());
+    TRACEF("Restarting task: %s\r\n", task_id.toString().c_str());
     base_task->disableWithoutRemoval();
     delete base_task;
   }

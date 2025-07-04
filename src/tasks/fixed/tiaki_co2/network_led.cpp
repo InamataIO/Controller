@@ -78,7 +78,7 @@ bool NetworkLed::TaskCallback() {
     if (last_led_state != led_state_) {
       last_blink_change_ = {};
       blink_pos_ = 0;
-      TRACEF("State change: %d to %d\n", last_led_state, led_state_);
+      TRACEF("State change: %d to %d\r\n", last_led_state, led_state_);
     }
   }
 
