@@ -204,6 +204,12 @@ void BleImprov::processRpcData() {
         setError(improv::ERROR_NOT_AUTHORIZED);
         break;
       }
+      if (command.ssid.length() == 0) {
+        TRACELN("Empty WiFi SSID, assuming GSM connection");
+        setState(improv::STATE_PROVISIONED);
+        Services::getActionController().identify();
+        break;
+      }
       wifi_ap_ = {command.ssid.c_str(), command.password.c_str(), -1, false};
       wl_status_t wl_status =
           WiFi.begin(wifi_ap_.ssid.c_str(), wifi_ap_.password.c_str());
