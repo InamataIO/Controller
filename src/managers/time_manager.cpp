@@ -16,12 +16,16 @@ RTC_DS3231 rtc;
  *
  * This function initializes the RTC module and checks if it is present. If the
  * RTC module is not found, an error message is printed to the serial monitor.
+ *
+ * Also checks if the RTC lost power since the last power off. Useful to check
+ * if battery backing RTC is dead
  */
 void TimeManager::initRTC() {
   if (!rtc.begin()) {
     Serial.println("RTC not found");
     return;
   }
+  lost_power_on_boot_ = lostPower();
 }
 
 /**
@@ -42,14 +46,18 @@ DateTime TimeManager::systemTime() { return rtc.now(); }
  *
  * \return The formatted time as a string (in ISO 8601 format).
  */
-String TimeManager::getFormattedTime() {
+String TimeManager::getFormattedTime(const DateTime &date_time) {
   char buffer[20];
-  DateTime st = systemTime();
 
-  snprintf(buffer, sizeof(buffer), "%04d-%02d-%02dT%02d:%02d:%02d", st.year(),
-           st.month(), st.day(), st.hour(), st.minute(), st.second());
+  snprintf(buffer, sizeof(buffer), "%04d-%02d-%02dT%02d:%02d:%02d",
+           date_time.year(), date_time.month(), date_time.day(),
+           date_time.hour(), date_time.minute(), date_time.second());
 
   return buffer;
+}
+
+String TimeManager::getFormattedTime() {
+  return getFormattedTime(systemTime());
 }
 
 /**
@@ -82,22 +90,30 @@ void TimeManager::setSystemTime(int year, int month, int day, int hour,
 bool TimeManager::lostPower() { return rtc.lostPower(); }
 
 /**
- * \brief Gets the current date in "YYYY-MM-DD" format.
+ * \brief Gets the current date in "YYYYMMDD" format.
  *
  * This function retrieves the current date from the RTC module and formats it
  * as a string.
  *
- * \return The current date as a string (in "YYYY-MM-DD" format).
+ * \param date_time Datetime to be printed
+ * \return The current date as a string (in "YYYYMMDD" format).
  */
-String TimeManager::getCurrentDate() {
-  char buffer[11];
-  DateTime st = systemTime();
+String TimeManager::getCurrentDate(const DateTime &date_time) {
+  char buffer[9];
 
-  snprintf(buffer, sizeof(buffer), "%04d%02d%02d", st.year(), st.month(),
-           st.day());
+  snprintf(buffer, sizeof(buffer), "%04d%02d%02d", date_time.year(),
+           date_time.month(), date_time.day());
 
   return buffer;
 }
+
+/**
+ * \brief Gets the current date in "YYYY-MM-DD" format.
+ *
+ * \see getCurrentDate(const DateTime &)
+ * \return The current date as a string (in "YYYY-MM-DD" format).
+ */
+String TimeManager::getCurrentDate() { return getCurrentDate(systemTime()); }
 
 /**
  * \brief Parses data during provisioning and sets the RTC
@@ -335,6 +351,10 @@ bool TimeManager::isValidMinute(String minute) {
   int minute_value = minute.toInt();
   return (minute_value >= 0 && minute_value <= 59);
 }
+
+bool TimeManager::isLostPowerOnBoot() { return lost_power_on_boot_; }
+
+bool TimeManager::lost_power_on_boot_ = false;
 
 }  // namespace inamata.
 

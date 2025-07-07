@@ -821,7 +821,12 @@ void ConfigManager::printMenu() {
   Serial.println("[4] Remove contact");
 #ifdef RTC_MANAGER
   const String time = TimeManager::getFormattedTime();
-  Serial.printf("[5] Set system date/time (%s)\r\n", time.c_str());
+  String battery_dead;
+  if (TimeManager::isLostPowerOnBoot()) {
+    battery_dead = " Battery dead";
+  }
+  Serial.printf("[5] Set system date/time (%s)%s\r\n", time.c_str(),
+                battery_dead.c_str());
 #endif
   Serial.println("[6] Show log entries");
   Serial.printf("[7] Edit location name (%s)\r\n", location_.c_str());

@@ -74,9 +74,11 @@ void LoggingManager::rotateLogFile() {
 /**
  * @brief Delete old log files.
  *
- * Deletes log files if the total storage exceeds kMaxTotalLogBytes. The log
- * file name format is /logs/fdl/YYYYMMDD/N.log, where N is the next available
- * file number.
+ * Deletes log files if the total storage exceeds kMaxTotalLogBytes. All log
+ * files for the oldest day will deleted if the size is exceeded.
+ *
+ * The log file name format is /logs/fdl/YYYYMMDD/N.log, where N is the next
+ * available file number.
  *
  * @note The log directory name is based on the current date in the format
  * YYYYMMDD.
@@ -136,20 +138,24 @@ void LoggingManager::deleteOldLogs() {
  * @brief Add a log entry.
  *
  * Adds a log entry to the log file. The log entry format is
- * YYYY-MM-DDTHH:MM:SS - event - status.
+ * YYYY-MM-DDTHH:MM:SS,Input,State
+ *
+ *
  *
  * @param event The event to log.
  */
 void LoggingManager::addLog(const String& event) {
   char buffer[128];
+  DateTime now;
+  if (TimeManager::lostPower()) {
+    now = millis() / 1000 + SECONDS_FROM_1970_TO_2000;
+  } else {
+    now = TimeManager::systemTime();
+  }
 
+  // Create the daily log directory if it doesn't exist
   snprintf(buffer, sizeof(buffer), "%s/%s", LoggingManager::root_path_,
-           TimeManager::getCurrentDate().c_str());
-
-  String logEntry = TimeManager::getFormattedTime() + "," + event;
-
-  // Create the daily log directory if it doesn't exist (can happen if clock is
-  // running closer to 24:00)
+           TimeManager::getCurrentDate(now).c_str());
   if (!LittleFS.exists(buffer)) {
     if (!LittleFS.mkdir(buffer)) {
       Serial.println("Failed to create daily log directory:");
@@ -158,9 +164,9 @@ void LoggingManager::addLog(const String& event) {
     }
   }
 
+  // Open or create file to write log into
   snprintf(buffer, sizeof(buffer), "%s/%s/%d.log", LoggingManager::root_path_,
-           TimeManager::getCurrentDate().c_str(), file_number_);
-
+           TimeManager::getCurrentDate(now).c_str(), file_number_);
   fs::File file = LittleFS.open(buffer, FILE_APPEND);
   if (!file) {
     file = LittleFS.open(buffer, FILE_WRITE);
@@ -176,6 +182,7 @@ void LoggingManager::addLog(const String& event) {
   Serial.println(buffer);
 #endif
 
+  String logEntry = TimeManager::getFormattedTime(now) + "," + event;
   file.println(logEntry.c_str());
 
 #ifdef ENABLE_TRACE

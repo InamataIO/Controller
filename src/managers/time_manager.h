@@ -15,7 +15,9 @@ class TimeManager {
   static bool lostPower();
 
   static DateTime getPastDate(int days);
+  static String getFormattedTime(const DateTime& date_time);
   static String getFormattedTime();
+  static String getCurrentDate(const DateTime& date_time);
   static String getCurrentDate();
 
   static bool handleImprovUserData(const JsonObjectConst& data);
@@ -25,6 +27,12 @@ class TimeManager {
   static bool isValidDay(String day, int in_year, int in_month);
   static bool isValidHour(String hour);
   static bool isValidMinute(String minute);
+
+  static bool isLostPowerOnBoot();
+
+ private:
+  // On boot check if the RTC lost power
+  static bool lost_power_on_boot_;
 };
 }  // namespace inamata
 
