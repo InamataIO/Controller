@@ -95,9 +95,9 @@ void BleImprov::setState(improv::State state) {
   NimBLEAdvertising *ble_advertising =
       ble_improv_service_->getServer()->getAdvertising();
   ble_advertising->stop();
+  ble_advertising->setName(Storage::device_type_name_);
   ble_advertising->setServiceData(ble_improv_service_->getUUID(), service_data);
   ble_advertising->enableScanResponse(true);
-  ble_advertising->setPreferredParams(0x1E, 0x4B);  // ~30 ms to ~75 ms
   ble_advertising->start();
 
   // Save new state
@@ -163,8 +163,8 @@ void BleImprov::setupService() {
   ble_improv_service_->start();
 
   NimBLEAdvertising *ble_advertising = NimBLEDevice::getAdvertising();
+  ble_advertising->setName(Storage::device_type_name_);
   ble_advertising->enableScanResponse(true);
-  ble_advertising->setPreferredParams(0x1E, 0x4B);  // ~30 ms to ~75 ms
   ble_advertising->addServiceUUID(ble_improv_service_->getUUID());
   ble_advertising->start();
 }
