@@ -77,7 +77,7 @@ bool CheckConnectivity::TaskCallback() {
       }
     } else if (connect_mode == WiFiNetwork::ConnectMode::kConnected) {
       handleClockSync(now);
-      if (isTimeSynced()) {
+      if (Services::is_time_synced_) {
         handleWebSocket();
       }
     }
@@ -90,7 +90,7 @@ bool CheckConnectivity::TaskCallback() {
       gsm_network_->handleConnection();
       if (gsm_network_->isGprsConnected()) {
         handleClockSync(now);
-        if (isTimeSynced()) {
+        if (Services::is_time_synced_) {
           handleWebSocket();
         }
       }
@@ -142,16 +142,6 @@ void CheckConnectivity::handleClockSync(
     }
 #endif
   }
-}
-
-bool CheckConnectivity::isTimeSynced() {
-  bool is_synced = wifi_network_->isTimeSynced();
-#ifdef GSM_NETWORK
-  if (!is_synced) {
-    is_synced = gsm_network_->isTimeSynced();
-  }
-#endif
-  return is_synced;
 }
 
 void CheckConnectivity::handleWebSocket() {

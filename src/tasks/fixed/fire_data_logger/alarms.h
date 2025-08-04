@@ -166,6 +166,11 @@ class Alarms : public BaseTask {
 
   void handleMaintenanceMode();
 
+  /**
+   * Set the config for a bool limit
+   *
+   * The duration is clamped between 0 and 1
+   */
   static void setBoolLimitConfig(BoolLimit* limit, JsonObjectConst config);
   static void setDurationLimitConfig(DurationLimit* limit,
                                      JsonObjectConst config);

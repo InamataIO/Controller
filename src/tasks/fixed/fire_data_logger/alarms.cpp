@@ -4,7 +4,8 @@
 
 #include "managers/time_manager.h"
 #include "peripheral/fixed.h"
-#include "utils/chrono_abs.h"
+#include "utils/chrono.h"
+#include "utils/range.h"
 
 namespace inamata {
 namespace tasks {
@@ -442,6 +443,9 @@ void Alarms::sendLimitEvent(BaseLimit* limit,
   }
 
   JsonDocument limit_event;
+  if (Services::is_time_synced_) {
+    limit_event[WebSocket::time_key_] = utils::getIsoTimestamp();
+  }
   limit_event[WebSocket::limit_id_key_] = limit->limit_id.toString();
   limit_event[utils::ValueUnit::value_key] = value_unit.value;
   limit_event[WebSocket::fixed_peripheral_id_key_] =
@@ -700,7 +704,9 @@ void Alarms::setBoolLimitConfig(BoolLimit* limit, JsonObjectConst config) {
     }
     JsonVariantConst limit_delay_s = limit_config["delay_s"];
     if (limit_delay_s.is<float>()) {
-      limit->delay_duration = std::chrono::seconds(limit_delay_s);
+      float limit_delay_ms =
+          utils::clampf(limit_delay_s.as<float>(), 0, 1) * 1000;
+      limit->delay_duration = std::chrono::milliseconds(int(limit_delay_ms));
     }
   }
 }

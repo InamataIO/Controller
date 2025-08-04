@@ -3,10 +3,10 @@
 namespace inamata {
 namespace utils {
 
-const __FlashStringHelper* LimitEvent::event_type_key_ = FPSTR("event");
-const __FlashStringHelper* LimitEvent::start_type_ = FPSTR("str");
-const __FlashStringHelper* LimitEvent::continue_type_ = FPSTR("con");
-const __FlashStringHelper* LimitEvent::end_type_ = FPSTR("end");
+const char* LimitEvent::event_type_key_ = "event";
+const char* LimitEvent::start_type_ = "str";
+const char* LimitEvent::continue_type_ = "con";
+const char* LimitEvent::end_type_ = "end";
 
 }  // namespace utils
 }  // namespace inamata

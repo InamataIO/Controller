@@ -83,11 +83,6 @@ class WiFiNetwork {
    */
   void initTimeSync();
 
-  /**
-   * Whether the system clock has been synced since boot
-   */
-  bool isTimeSynced();
-
   static bool populateNetworkInfo(NetworkInfo& network_info);
 
   /**

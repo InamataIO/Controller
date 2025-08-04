@@ -29,12 +29,12 @@ struct ValueUnit {
    */
   const String targetUnitError(const UUID& other_data_point_type);
 
-  static const __FlashStringHelper* value_key;
-  static const __FlashStringHelper* value_key_error;
-  static const __FlashStringHelper* data_point_type_key;
-  static const __FlashStringHelper* fixed_data_point_type_key;
-  static const __FlashStringHelper* data_point_type_key_error;
-  static const __FlashStringHelper* data_points_key;
+  static const char* value_key;
+  static const char* value_key_error;
+  static const char* data_point_type_key;
+  static const char* fixed_data_point_type_key;
+  static const char* data_point_type_key_error;
+  static const char* data_points_key;
 
  private:
   static String mismatchUnitError(const UUID& expected_data_point_type,

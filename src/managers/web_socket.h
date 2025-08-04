@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 #include <WebSocketsClient.h>
 
+#include <deque>
 #include <functional>
 #include <map>
 #include <vector>
@@ -47,6 +48,17 @@ class WebSocket {
     bool secure_url;
   };
 
+  struct RetryMessage {
+    const std::vector<char> message;
+    const std::chrono::steady_clock::time_point created_at;
+    uint8_t tries;
+
+    RetryMessage(std::vector<char> message,
+                 std::chrono::steady_clock::time_point created_at,
+                 uint8_t tries)
+        : message(std::move(message)), created_at(created_at), tries(tries) {}
+  };
+
   /**
    * Connection to the Inamata server over websockets.
    *
@@ -72,6 +84,30 @@ class WebSocket {
   /**
    * Make a JSON object with the value units and UUID from the peripheral
    *
+   * Normal peripheral/DPT telemetry:
+   * {
+   *   type: "tel",
+   *   task: "...",
+   *   peripheral: "...",
+   *   <time: "...",>
+   *   data_points: [{
+   *     value: 0-9,
+   *     data_point_type: "..."
+   *   }]
+   * }
+   *
+   * Fixed peripheral/DPT telemetry:
+   * {
+   *   type: "tel",
+   *   task: "...",
+   *   fp_id: "...",
+   *   <time: "...",>
+   *   data_points: [{
+   *     value: 0-9,
+   *     fdpt_id: "..."
+   *   }]
+   * }
+   *
    * \param[in] values The measured values and data point types
    * \param[in] peripheral_id The ID of the peripheral that returned the values
    * \param[in] is_fixed Whether fixed peripheral and DPT IDs are used
@@ -95,6 +131,30 @@ class WebSocket {
 
   void sendSystem(JsonObject data);
 
+  /**
+   * Send or expire buffered retry messages
+   */
+  void handleRetryBuffer();
+
+  /**
+   * Save a message to the retry buffer
+   *
+   * \param buffer Message to be retried on reestablishing a connection
+   */
+  void saveToRetryBuffer(std::vector<char>& buffer);
+
+  /**
+   * Whether the message should be retried
+   *
+   * Checks the message's:
+   *  - retry count
+   *  - age of the message
+   *  - minimum size of message
+   *
+   * \return True if should retry
+   */
+  bool canRetryMessage(const RetryMessage& message);
+
   void resetUrl();
   void setUrl(const char* domain, const char* path = nullptr,
               bool secure_url = true);
@@ -107,52 +167,53 @@ class WebSocket {
   /**
    * Checks if the WebSocket connected to the server
    *
-   * @return true if connected
+   * \return true if connected
    */
   bool isConnected();
 
-  static const __FlashStringHelper* firmware_version_;
+  static const char* firmware_version_;
   String core_domain_;
   String ws_url_path_;
   bool secure_url_;
 
-  static const __FlashStringHelper* request_id_key_;
-  static const __FlashStringHelper* type_key_;
+  static const char* request_id_key_;
+  static const char* type_key_;
 
-  static const __FlashStringHelper* limit_event_type_;
-  static const __FlashStringHelper* result_type_;
-  static const __FlashStringHelper* telemetry_type_;
+  static const char* limit_event_type_;
+  static const char* result_type_;
+  static const char* telemetry_type_;
 
   /// Controller action object in command messages
-  static const __FlashStringHelper* action_key_;
-  static const __FlashStringHelper* behavior_key_;
-  static const __FlashStringHelper* task_key_;
-  static const __FlashStringHelper* system_type_;
-  static const __FlashStringHelper* lac_key_;
+  static const char* action_key_;
+  static const char* behavior_key_;
+  static const char* task_key_;
+  static const char* system_type_;
+  static const char* lac_key_;
 
   // Keys used in telemetry messages
-  static const __FlashStringHelper* telemetry_peripheral_key_;
-  static const __FlashStringHelper* fixed_peripheral_key_;
+  static const char* telemetry_peripheral_key_;
+  static const char* fixed_peripheral_key_;
+  static const char* time_key_;
 
   // Keys and names used by result messages
-  static const __FlashStringHelper* uuid_key_;
-  static const __FlashStringHelper* result_status_key_;
-  static const __FlashStringHelper* result_detail_key_;
-  static const __FlashStringHelper* result_success_name_;
-  static const __FlashStringHelper* result_fail_name_;
+  static const char* uuid_key_;
+  static const char* result_status_key_;
+  static const char* result_detail_key_;
+  static const char* result_success_name_;
+  static const char* result_fail_name_;
   /// Used by LACs to tell if they are running, installed or so
-  static const __FlashStringHelper* result_state_key_;
+  static const char* result_state_key_;
 
   // Limit keys
-  static const __FlashStringHelper* limit_id_key_;
-  static const __FlashStringHelper* fixed_peripheral_id_key_;
-  static const __FlashStringHelper* fixed_dpt_id_key_;
+  static const char* limit_id_key_;
+  static const char* fixed_peripheral_id_key_;
+  static const char* fixed_dpt_id_key_;
 
  private:
   /**
    * Perform setup and check if connect timeout has been reached
    *
-   * @return ConnectState kConnecting if retrying, kFailed if timed out
+   * \return ConnectState kConnecting if retrying, kFailed if timed out
    */
   ConnectState connect();
 
@@ -162,7 +223,7 @@ class WebSocket {
   /**
    * Save the up/down durations and timepoints when the connection state changes
    *
-   * @param is_connected True if the connection is currently connected
+   * \param is_connected True if the connection is currently connected
    */
   void updateUpDownTime(const bool is_connected);
   void sendUpDownTimeData();
@@ -174,11 +235,19 @@ class WebSocket {
    * that size and serialize the JSON into that buffer.
    * Add extra byte for the null terminator
    *
-   * @param doc JSON data to be sent
+   * \param doc JSON data to be sent
+   * \param retry Whether to retry sending if connection lost (default no)
+   * \param retry
    */
-  void sendJson(JsonVariantConst doc);
+  void sendJson(JsonVariantConst doc, const bool retry = false);
 
   bool is_setup_ = false;
+
+  std::deque<RetryMessage> retry_queue_;
+  static constexpr uint8_t kMaxRetryMessages_ = 10;
+  static constexpr uint8_t kMaxRetrySendAttempts_ = 5;
+  static constexpr std::chrono::seconds kMaxRetryMessageAge_ =
+      std::chrono::hours(1);
 
   /// Whether the WebSocket was connected during the last check
   bool was_connected_ = false;
@@ -212,8 +281,8 @@ class WebSocket {
   std::function<void()> sent_message_callback_;
 
   String ws_token_;
-  static const __FlashStringHelper* default_core_domain_;
-  static const __FlashStringHelper* default_ws_url_path_;
+  static const char* default_core_domain_;
+  static const char* default_ws_url_path_;
 };
 
 }  // namespace inamata

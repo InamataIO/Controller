@@ -12,7 +12,7 @@
 #include "managers/service_getters.h"
 #include "managers/web_socket.h"
 #include "tasks/base_task.h"
-#include "utils/chrono_abs.h"
+#include "utils/chrono.h"
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
 #include "peripheral/peripherals/pca9536d/pca9536d.h"
 #endif
@@ -60,13 +60,6 @@ class CheckConnectivity : public BaseTask {
    * Reinits time sync (NTP) service every day
    */
   void handleClockSync(const std::chrono::steady_clock::time_point now);
-
-  /**
-   * Checks if the time has been synced since power on
-   *
-   * @return True if synced either by WiFi or GSM network
-   */
-  bool isTimeSynced();
 
   /**
    * Performs WebSocket processing and ensure connected state

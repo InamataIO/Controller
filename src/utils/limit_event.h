@@ -13,10 +13,10 @@ class LimitEvent {
     kEnd,
   };
 
-  static const __FlashStringHelper* event_type_key_;
-  static const __FlashStringHelper* start_type_;
-  static const __FlashStringHelper* continue_type_;
-  static const __FlashStringHelper* end_type_;
+  static const char* event_type_key_;
+  static const char* start_type_;
+  static const char* continue_type_;
+  static const char* end_type_;
 };
 
 }  // namespace utils

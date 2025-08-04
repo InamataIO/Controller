@@ -97,6 +97,8 @@ ServiceGetters Services::getGetters() {
   return getters;
 }
 
+bool Services::is_time_synced_ = false;
+
 Scheduler Services::scheduler_{};
 
 ActionController Services::action_controller_{};

@@ -55,11 +55,6 @@ class GsmNetwork {
   void syncTime();
 
   /**
-   * Whether the time was synced at least once
-   */
-  bool isTimeSynced();
-
-  /**
    * Try to connect to GSM/EDGE/LTE network
    */
   void handleConnection();
@@ -85,7 +80,6 @@ class GsmNetwork {
   bool network_connected_ = false;
   bool gprs_connected_ = false;
   int16_t signal_quality_ = 0;
-  bool is_time_synced_ = false;
 
   TinyGsm modem_;
   TinyGsmClient client_;

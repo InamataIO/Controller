@@ -3,6 +3,7 @@
 #include "alarms.h"
 
 #include "peripheral/fixed.h"
+#include "utils/chrono.h"
 
 namespace inamata {
 namespace tasks {
@@ -194,6 +195,9 @@ void Alarms::sendLimitEvent(const utils::UUID& limit_id,
   }
 
   JsonDocument limit_event;
+  if (Services::is_time_synced_) {
+    limit_event[WebSocket::time_key_] = utils::getIsoTimestamp();
+  }
   limit_event[WebSocket::limit_id_key_] = limit_id.toString();
   limit_event[utils::ValueUnit::value_key] = value_unit.value;
   limit_event[WebSocket::fixed_peripheral_id_key_] =

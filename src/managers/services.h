@@ -71,6 +71,8 @@ class Services {
    */
   ServiceGetters getGetters();
 
+  static bool is_time_synced_;
+
  private:
   /// Handles WiFi network connectivity and time synchronization
   std::shared_ptr<WiFiNetwork> wifi_network_;

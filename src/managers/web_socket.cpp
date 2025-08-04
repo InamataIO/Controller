@@ -2,6 +2,9 @@
 
 #include <esp_tls.h>
 
+#include "managers/services.h"
+#include "utils/chrono.h"
+
 namespace inamata {
 
 WebSocketsClient websocket_client;
@@ -99,6 +102,7 @@ WebSocket::ConnectState WebSocket::handle() {
       sendUpDownTimeData();
     }
     websocket_client.loop();
+    handleRetryBuffer();
     return ConnectState::kConnected;
   }
 
@@ -111,14 +115,24 @@ void WebSocket::resetConnectAttempt() {
 
 void WebSocket::sendTelemetry(JsonObject data, const utils::UUID* task_id,
                               const utils::UUID* lac_id) {
+  // Only retry if time has been set, as else outdated server time is used
+  bool retry = false;
+  if (!data[time_key_].isNull()) {
+    retry = true;
+  } else {
+    TRACELN("Time not set for telemetry message");
+  }
+
   data[WebSocket::type_key_] = WebSocket::telemetry_type_;
+
+  // Set task and LAC IDs if given to be able to reference initiator
   if (task_id && task_id->isValid()) {
     data[WebSocket::task_key_] = task_id->toString();
   }
   if (lac_id && lac_id->isValid()) {
     data[WebSocket::lac_key_] = lac_id->toString();
   }
-  sendJson(data);
+  sendJson(data, retry);
 }
 
 void WebSocket::packageTelemetry(const std::vector<utils::ValueUnit>& values,
@@ -129,9 +143,8 @@ void WebSocket::packageTelemetry(const std::vector<utils::ValueUnit>& values,
       telemetry[utils::ValueUnit::data_points_key].to<JsonArray>();
 
   // Create a JSON object representation for each value unit in the array
-  const __FlashStringHelper* dpt_key =
-      is_fixed ? utils::ValueUnit::fixed_data_point_type_key
-               : utils::ValueUnit::data_point_type_key;
+  const char* dpt_key = is_fixed ? utils::ValueUnit::fixed_data_point_type_key
+                                 : utils::ValueUnit::data_point_type_key;
   for (const auto& value_unit : values) {
     JsonObject value_unit_object = value_units_doc.add<JsonObject>();
     value_unit_object[utils::ValueUnit::value_key] = value_unit.value;
@@ -140,14 +153,23 @@ void WebSocket::packageTelemetry(const std::vector<utils::ValueUnit>& values,
 
   // Add the peripheral UUID to the result. Fixed peripherals use a different
   // key to allow the server to map to the generated peripheral
-  const __FlashStringHelper* peripheral_key =
+  const char* peripheral_key =
       is_fixed ? fixed_peripheral_key_ : telemetry_peripheral_key_;
   telemetry[peripheral_key] = peripheral_id.toString();
+
+  // Set the time
+  if (Services::is_time_synced_) {
+    telemetry[time_key_] = utils::getIsoTimestamp();
+  }
 }
 
 void WebSocket::sendLimitEvent(JsonObject data) {
   data[WebSocket::type_key_] = WebSocket::limit_event_type_;
-  sendJson(data);
+  bool retry = false;
+  if (!data[WebSocket::time_key_].isNull()) {
+    retry = true;
+  }
+  sendJson(data, retry);
 }
 
 void WebSocket::sendBootErrors() {
@@ -402,13 +424,17 @@ void WebSocket::sendUpDownTimeData() {
   }
 }
 
-void WebSocket::sendJson(JsonVariantConst doc) {
+void WebSocket::sendJson(JsonVariantConst doc, const bool retry) {
   std::vector<char> buffer = std::vector<char>(measureJson(doc) + 1);
   size_t n = serializeJson(doc, buffer.data(), buffer.size());
   TRACELN(buffer.data());
-  bool success = websocket_client.sendTXT(buffer.data(), n);
+  const bool success = websocket_client.sendTXT(buffer.data(), n);
   if (!success) {
-    TRACELN(F("Failed sending"));
+    if (retry) {
+      saveToRetryBuffer(buffer);
+    } else {
+      TRACELN("Failed sending");
+    }
   } else {
     if (sent_message_callback_) {
       sent_message_callback_();
@@ -416,40 +442,95 @@ void WebSocket::sendJson(JsonVariantConst doc) {
   }
 }
 
-const __FlashStringHelper* WebSocket::firmware_version_ =
-    FPSTR(FIRMWARE_VERSION);
+void WebSocket::handleRetryBuffer() {
+  if (retry_queue_.empty()) {
+    return;
+  }
 
-const __FlashStringHelper* WebSocket::request_id_key_ = FPSTR("request_id");
-const __FlashStringHelper* WebSocket::type_key_ = FPSTR("type");
+  RetryMessage& retry_message = retry_queue_.back();
+  // Check if retry limit exceeded. Delete item if retries exceeded
+  if (!canRetryMessage(retry_message)) {
+    retry_queue_.pop_back();
+    return;
+  }
 
-const __FlashStringHelper* WebSocket::telemetry_peripheral_key_ =
-    FPSTR("peripheral");
-const __FlashStringHelper* WebSocket::fixed_peripheral_key_ = FPSTR("fp_id");
+  // Try to send the failed message
+  const bool success = websocket_client.sendTXT(
+      retry_message.message.data(), retry_message.message.size() - 1);
+  if (success) {
+    Serial.println("Sent retry message");
+    retry_queue_.pop_back();
+    return;
+  }
 
-const __FlashStringHelper* WebSocket::uuid_key_ = FPSTR("uuid");
-const __FlashStringHelper* WebSocket::result_status_key_ = FPSTR("status");
-const __FlashStringHelper* WebSocket::result_detail_key_ = FPSTR("detail");
-const __FlashStringHelper* WebSocket::result_success_name_ = FPSTR("success");
-const __FlashStringHelper* WebSocket::result_fail_name_ = FPSTR("fail");
-const __FlashStringHelper* WebSocket::result_state_key_ = FPSTR("state");
+  // Retry failed so queue the message again if possible
+  retry_message.tries++;
+  if (canRetryMessage(retry_message)) {
+    Serial.println("Requeueing retry message");
+    retry_queue_.push_front(std::move(retry_queue_.back()));
+    retry_queue_.pop_back();
+  } else {
+    Serial.println("Dropping retry message");
+    retry_queue_.pop_back();
+  }
+  return;
+}
 
-const __FlashStringHelper* WebSocket::limit_event_type_ = FPSTR("lim");
-const __FlashStringHelper* WebSocket::result_type_ = FPSTR("result");
-const __FlashStringHelper* WebSocket::telemetry_type_ = FPSTR("tel");
+void WebSocket::saveToRetryBuffer(std::vector<char>& buffer) {
+  bool pop_back = false;
+  if (retry_queue_.size() >= kMaxRetryMessages_) {
+    retry_queue_.pop_back();
+    pop_back = true;
+  }
+  TRACEF("Saving to retry buffer (%d:%d)\r\n", retry_queue_.size(), pop_back);
+  retry_queue_.emplace_front(buffer, std::chrono::steady_clock::now(), 0);
+}
 
-const __FlashStringHelper* WebSocket::action_key_ = FPSTR("action");
-const __FlashStringHelper* WebSocket::behavior_key_ = FPSTR("behav");
-const __FlashStringHelper* WebSocket::task_key_ = FPSTR("task");
-const __FlashStringHelper* WebSocket::system_type_ = FPSTR("sys");
-const __FlashStringHelper* WebSocket::lac_key_ = FPSTR("lac");
+bool WebSocket::canRetryMessage(const RetryMessage& message) {
+  if (message.message.size() <= 0) {
+    return false;
+  }
+  if (message.tries > kMaxRetrySendAttempts_) {
+    return false;
+  }
+  if (utils::chrono_abs(std::chrono::steady_clock::now() - message.created_at) >
+      kMaxRetryMessageAge_) {
+    return false;
+  }
+  return true;
+}
 
-const __FlashStringHelper* WebSocket::default_core_domain_ =
-    FPSTR("core.inamata.io");
-const __FlashStringHelper* WebSocket::default_ws_url_path_ =
-    FPSTR("/controller-ws/v1/");
+const char* WebSocket::firmware_version_ = FIRMWARE_VERSION;
 
-const __FlashStringHelper* WebSocket::limit_id_key_ = FPSTR("limit_id");
-const __FlashStringHelper* WebSocket::fixed_peripheral_id_key_ = FPSTR("fp_id");
-const __FlashStringHelper* WebSocket::fixed_dpt_id_key_ = FPSTR("fdpt_id");
+const char* WebSocket::request_id_key_ = "request_id";
+const char* WebSocket::type_key_ = "type";
+
+const char* WebSocket::telemetry_peripheral_key_ = "peripheral";
+const char* WebSocket::fixed_peripheral_key_ = "fp_id";
+const char* WebSocket::time_key_ = "time";
+
+const char* WebSocket::uuid_key_ = "uuid";
+const char* WebSocket::result_status_key_ = "status";
+const char* WebSocket::result_detail_key_ = "detail";
+const char* WebSocket::result_success_name_ = "success";
+const char* WebSocket::result_fail_name_ = "fail";
+const char* WebSocket::result_state_key_ = "state";
+
+const char* WebSocket::limit_event_type_ = "lim";
+const char* WebSocket::result_type_ = "result";
+const char* WebSocket::telemetry_type_ = "tel";
+
+const char* WebSocket::action_key_ = "action";
+const char* WebSocket::behavior_key_ = "behav";
+const char* WebSocket::task_key_ = "task";
+const char* WebSocket::system_type_ = "sys";
+const char* WebSocket::lac_key_ = "lac";
+
+const char* WebSocket::default_core_domain_ = "core.inamata.io";
+const char* WebSocket::default_ws_url_path_ = "/controller-ws/v1/";
+
+const char* WebSocket::limit_id_key_ = "limit_id";
+const char* WebSocket::fixed_peripheral_id_key_ = "fp_id";
+const char* WebSocket::fixed_dpt_id_key_ = "fdpt_id";
 
 }  // namespace inamata

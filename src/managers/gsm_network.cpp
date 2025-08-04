@@ -4,8 +4,9 @@
 
 #include "configuration.h"
 #include "logging.h"
+#include "managers/services.h"
 #include "peripheral/fixed.h"
-#include "utils/chrono_abs.h"
+#include "utils/chrono.h"
 
 #ifdef RTC_MANAGER
 #include "managers/time_manager.h"
@@ -108,7 +109,7 @@ void GsmNetwork::syncTime() {
   tv.tv_usec = 0;
   settimeofday(&tv, NULL);
 
-  is_time_synced_ = true;
+  Services::is_time_synced_ = true;
 
 #ifdef RTC_MANAGER
   if (TimeManager::lostPower()) {
@@ -149,8 +150,6 @@ void GsmNetwork::handleConnection() {
 bool GsmNetwork::isNetworkConnected() { return network_connected_; }
 
 bool GsmNetwork::isGprsConnected() { return gprs_connected_; }
-
-bool GsmNetwork::isTimeSynced() { return is_time_synced_; }
 
 String GsmNetwork::encodeSms(const char* text) {
   const size_t text_length = strlen(text);

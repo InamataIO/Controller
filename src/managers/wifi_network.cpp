@@ -1,17 +1,16 @@
 #include "wifi_network.h"
 
-#include "esp_sntp.h"
+#include <esp_sntp.h>
 
+#include "managers/services.h"
 #ifdef RTC_MANAGER
 #include "managers/time_manager.h"
 #endif
 
 namespace inamata {
 
-bool is_time_synced = false;
-
 void timeSyncCallback(struct timeval* tv) {
-  is_time_synced = true;
+  Services::is_time_synced_ = true;
 
 #ifdef TRACELN
   time_t nowSecs = time(nullptr);
@@ -25,6 +24,8 @@ void timeSyncCallback(struct timeval* tv) {
     TRACELN("WiFi updated RTC clock");
   }
 #endif
+  // Use a smooth sync for future syncing
+  sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
 }
 
 WiFiNetwork::WiFiNetwork(std::vector<WiFiAP>& wifi_aps, String& controller_name)
@@ -356,10 +357,12 @@ bool WiFiNetwork::tryCyclePower() {
 void WiFiNetwork::initTimeSync() {
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
   sntp_set_time_sync_notification_cb(timeSyncCallback);
+  if (!sntp_enabled()) {
+    sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
+    sntp_init();
+  }
   TRACELN(F("Start time sync"));
 }
-
-bool WiFiNetwork::isTimeSynced() { return is_time_synced; }
 
 bool WiFiNetwork::populateNetworkInfo(NetworkInfo& network_info) {
   if (network_info.id < 0 || network_info.id > 255) {
