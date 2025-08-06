@@ -31,6 +31,8 @@ class LoggingManager {
   LoggingManager();
   void addLog(const String &event);
   void showCurrentLog();
+  bool toggleRealTimeLogs();
+  bool getRealTimeLogsState();
 
   static const char *root_path_;
 
@@ -46,6 +48,8 @@ class LoggingManager {
 
   int file_number_;
   int log_count_;
+
+  bool enable_real_time_logs = false;
 
   static std::vector<LoggingManager::LogPath> getAllLogPaths();
 

@@ -37,6 +37,9 @@ class BehaviorController {
   utils::UUID behavior_id_{nullptr};
   uint64_t updated_at_{0};
   bool sent_fixed_peripherals_ = false;
+#ifdef GSM_NETWORK
+  bool sent_gsm_details = false;
+#endif
 
   ServiceGetters services_;
   /// Callbacks that parse behavior configs

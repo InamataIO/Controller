@@ -43,9 +43,6 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
   input_bank_2_ =
       std::dynamic_pointer_cast<PCA9539>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_io_2_id));
-  input_bank_3_ =
-      std::dynamic_pointer_cast<PCA9536D>(peripheral_controller.getPeripheral(
-          peripheral::fixed::peripheral_io_3_id));
   input_bank_4_[0] =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_electric_control_circuit_fail_id));
@@ -73,6 +70,9 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
   maintenance_input_ =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_maintenance_input_id));
+  maintenance_button_ =
+      std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
+          peripheral::fixed::peripheral_maintenance_button_id));
   status_led_ =
       std::dynamic_pointer_cast<NeoPixel>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_status_led_id));
@@ -83,20 +83,20 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
           peripheral::fixed::peripheral_relay_2_id));
 
-  if (!input_bank_1_ || !input_bank_2_ || !input_bank_3_ || !input_bank_4_[0] ||
+  if (!input_bank_1_ || !input_bank_2_ || !input_bank_4_[0] ||
       !input_bank_4_[1] || !input_bank_4_[2] || !input_bank_4_[3] ||
       !input_bank_4_[4] || !input_bank_4_[5] || !input_bank_4_[6] ||
-      !input_bank_4_[7] || !maintenance_input_ || !status_led_ || !relay_1_ ||
-      !relay_2_) {
+      !input_bank_4_[7] || !maintenance_input_ || !maintenance_button_ ||
+      !status_led_ || !relay_1_ || !relay_2_) {
     char buffer[54];
     const int len = snprintf(
         buffer, sizeof(buffer),
         "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
-        bool(input_bank_1_), bool(input_bank_2_), bool(input_bank_3_),
-        bool(input_bank_4_[0]), bool(input_bank_4_[1]), bool(input_bank_4_[2]),
-        bool(input_bank_4_[3]), bool(input_bank_4_[4]), bool(input_bank_4_[5]),
-        bool(input_bank_4_[6]), bool(input_bank_4_[7]),
-        bool(maintenance_input_), bool(status_led_), bool(relay_1_),
+        bool(input_bank_1_), bool(input_bank_2_), bool(input_bank_4_[0]),
+        bool(input_bank_4_[1]), bool(input_bank_4_[2]), bool(input_bank_4_[3]),
+        bool(input_bank_4_[4]), bool(input_bank_4_[5]), bool(input_bank_4_[6]),
+        bool(input_bank_4_[7]), bool(maintenance_input_),
+        bool(maintenance_button_), bool(status_led_), bool(relay_1_),
         bool(relay_2_));
     setInvalid(buffer);
     return;
@@ -430,15 +430,15 @@ void Alarms::sendLimitEvent(BaseLimit* limit,
                             const utils::ValueUnit& value_unit,
                             const utils::LimitEvent::Type type) {
   if (limit == nullptr) {
-    Serial.println("Limit nullptr");
+    TRACELN("Limit nullptr");
     return;
   }
   sendStartStopSms(limit, value_unit, type);
 
   // Don't send if the controller limit ID or FP ID was not set
   if (!limit->limit_id.isValid() || limit->fixed_peripheral_id == nullptr) {
-    Serial.printf("Limit event: %d : %s\r\n", int(type),
-                  value_unit.data_point_type.toString().c_str());
+    TRACEF("Limit event: %d : %s\r\n", int(type),
+           value_unit.data_point_type.toString().c_str());
     return;
   }
 
@@ -495,7 +495,7 @@ void Alarms::sendStartStopSms(BaseLimit* limit,
           contact.group_data[kGroupDataManagementBit]) {
         Serial.println(contact.cleanPhoneNumber());
         Serial.println(text);
-        // gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
+        gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
       }
     }
   } else {
@@ -503,7 +503,7 @@ void Alarms::sendStartStopSms(BaseLimit* limit,
       if (contact.group_data[kGroupDataMaintenanceBit]) {
         Serial.println(contact.cleanPhoneNumber());
         Serial.println(text);
-        // gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
+        gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
       }
     }
   }
@@ -547,7 +547,7 @@ void Alarms::handleSmsReminders() {
               contact.group_data[kGroupDataManagementBit]) {
             Serial.println(contact.cleanPhoneNumber());
             Serial.println(text);
-            // gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
+            gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
           }
         }
       }
@@ -561,7 +561,7 @@ void Alarms::handleSmsReminders() {
               contact.group_data[kGroupDataManagementBit]) {
             Serial.println(contact.cleanPhoneNumber());
             Serial.println(text);
-            // gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
+            gsm_network_->modem_.sendSMS(contact.cleanPhoneNumber(), text);
           }
         }
       }
@@ -615,7 +615,7 @@ void Alarms::sendMaintenanceDataPoint(bool on) {
   JsonObject result_object = doc_out.to<JsonObject>();
   WebSocket::packageTelemetry(
       {utils::ValueUnit(on, peripheral::fixed::dpt_maintenance_mode_id)},
-      peripheral::fixed::peripheral_io_3_id, true, result_object);
+      peripheral::fixed::peripheral_maintenance_button_id, true, result_object);
   web_socket_->sendTelemetry(result_object);
 }
 
@@ -636,23 +636,14 @@ bool Alarms::ignoreCrossedLimit(std::chrono::steady_clock::time_point& start,
 
 void Alarms::handleMaintenanceMode() {
   // Set state of on-board maintenance button
-  const auto result = input_bank_3_->getValues();
-  for (const auto& value : result.values) {
-    if (value.data_point_type == peripheral::fixed::dpt_maintenance_mode_id) {
-      const bool state = value.value > 0.5;
-      maintenance_button_.setCurrentState(state);
-      break;
-    }
-  }
-  maintenance_button_.update();
+  maintenance_button_->update();
 
   // Set state of external maintenance input button
   maintenance_input_->update();
 
-  if (maintenance_button_.rose() || maintenance_input_->rose()) {
+  if (maintenance_button_->rose() || maintenance_input_->rose()) {
     is_maintenance_mode_ = !is_maintenance_mode_;
-    const utils::UUID relay_dpt =
-        utils::UUID::fromFSH(peripheral::fixed::dpt_relay_id);
+    const utils::UUID relay_dpt = utils::UUID(peripheral::fixed::dpt_relay_id);
     if (is_maintenance_mode_) {
       // Entered maintenance mode
       status_led_->setOverride(utils::Color::fromRgbw(100, 0, 0, 0));
@@ -764,7 +755,8 @@ void Alarms::setMaintenanceLimitConfig(BaseLimit* limit,
     utils::UUID limit_id(maintenance_limit[WebSocket::limit_id_key_]);
     if (limit_id.isValid()) {
       limit->limit_id = limit_id;
-      limit->fixed_peripheral_id = &peripheral::fixed::peripheral_io_3_id;
+      limit->fixed_peripheral_id =
+          &peripheral::fixed::peripheral_maintenance_button_id;
     }
   }
 }

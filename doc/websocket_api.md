@@ -150,6 +150,7 @@ well-known controller type.
   bv: int,
   fps: [{fid: UUID/str, fdpts: [{fid: UUID/str, <prefix: str>}]}],
   >
+  <sim: {iccid: str, imsi: str}>
 }
 ```
 
@@ -188,7 +189,6 @@ In order to stop a task, send its ID to the stop topic.
 | parameter | content               |
 | --------- | --------------------- |
 | id        | unique ID of the task |
-
 
 ## Behavior
 

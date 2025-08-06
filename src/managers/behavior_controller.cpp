@@ -53,6 +53,25 @@ void BehaviorController::setRegisterData(JsonObject msg) {
     sent_fixed_peripherals_ = true;
     peripheral::fixed::setRegisterFixedPeripherals(msg);
   }
+#ifdef GSM_NETWORK
+  if (!sent_gsm_details && services_.getGsmNetwork()->isEnabled()) {
+    sent_gsm_details = true;
+    JsonObject sim_obj = msg["sim"].to<JsonObject>();
+    String id = services_.getGsmNetwork()->modem_.getSimCCID();
+    if (!id.isEmpty()) {
+      sim_obj["iccid"] = id;
+    }
+    id = services_.getGsmNetwork()->modem_.getIMSI();
+    if (!id.isEmpty()) {
+      sim_obj["imsi"] = id;
+    }
+    // Not supported ATM for SIMCom 7600
+    // String id = services_.getGsmNetwork()->modem_.getIMEI();
+    // if (!id.isEmpty()) {
+    //   sim_obj["imei"] = id;
+    // }
+  }
+#endif
 }
 
 const __FlashStringHelper* BehaviorController::set_command_key_ = FPSTR("set");

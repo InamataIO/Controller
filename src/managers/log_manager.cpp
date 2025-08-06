@@ -184,6 +184,9 @@ void LoggingManager::addLog(const String& event) {
 
   String logEntry = TimeManager::getFormattedTime(now) + "," + event;
   file.println(logEntry.c_str());
+  if (enable_real_time_logs) {
+    Serial.println(logEntry);
+  }
 
 #ifdef ENABLE_TRACE
   Serial.print("Log Entry: ");
@@ -223,6 +226,25 @@ void LoggingManager::showCurrentLog() {
 
   file.close();
 }
+
+/**
+ * @brief Toggle real-time logs state
+ *
+ * When enabled, all new logs are logged to serial in real-time.
+ *
+ * @return True if real-time logs are enabled
+ */
+bool LoggingManager::toggleRealTimeLogs() {
+  enable_real_time_logs = !enable_real_time_logs;
+  return enable_real_time_logs;
+}
+
+/**
+ * @brief Get real-time logs state
+ *
+ * @return True if real-time logs are enabled
+ */
+bool LoggingManager::getRealTimeLogsState() { return enable_real_time_logs; }
 
 /**
  * @brief Get all log paths.

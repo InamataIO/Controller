@@ -18,10 +18,10 @@ UserInput::UserInput(const ServiceGetters& services, Scheduler& scheduler,
   auto& peripheral_controller = Services::getPeripheralController();
   touch_1_ =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_touch_1_id)));
+          utils::UUID(peripheral::fixed::peripheral_touch_1_id)));
   touch_2_ =
       std::dynamic_pointer_cast<DigitalIn>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_touch_2_id)));
+          utils::UUID(peripheral::fixed::peripheral_touch_2_id)));
 
   // TODO: Check if touch_1/_2 are nullptr
   Services::getActionController().setIdentifyCallback(

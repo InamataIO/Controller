@@ -14,7 +14,7 @@
 #include "tasks/base_task.h"
 #include "utils/chrono.h"
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
-#include "peripheral/peripherals/pca9536d/pca9536d.h"
+#include "peripheral/peripherals/digital_in/digital_in.h"
 #endif
 
 namespace inamata {
@@ -24,7 +24,7 @@ namespace connectivity {
 class CheckConnectivity : public BaseTask {
  public:
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
-  using PCA9536D = peripheral::peripherals::pca9536d::PCA9536D;
+  using DigitalIn = peripheral::peripherals::digital_in::DigitalIn;
 #endif
 
   enum class Mode {
@@ -126,7 +126,7 @@ class CheckConnectivity : public BaseTask {
   bool disable_captive_portal_timeout_ = false;
 #endif
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
-  std::shared_ptr<PCA9536D> input_bank_;
+  std::shared_ptr<DigitalIn> gsm_wifi_toggle_;
 #endif
 
   ServiceGetters services_;

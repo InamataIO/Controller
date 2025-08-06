@@ -21,7 +21,8 @@ ConfigurationManagementTask::ConfigurationManagementTask(
     setInvalid(ServiceGetters::config_manager_nullptr_error_);
     return;
   }
-  const String error = config_manager_->init(services.getStorage());
+  const String error = config_manager_->init(services.getStorage(),
+                                             services.getLoggingManager());
   if (!error.isEmpty()) {
     setInvalid(error);
     return;

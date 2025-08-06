@@ -21,7 +21,7 @@ bool loadNetwork(Services& services, JsonObjectConst secrets) {
                           i[Storage::wifi_ap_password_key_].as<const char*>(),
                           -1, false);
   }
-  String controller_name = secrets[F("name")].as<const char*>();
+  String controller_name = secrets["name"].as<const char*>();
   if (controller_name.isEmpty()) {
     controller_name = Storage::device_type_name_;
   }
@@ -95,7 +95,7 @@ bool createSystemTasks(Services& services) {
   // Check if they were created, enable them and check if they started
   for (tasks::BaseTask* task : tasks) {
     if (!task) {
-      TRACELN(F("Failed creating task"));
+      TRACELN("Failed creating task");
       return false;
     }
     task->enable();
@@ -170,7 +170,7 @@ bool setupNode(Services& services) {
   // Enable serial communication and prints
   Serial.begin(115200);
   delay(2000);
-  Serial.print(F("Fimware version: "));
+  Serial.print("Fimware version: ");
   Serial.println(WebSocket::firmware_version_);
 
   // Load and start subsystems that need secrets
@@ -208,6 +208,7 @@ bool setupNode(Services& services) {
 #endif
 
 #ifdef CONFIGURATION_MANAGER
+  services.setLoggingManager(std::make_shared<LoggingManager>());
   services.setConfigManager(std::make_shared<ConfigManager>());
 
   tasks::config_man::ConfigurationManagementTask* config_task =
@@ -218,7 +219,6 @@ bool setupNode(Services& services) {
     TRACELN(config_task->getError().toString());
     delete config_task;
   }
-  services.setLoggingManager(std::make_shared<LoggingManager>());
 #endif
 
   if (peripheral::fixed::configs[0] != nullptr) {

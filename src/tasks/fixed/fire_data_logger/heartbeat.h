@@ -1,7 +1,7 @@
 #pragma once
 
 #include "peripheral/fixed.h"
-#include "peripheral/peripherals/pca9536d/pca9536d.h"
+#include "peripheral/peripherals/digital_out/digital_out.h"
 #include "tasks/base_task.h"
 
 namespace inamata {
@@ -10,7 +10,7 @@ namespace fixed {
 
 class Heartbeat : public BaseTask {
  public:
-  using PCA9536D = peripheral::peripherals::pca9536d::PCA9536D;
+  using DigitalOut = peripheral::peripherals::digital_out::DigitalOut;
 
   Heartbeat(Scheduler& scheduler);
   virtual ~Heartbeat() = default;
@@ -21,7 +21,7 @@ class Heartbeat : public BaseTask {
   bool TaskCallback();
 
  private:
-  std::shared_ptr<PCA9536D> io_bank_1_;
+  std::shared_ptr<DigitalOut> heartbeat_led_;
   /// Blinking LED state
   bool state = false;
 

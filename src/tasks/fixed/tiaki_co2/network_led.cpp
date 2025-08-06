@@ -12,10 +12,10 @@ namespace fixed {
 NetworkLed::NetworkLed(const ServiceGetters& services, Scheduler& scheduler,
                        const JsonObjectConst& behavior_config)
     : BaseTask(scheduler, Input(nullptr, true)),
-      led_dpt_(utils::UUID::fromFSH(peripheral::fixed::dpt_led_id)) {
+      led_dpt_(utils::UUID(peripheral::fixed::dpt_led_id)) {
   auto& peripheral_controller = Services::getPeripheralController();
   utils::UUID led_id =
-      utils::UUID::fromFSH(peripheral::fixed::peripheral_led_network_id);
+      utils::UUID(peripheral::fixed::peripheral_led_network_id);
   network_led_ = std::dynamic_pointer_cast<DigitalOut>(
       peripheral_controller.getPeripheral(led_id));
   if (!network_led_) {

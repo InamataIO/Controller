@@ -14,12 +14,12 @@ using namespace std::placeholders;
 Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
                const JsonObjectConst& behavior_config)
     : PollAbstract(scheduler),
-      led_dpt_(utils::UUID::fromFSH(peripheral::fixed::dpt_led_id)),
-      relay_dpt_(utils::UUID::fromFSH(peripheral::fixed::dpt_relay_id)),
-      current_dpt_(utils::UUID::fromFSH(peripheral::fixed::dpt_current_a_id)),
-      buzzer_dpt_(utils::UUID::fromFSH(peripheral::fixed::dpt_buzzer_id)),
-      co2_dpt_(utils::UUID::fromFSH(peripheral::fixed::dpt_co2_ppm_id)),
-      voc_dpt_(utils::UUID::fromFSH(peripheral::fixed::dpt_voc_index_id)) {
+      led_dpt_(utils::UUID(peripheral::fixed::dpt_led_id)),
+      relay_dpt_(utils::UUID(peripheral::fixed::dpt_relay_id)),
+      current_dpt_(utils::UUID(peripheral::fixed::dpt_current_a_id)),
+      buzzer_dpt_(utils::UUID(peripheral::fixed::dpt_buzzer_id)),
+      co2_dpt_(utils::UUID(peripheral::fixed::dpt_co2_ppm_id)),
+      voc_dpt_(utils::UUID(peripheral::fixed::dpt_voc_index_id)) {
   if (!isValid()) {
     return;
   }

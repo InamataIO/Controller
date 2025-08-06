@@ -14,26 +14,26 @@ Relays::Relays() {
 
   buzzer_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_buzzer_id)));
+          utils::UUID(peripheral::fixed::peripheral_buzzer_id)));
   relay_alarm_1_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_relay_1_id)));
+          utils::UUID(peripheral::fixed::peripheral_relay_1_id)));
   relay_alarm_2_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_relay_2_id)));
+          utils::UUID(peripheral::fixed::peripheral_relay_2_id)));
   relay_alarm_3_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_relay_3_id)));
+          utils::UUID(peripheral::fixed::peripheral_relay_3_id)));
   relay_alarm_4_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_relay_4_id)));
+          utils::UUID(peripheral::fixed::peripheral_relay_4_id)));
   analog_out_ =
       std::dynamic_pointer_cast<GP8XXX>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_analog_out_id)));
+          utils::UUID(peripheral::fixed::peripheral_analog_out_id)));
 }
 
 String Relays::checkRelays() {
-  const __FlashStringHelper* peripheral_id = nullptr;
+  const char* peripheral_id = nullptr;
   if (!buzzer_) {
     peripheral_id = peripheral::fixed::peripheral_buzzer_id;
   } else if (!relay_alarm_1_) {

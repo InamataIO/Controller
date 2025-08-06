@@ -13,26 +13,26 @@ Leds::Leds() {
   auto& peripheral_controller = Services::getPeripheralController();
   led_fault_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_led_fault_id)));
+          utils::UUID(peripheral::fixed::peripheral_led_fault_id)));
   led_alarm_1_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_led_alarm_1_id)));
+          utils::UUID(peripheral::fixed::peripheral_led_alarm_1_id)));
   led_alarm_2_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_led_alarm_2_id)));
+          utils::UUID(peripheral::fixed::peripheral_led_alarm_2_id)));
   led_alarm_3_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_led_alarm_3_id)));
+          utils::UUID(peripheral::fixed::peripheral_led_alarm_3_id)));
   led_alarm_4_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_led_alarm_4_id)));
+          utils::UUID(peripheral::fixed::peripheral_led_alarm_4_id)));
   led_network_ =
       std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
-          utils::UUID::fromFSH(peripheral::fixed::peripheral_led_network_id)));
+          utils::UUID(peripheral::fixed::peripheral_led_network_id)));
 }
 
 String Leds::checkLeds() {
-  const __FlashStringHelper* peripheral_id = nullptr;
+  const char* peripheral_id = nullptr;
   if (!led_fault_) {
     peripheral_id = peripheral::fixed::peripheral_led_fault_id;
   } else if (!led_alarm_1_) {

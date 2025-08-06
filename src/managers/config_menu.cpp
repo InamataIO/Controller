@@ -9,14 +9,21 @@
 
 namespace inamata {
 
-String ConfigManager::init(std::shared_ptr<Storage> storage) {
+String ConfigManager::init(std::shared_ptr<Storage> storage,
+                           std::shared_ptr<LoggingManager> logging_manager) {
+  // Ensure that storage and logging manager have been set
+  storage_ = storage;
+  if (!storage_) {
+    return ServiceGetters::storage_nullptr_error_;
+  }
+  logging_manager_ = logging_manager;
+  if (!logging_manager_) {
+    return ServiceGetters::log_manager_nullptr_error_;
+  }
+
   resetSubState();
   menu_state_ = MenuState::kIdle;
 
-  if (!storage) {
-    return ServiceGetters::storage_nullptr_error_;
-  }
-  storage_ = storage;
   JsonDocument config;
   ErrorResult error = storage_->loadCustomConfig(config);
   if (!error.isError() && !config.isNull()) {
@@ -814,7 +821,8 @@ void ConfigManager::showAllContacts() {
 void ConfigManager::printMenu() {
   menu_state_ = MenuState::kMainMenu;
 
-  Serial.println("\r\nDevice Configuration Menu\r\n");
+  Serial.println("\r\nDevice Configuration Menu");
+  Serial.printf("Firmware: %s\r\n\r\n", WebSocket::firmware_version_);
   Serial.printf("[1] Show contact list (%d)\r\n", person_manager_.getCount());
   Serial.println("[2] Add contact");
   Serial.println("[3] Edit contact details");
@@ -830,6 +838,8 @@ void ConfigManager::printMenu() {
 #endif
   Serial.println("[6] Show log entries");
   Serial.printf("[7] Edit location name (%s)\r\n", location_.c_str());
+  Serial.printf("[L] Toggle real-time logging (%s)\r\n",
+                logging_manager_->getRealTimeLogsState() ? "On" : "Off");
   Serial.println("[R] Factory reset");
   Serial.println("[X] Exit configuration menu");
   Serial.print("\r\nSelection: ");
@@ -1133,6 +1143,10 @@ void ConfigManager::handleInput(char input) {
       break;
     case '7':
       is_still_in_state = editLocationName(input);
+      break;
+    case 'l':
+    case 'L':
+      logging_manager_->toggleRealTimeLogs();
       break;
     case 'r':
     case 'R':

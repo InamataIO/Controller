@@ -16,7 +16,7 @@ PollAbstract::PollAbstract(Scheduler& scheduler)
   }
 
   const utils::UUID modbus_input_id =
-      utils::UUID::fromFSH(peripheral::fixed::peripheral_modbus_sensor_in_id);
+      utils::UUID(peripheral::fixed::peripheral_modbus_sensor_in_id);
   modbus_input_ = std::dynamic_pointer_cast<ModbusClientInput>(
       Services::getPeripheralController().getPeripheral(modbus_input_id));
   if (!modbus_input_) {

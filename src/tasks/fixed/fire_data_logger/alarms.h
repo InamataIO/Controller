@@ -5,7 +5,6 @@
 #include "peripheral/peripherals/digital_in/digital_in.h"
 #include "peripheral/peripherals/digital_out/digital_out.h"
 #include "peripheral/peripherals/neo_pixel/neo_pixel.h"
-#include "peripheral/peripherals/pca9536d/pca9536d.h"
 #include "peripheral/peripherals/pca9539/pca9539.h"
 #include "utils/limit_event.h"
 
@@ -19,7 +18,6 @@ class Alarms : public BaseTask {
   using DigitalIn = peripheral::peripherals::digital_in::DigitalIn;
   using NeoPixel = peripheral::peripherals::neo_pixel::NeoPixel;
   using PCA9539 = peripheral::peripherals::pca9539::PCA9539;
-  using PCA9536D = peripheral::peripherals::pca9536d::PCA9536D;
 
   Alarms(const ServiceGetters& services, Scheduler& scheduler,
          const JsonObjectConst& behavior_config);
@@ -191,7 +189,6 @@ class Alarms : public BaseTask {
 
   std::shared_ptr<PCA9539> input_bank_1_;
   std::shared_ptr<PCA9539> input_bank_2_;
-  std::shared_ptr<PCA9536D> input_bank_3_;
   // All digital inputs connected directly to the ESP32
   std::array<std::shared_ptr<DigitalIn>, 8> input_bank_4_;
 
@@ -330,7 +327,7 @@ class Alarms : public BaseTask {
   // Maintenance mode
   bool is_maintenance_mode_ = false;
   std::shared_ptr<DigitalIn> maintenance_input_;
-  ManualDebouncer maintenance_button_;
+  std::shared_ptr<DigitalIn> maintenance_button_;
   BaseLimit maintenance_limit_;
 
   std::shared_ptr<peripheral::peripherals::neo_pixel::NeoPixel> status_led_;

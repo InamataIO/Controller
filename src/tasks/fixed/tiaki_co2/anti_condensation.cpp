@@ -16,7 +16,7 @@ AntiCondensation::AntiCondensation(Scheduler& scheduler,
   }
 
   const utils::UUID peripheral_id =
-      utils::UUID::fromFSH(peripheral::fixed::peripheral_modbus_sensor_out_id);
+      utils::UUID(peripheral::fixed::peripheral_modbus_sensor_out_id);
   modbus_output_ = std::dynamic_pointer_cast<ModbusClientOutput>(
       Services::getPeripheralController().getPeripheral(peripheral_id));
   if (!modbus_output_) {
@@ -47,7 +47,7 @@ bool AntiCondensation::TaskCallback() {
 void AntiCondensation::handleResult(std::vector<utils::ValueUnit>& values) {
   float humidity = NAN;
   const utils::UUID dpt_humidity =
-      utils::UUID::fromFSH(peripheral::fixed::dpt_humidity_rh_id);
+      utils::UUID(peripheral::fixed::dpt_humidity_rh_id);
   for (const auto& value : values) {
     if (value.data_point_type == dpt_humidity) {
       humidity = value.value;
@@ -59,7 +59,7 @@ void AntiCondensation::handleResult(std::vector<utils::ValueUnit>& values) {
   }
   const bool heater_state = humidity > 65 ? 1 : 0;
   const utils::UUID heater_dpt =
-      utils::UUID::fromFSH(peripheral::fixed::dpt_heater_id);
+      utils::UUID(peripheral::fixed::dpt_heater_id);
   modbus_output_->setValue(utils::ValueUnit(heater_state, heater_dpt));
 }
 

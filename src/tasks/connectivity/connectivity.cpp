@@ -160,12 +160,12 @@ void CheckConnectivity::handleWebSocket() {
 
 bool CheckConnectivity::initGsmWifiSwitch() {
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
-  input_bank_ = std::dynamic_pointer_cast<PCA9536D>(
+  gsm_wifi_toggle_ = std::dynamic_pointer_cast<DigitalIn>(
       Services::getPeripheralController().getPeripheral(
-          peripheral::fixed::peripheral_io_3_id));
-  if (!input_bank_) {
-    setInvalid(ErrorStore::genNotAValid(peripheral::fixed::peripheral_io_3_id,
-                                        PCA9536D::type()));
+          peripheral::fixed::peripheral_gsm_wifi_toggle_id));
+  if (!gsm_wifi_toggle_) {
+    setInvalid(ErrorStore::genNotAValid(
+        peripheral::fixed::peripheral_gsm_wifi_toggle_id, DigitalIn::type()));
     return false;
   }
 #endif
@@ -182,21 +182,15 @@ void CheckConnectivity::handleGsmWifiSwitch(
   if (utils::chrono_abs(now - last_gsm_wifi_switch_check_) >
       gsm_wifi_switch_check_period_) {
     last_gsm_wifi_switch_check_ = now;
-    const auto result = input_bank_->getValues();
-    for (const auto& value : result.values) {
-      if (value.data_point_type == peripheral::fixed::dpt_gsm_wifi_toggle_id) {
-        const bool use_wifi = value.value < 0.5;
-        if (use_wifi && use_network_ != UseNetwork::kWifi) {
-          TRACELN("Switch to WiFi");
-          use_network_ = UseNetwork::kWifi;
-          enterConnectMode();
-        } else if (!use_wifi && use_network_ != UseNetwork::kGsm) {
-          TRACELN("Switch to GSM");
-          use_network_ = UseNetwork::kGsm;
-          enterConnectMode();
-        }
-        break;
-      }
+    const bool use_gsm = gsm_wifi_toggle_->readState();
+    if (!use_gsm && use_network_ != UseNetwork::kWifi) {
+      TRACELN("Switch to WiFi");
+      use_network_ = UseNetwork::kWifi;
+      enterConnectMode();
+    } else if (use_gsm && use_network_ != UseNetwork::kGsm) {
+      TRACELN("Switch to GSM");
+      use_network_ = UseNetwork::kGsm;
+      enterConnectMode();
     }
   }
 #else

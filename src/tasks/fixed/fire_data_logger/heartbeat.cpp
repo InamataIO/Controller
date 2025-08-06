@@ -15,10 +15,10 @@ Heartbeat::Heartbeat(Scheduler& scheduler)
   }
 
   auto& peripheral_controller = Services::getPeripheralController();
-  io_bank_1_ =
-      std::dynamic_pointer_cast<PCA9536D>(peripheral_controller.getPeripheral(
-          peripheral::fixed::peripheral_io_3_id));
-  if (!io_bank_1_) {
+  heartbeat_led_ =
+      std::dynamic_pointer_cast<DigitalOut>(peripheral_controller.getPeripheral(
+          peripheral::fixed::peripheral_heartbeat_led_id));
+  if (!heartbeat_led_) {
     setInvalid("Missing peri");
     return;
   }
@@ -37,8 +37,8 @@ bool Heartbeat::TaskCallback() {
   Task::delay(std::chrono::milliseconds(default_interval_).count());
 
   state = !state;
-  utils::ValueUnit value_unit(state, peripheral::fixed::dpt_mem_wr_led_id);
-  io_bank_1_->setValue(value_unit);
+  const utils::ValueUnit value_unit(state, peripheral::fixed::dpt_led_id);
+  heartbeat_led_->setValue(value_unit);
   return true;
 }
 

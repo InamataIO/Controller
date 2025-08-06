@@ -12,8 +12,8 @@ Welcome::Welcome(Scheduler& scheduler, const JsonObjectConst& behavior_config)
     : BaseTask(scheduler, Input(nullptr, true)),
       scheduler_(scheduler),
       peripheral_controller_(Services::getPeripheralController()),
-      led_dpt_(utils::UUID::fromFSH(peripheral::fixed::dpt_led_id)),
-      buzzer_dpt_(utils::UUID::fromFSH(peripheral::fixed::dpt_buzzer_id)) {
+      led_dpt_(utils::UUID(peripheral::fixed::dpt_led_id)),
+      buzzer_dpt_(utils::UUID(peripheral::fixed::dpt_buzzer_id)) {
   if (!isValid()) {
     return;
   }

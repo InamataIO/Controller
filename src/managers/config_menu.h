@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include "managers/log_manager.h"
 #include "managers/storage.h"
 #include "utils/person.h"
 
@@ -11,7 +12,8 @@ namespace inamata {
 
 class ConfigManager {
  public:
-  String init(std::shared_ptr<Storage> storage);
+  String init(std::shared_ptr<Storage> storage,
+              std::shared_ptr<LoggingManager> log_manager);
   void loop();
 
   const std::vector<Person> &getAllContacts() const;
@@ -145,6 +147,7 @@ class ConfigManager {
   String location_;
 
   std::shared_ptr<Storage> storage_;
+  std::shared_ptr<LoggingManager> logging_manager_;
 
   static const uint8_t kMaxLocationLength = 30;
 };
