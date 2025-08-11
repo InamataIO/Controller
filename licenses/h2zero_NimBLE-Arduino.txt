@@ -1,4 +1,17 @@
-                                 Apache License
+esp-nimble-cpp
+NimBLE-Arduino
+Copyright 2020-2025 Ryan Powell <ryan@nable-embedded.io> and
+esp-nimble-cpp, NimBLE-Arduino contributors.
+
+The Initial Developer of some parts of this library, which are copied from,
+derived from, or inspired by is, esp32-snippets, Copyright 2017 Neil Kolban.
+
+If this library is used for commercial purposes, it is requested that the user consider
+making a donation and/or sponsoring this project to support it's ongoing development.
+
+---
+
+                             Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
 
@@ -178,7 +191,7 @@
    APPENDIX: How to apply the Apache License to your work.
 
       To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
+      boilerplate notice, with the fields enclosed by brackets "{}"
       replaced with your own identifying information. (Don't include
       the brackets!)  The text should be enclosed in the appropriate
       comment syntax for the file format. We also recommend that a
@@ -186,7 +199,7 @@
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright 2018 Moritz Ulmer
+   Copyright {yyyy} {name of copyright owner}
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.

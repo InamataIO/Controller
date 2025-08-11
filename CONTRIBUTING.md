@@ -71,8 +71,8 @@ Please use English, avoid profanity and ensure legibility :smile:
 ## Additional Notes
 
 [1]: https://google.github.io/styleguide/cppguide.html
-[2]: https://github.com/InamataCo/Controller/issues/new?template=bug_report.md
-[3]: https://github.com/InamataCo/Controller/issues/new?template=feature_request.md
+[2]: https://github.com/InamataIo/Controller/issues/new?template=bug_report.md
+[3]: https://github.com/InamataIo/Controller/issues/new?template=feature_request.md
 [4]: doc/auth_registration.md
 [5]: doc/flash_and_boot.md
 [6]: doc/peripherals.md

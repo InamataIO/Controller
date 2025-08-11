@@ -1,0 +1,11 @@
+originally created by: Brandon Fisher, August 1st 2017
+
+This code is release AS-IS into the public domain, no guarantee or warranty is given.
+
+Texas Instruments HDC2080 Arduino Library
+==========================================
+*** NOTE: This library was originally from https://training.ti.com/how-interface-hdc2010-humidity-and-temperature-sensor-arduino-using-i2c
+*** This library was originally for the HDC2010 and was converted to support the HDC2080.
+*** forked from https://github.com/tinkeringtech/HDC2080_breakout to https://github.com/lime-labs/HDC2080-Arduino for use in the "Lime Labs Hot Slice" temperature and humidity logger project
+*** contains fixes and cleanups generously provided by https://github.com/stickbreaker to fix behavior on newer ESP32 Arduino core releases
+*** generalized the error handling to restore compatibilty with broader range of MCUs and Arduino cores.

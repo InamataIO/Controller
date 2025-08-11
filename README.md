@@ -50,7 +50,7 @@ The WebSocket protocol is described on the [WebSocket API page](doc/websocket_ap
 
 ## Development
 
-Development is mainly done in a private GitLab repository but changes are automatically pushed to this public GitHub repository.
+Development is mainly done in a private GitLab repository but changes are automatically pushed to this public GitHub repository. To build the software, install VS Code and the PlatformIO extenstion, select your build target and press the build button.
 
 ## Formatting
 
@@ -74,4 +74,8 @@ To enable more details when debugging, uncomment `ENABLE_TRACE` in `platformio.i
 - [ESPHome Code](https://github.com/esphome/esphome/blob/dev/esphome/components/cse7766/cse7766.cpp)
 - [Tasmota Code](https://github.com/erocm123/Sonoff-Tasmota/blob/master/sonoff/xnrg_02_cse7766.ino)
 
-[1]: https://github.com/InamataCo/Flasher
+## License
+
+The code is licensed under "Apache-2.0 OR GPL-3.0-only". All software dependency licenses have been included in the _licenses_ folder with the names corresponding to the library they are from.
+
+[1]: https://github.com/InamataIo/Flasher
