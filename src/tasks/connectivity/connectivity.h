@@ -29,7 +29,9 @@ class CheckConnectivity : public BaseTask {
 
   enum class Mode {
     ConnectWiFi,
+#ifdef GSM_NETWORK
     ConnectGsm,
+#endif
     ProvisionDevice,
   };
 

@@ -124,7 +124,6 @@ void BleImprov::setError(improv::Error error) {
 void BleImprov::onWrite(NimBLECharacteristic *characteristic,
                         NimBLEConnInfo &connInfo) {
   if (characteristic == ble_rpc_command_char_) {
-    const char *data = characteristic->getValue().c_str();
     NimBLEAttValue rpc_data = characteristic->getValue();
     if (!rpc_data.size()) {
       return;

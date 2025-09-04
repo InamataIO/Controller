@@ -126,7 +126,7 @@ uint8_t NeoPixel::getColorEncoding(String encoding_str) {
 
   // Transform to rgb/rgbw permutations in Adafruit_NeoPixel.h
   // Skip first color, as 0 shifted is always 0
-  for (int i = 1; i < encoding_str.length(); i++) {
+  for (size_t i = 1; i < encoding_str.length(); i++) {
     if (encoding_str[i] == 'b') {
       neo_encoding |= i << blue_offset_;
       continue;

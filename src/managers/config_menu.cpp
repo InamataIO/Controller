@@ -331,6 +331,10 @@ bool ConfigManager::addContact(char key) {
         return false;
       }
       return true;
+    case ContactState::kNameSelect:
+      // Should not be reached
+      TRACELN("Illegal state");
+      break;
   }
 
   return false;
@@ -353,7 +357,7 @@ bool ConfigManager::addContact(char key) {
  *       It does not modify the actual string content.
  */
 void ConfigManager::clearContactNameInEditMode(String &name) {
-  for (int i = 0; i < name.length(); i++) {
+  for (size_t i = 0; i < name.length(); i++) {
     Serial.print("\b \b");
   }
 }

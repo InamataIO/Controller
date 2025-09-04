@@ -212,6 +212,9 @@ void CheckConnectivity::enterConnectMode() {
       gsm_network_->enable();
       NetworkClient::Impl::enableGsm(&gsm_network_->modem_);
       setMode(Mode::ConnectGsm);
+    case UseNetwork::kNone:
+      TRACELN("Illegal switch");
+      break;
   }
 #else
   setMode(Mode::ConnectWiFi);
@@ -226,7 +229,6 @@ void CheckConnectivity::setMode(Mode mode) {
 
   // Actions to run when leaving mode
   switch (mode_) {
-      // Do not disable GSM network on provision as it blocks sending SMS
     case Mode::ProvisionDevice:
 #ifdef PROV_IMPROV
       if (improv_) {
@@ -241,6 +243,13 @@ void CheckConnectivity::setMode(Mode mode) {
       core_domain_parameter_ = nullptr;
       secure_url_parameter_ = nullptr;
 #endif
+      break;
+#ifdef GSM_NETWORK
+    // Do not disable GSM network on provision as it blocks sending SMS
+    case Mode::ConnectGsm:
+#endif
+    case Mode::ConnectWiFi:
+      // Do nothing ATM
       break;
   }
 
@@ -262,11 +271,11 @@ void CheckConnectivity::setMode(Mode mode) {
       web_socket_->resetConnectAttempt();
       break;
 #endif
-#ifdef PROV_WIFI
     case Mode::ProvisionDevice:
+#ifdef PROV_WIFI
       disable_captive_portal_timeout_ = false;
-      break;
 #endif
+      break;
   }
 }
 

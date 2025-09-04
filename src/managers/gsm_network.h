@@ -81,14 +81,14 @@ class GsmNetwork {
   bool gprs_connected_ = false;
   int16_t signal_quality_ = 0;
 
+#ifdef DUMP_AT_COMMANDS
+  StreamDebugger debugger_;
+#endif
   TinyGsm modem_;
   TinyGsmClient client_;
 
  private:
   bool is_enabled_ = false;
-#ifdef DUMP_AT_COMMANDS
-  StreamDebugger debugger_;
-#endif
 
   std::chrono::seconds check_period_ = std::chrono::seconds(2);
   std::chrono::steady_clock::time_point last_network_check_ =

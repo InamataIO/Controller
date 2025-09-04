@@ -47,7 +47,8 @@ DateTime TimeManager::systemTime() { return rtc.now(); }
  * \return The formatted time as a string (in ISO 8601 format).
  */
 String TimeManager::getFormattedTime(const DateTime &date_time) {
-  char buffer[20];
+  // Oversize to have buffer for max integer sizes (uint8_t -> 3 chars)
+  char buffer[28];
 
   snprintf(buffer, sizeof(buffer), "%04d-%02d-%02dT%02d:%02d:%02d",
            date_time.year(), date_time.month(), date_time.day(),
@@ -99,7 +100,8 @@ bool TimeManager::lostPower() { return rtc.lostPower(); }
  * \return The current date as a string (in "YYYYMMDD" format).
  */
 String TimeManager::getCurrentDate(const DateTime &date_time) {
-  char buffer[9];
+  // Oversize to have buffer for max integer sizes (uint8_t -> 3 chars)
+  char buffer[11];
 
   snprintf(buffer, sizeof(buffer), "%04d%02d%02d", date_time.year(),
            date_time.month(), date_time.day());

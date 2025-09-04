@@ -77,7 +77,7 @@ bool Pwm::setup(const uint8_t pin, const uint32_t frequency,
   }
 
   // Find the first free channel
-  for (int i = 0; i < busy_channels_.size(); i++) {
+  for (size_t i = 0; i < busy_channels_.size(); i++) {
     if (!busy_channels_.test(i)) {
       channel_ = i;
       break;

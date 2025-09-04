@@ -4,6 +4,7 @@
 
 #include <bitset>
 #include <memory>
+#include <safe/safe.hpp>
 
 #include "managers/service_getters.h"
 #include "peripheral/capabilities/set_value.h"
@@ -61,7 +62,7 @@ class Pwm : public Peripheral, public capabilities::SetValue {
   utils::UUID data_point_type_{nullptr};
 
   int pin_ = -1;
-  int channel_ = -1;
+  Safe::Integer<int> channel_ = -1;
   int resolution_ = -1;
 
   /// Name of the parameter to which the pin the PWM signal is connected

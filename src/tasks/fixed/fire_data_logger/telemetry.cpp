@@ -52,12 +52,12 @@ Telemetry::Telemetry(const ServiceGetters& services, Scheduler& scheduler)
       !input_bank_3_[4] || !input_bank_3_[5] || !input_bank_3_[6] ||
       !input_bank_3_[7]) {
     char buffer[46];
-    const int len = snprintf(
-        buffer, sizeof(buffer),
-        "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d", bool(input_bank_1_),
-        bool(input_bank_2_), bool(input_bank_3_[0]), bool(input_bank_3_[1]),
-        bool(input_bank_3_[2]), bool(input_bank_3_[3]), bool(input_bank_3_[4]),
-        bool(input_bank_3_[5]), bool(input_bank_3_[6]), bool(input_bank_3_[7]));
+    snprintf(
+        buffer, sizeof(buffer), "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
+        bool(input_bank_1_), bool(input_bank_2_), bool(input_bank_3_[0]),
+        bool(input_bank_3_[1]), bool(input_bank_3_[2]), bool(input_bank_3_[3]),
+        bool(input_bank_3_[4]), bool(input_bank_3_[5]), bool(input_bank_3_[6]),
+        bool(input_bank_3_[7]));
     setInvalid(buffer);
     return;
   }

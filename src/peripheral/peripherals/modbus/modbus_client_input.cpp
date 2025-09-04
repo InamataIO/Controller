@@ -48,7 +48,7 @@ ModbusClientInput::ModbusClientInput(const JsonObjectConst& parameters)
     return;
   }
   inputs_.resize(inputs_json.size());
-  for (int i = 0; i < inputs_json.size(); i++) {
+  for (size_t i = 0; i < inputs_json.size(); i++) {
     Input& input = inputs_[i];
     JsonObjectConst input_json = inputs_json[i];
 

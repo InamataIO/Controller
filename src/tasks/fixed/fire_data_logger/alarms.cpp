@@ -89,15 +89,15 @@ Alarms::Alarms(const ServiceGetters& services, Scheduler& scheduler,
       !input_bank_4_[7] || !maintenance_input_ || !maintenance_button_ ||
       !status_led_ || !relay_1_ || !relay_2_) {
     char buffer[54];
-    const int len = snprintf(
-        buffer, sizeof(buffer),
-        "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
-        bool(input_bank_1_), bool(input_bank_2_), bool(input_bank_4_[0]),
-        bool(input_bank_4_[1]), bool(input_bank_4_[2]), bool(input_bank_4_[3]),
-        bool(input_bank_4_[4]), bool(input_bank_4_[5]), bool(input_bank_4_[6]),
-        bool(input_bank_4_[7]), bool(maintenance_input_),
-        bool(maintenance_button_), bool(status_led_), bool(relay_1_),
-        bool(relay_2_));
+    snprintf(buffer, sizeof(buffer),
+             "Missing peri: %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
+             bool(input_bank_1_), bool(input_bank_2_), bool(input_bank_4_[0]),
+             bool(input_bank_4_[1]), bool(input_bank_4_[2]),
+             bool(input_bank_4_[3]), bool(input_bank_4_[4]),
+             bool(input_bank_4_[5]), bool(input_bank_4_[6]),
+             bool(input_bank_4_[7]), bool(maintenance_input_),
+             bool(maintenance_button_), bool(status_led_), bool(relay_1_),
+             bool(relay_2_));
     setInvalid(buffer);
     return;
   }

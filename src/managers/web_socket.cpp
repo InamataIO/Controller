@@ -413,9 +413,6 @@ void WebSocket::sendUpDownTimeData() {
     }
     if (last_down_duration_ != std::chrono::steady_clock::duration::min()) {
       // If the down duration is valid, print and send the data
-      int64_t last_down_duration_s =
-          std::chrono::duration_cast<std::chrono::seconds>(last_down_duration_)
-              .count();
       doc_out[F("last_ws_down_duration_s")] =
           std::chrono::duration_cast<std::chrono::seconds>(last_down_duration_)
               .count();
