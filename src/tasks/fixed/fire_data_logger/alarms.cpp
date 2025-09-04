@@ -641,11 +641,19 @@ void Alarms::handleMaintenanceMode() {
   // Set state of external maintenance input button
   maintenance_input_->update();
 
-  if (maintenance_button_->rose() || maintenance_input_->rose()) {
+  // Exit maintenance mode after 1 hour
+  bool expired = false;
+  if (is_maintenance_mode_ &&
+      now_ - maintenance_mode_start_ > std::chrono::hours(1)) {
+    expired = true;
+  }
+
+  if (maintenance_button_->rose() || maintenance_input_->rose() || expired) {
     is_maintenance_mode_ = !is_maintenance_mode_;
     const utils::UUID relay_dpt = utils::UUID(peripheral::fixed::dpt_relay_id);
     if (is_maintenance_mode_) {
       // Entered maintenance mode
+      maintenance_mode_start_ = now_;
       status_led_->setOverride(utils::Color::fromRgbw(100, 0, 0, 0));
       relay_1_->setValue(utils::ValueUnit(1, relay_dpt));
       sendMaintenanceDataPoint(true);
@@ -658,12 +666,13 @@ void Alarms::handleMaintenanceMode() {
       resetLimits();
     } else {
       // Left maintenace mode
+      maintenance_mode_start_ = std::chrono::steady_clock::time_point::min();
       status_led_->clearOverride();
       relay_1_->setValue(utils::ValueUnit(0, relay_dpt));
       sendMaintenanceDataPoint(false);
       sendLimitEvent(
           &maintenance_limit_,
-          utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),
+          utils::ValueUnit(0, peripheral::fixed::dpt_maintenance_mode_id),
           utils::LimitEvent::Type::kEnd);
       maintenance_limit_.last_continue_event_sent =
           std::chrono::steady_clock::time_point::min();
