@@ -171,6 +171,8 @@ class WebSocket {
    */
   bool isConnected();
 
+  void disconnect();
+
   static const char* firmware_version_;
   String core_domain_;
   String ws_url_path_;

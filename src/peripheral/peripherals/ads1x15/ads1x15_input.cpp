@@ -112,8 +112,8 @@ capabilities::GetValues::Result ADS1X15Input::getValues() {
   }
 
   if (voltage_data_point_type_.isValid()) {
-    values.push_back({utils::ValueUnit{
-        .value = result.voltage, .data_point_type = voltage_data_point_type_}});
+    values.push_back(
+        {utils::ValueUnit(result.voltage, voltage_data_point_type_)});
   }
   if (unit_data_point_type_.isValid()) {
     float unit_value = min_unit_ + v_to_unit_slope_ * (result.voltage - min_v_);
@@ -125,8 +125,7 @@ capabilities::GetValues::Result ADS1X15Input::getValues() {
         unit_value = std::max(max_unit_, std::min(unit_value, min_unit_));
       }
     }
-    values.push_back({utils::ValueUnit{
-        .value = unit_value, .data_point_type = unit_data_point_type_}});
+    values.push_back({utils::ValueUnit(unit_value, unit_data_point_type_)});
   }
 
   return {.values = values, .error = {}};

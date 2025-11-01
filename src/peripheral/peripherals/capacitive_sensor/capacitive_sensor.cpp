@@ -32,9 +32,8 @@ const String& CapacitiveSensor::type() {
 }
 
 capabilities::GetValues::Result CapacitiveSensor::getValues() {
-  return {.values = {utils::ValueUnit{
-              .value = static_cast<float>(touchRead(sense_pin_)),
-              .data_point_type = data_point_type_}}};
+  return {.values = {utils::ValueUnit(static_cast<float>(touchRead(sense_pin_)),
+                                      data_point_type_)}};
 }
 
 const __FlashStringHelper* CapacitiveSensor::sense_pin_key_ =

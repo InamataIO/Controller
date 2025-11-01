@@ -1,12 +1,12 @@
 #pragma once
 
-#include <NetworkClient.h>
+#include <WebSocketsNetworkClient.h>
 
-class NetworkClientSecure : public NetworkClient {
+class WebSocketsNetworkClientSecure : public WebSocketsNetworkClient {
   public:
-    NetworkClientSecure();
-    NetworkClientSecure(WiFiClient wifi_client);
-    virtual ~NetworkClientSecure();
+    WebSocketsNetworkClientSecure();
+    WebSocketsNetworkClientSecure(WiFiClient wifi_client);
+    virtual ~WebSocketsNetworkClientSecure();
 
     int connect(IPAddress ip, uint16_t port) override;
     int connect(const char * host, uint16_t port) override;
@@ -24,7 +24,11 @@ class NetworkClientSecure : public NetworkClient {
     operator bool() override;
 
     void setCACert(const char * rootCA);
+#if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 4)
+    void setCACertBundle(const uint8_t * bundle, size_t bundle_size);
+#else
     void setCACertBundle(const uint8_t * bundle);
+#endif
     void setInsecure();
     bool verify(const char * fingerprint, const char * domain_name);
 };

@@ -64,8 +64,8 @@ capabilities::GetValues::Result DigitalIn::getValues() {
   if (active_low_) {
     value = !value;
   }
-  return {.values = {utils::ValueUnit{.value = static_cast<float>(value),
-                                      .data_point_type = data_point_type_}}};
+  return {.values = {
+              utils::ValueUnit(static_cast<float>(value), data_point_type_)}};
 }
 
 bool DigitalIn::readState() {

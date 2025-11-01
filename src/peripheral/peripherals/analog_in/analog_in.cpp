@@ -51,13 +51,11 @@ capabilities::GetValues::Result AnalogIn::getValues() {
   const float voltage = value * 3.3 / 4096.0;
 
   if (voltage_data_point_type_.isValid()) {
-    values.push_back({utils::ValueUnit{
-        .value = voltage, .data_point_type = voltage_data_point_type_}});
+    values.push_back({utils::ValueUnit(voltage, voltage_data_point_type_)});
   }
   if (percent_data_point_type_.isValid()) {
     const float percentage = value / 4096.0;
-    values.push_back({utils::ValueUnit{
-        .value = percentage, .data_point_type = percent_data_point_type_}});
+    values.push_back({utils::ValueUnit(percentage, percent_data_point_type_)});
   }
   if (unit_data_point_type_.isValid()) {
     float unit_value = min_unit_ + v_to_unit_slope_ * (voltage - min_v_);
@@ -69,8 +67,7 @@ capabilities::GetValues::Result AnalogIn::getValues() {
         unit_value = std::max(max_unit_, std::min(unit_value, min_unit_));
       }
     }
-    values.push_back({utils::ValueUnit{
-        .value = unit_value, .data_point_type = unit_data_point_type_}});
+    values.push_back({utils::ValueUnit(unit_value, unit_data_point_type_)});
   }
 
   return {.values = values, .error = ErrorResult()};

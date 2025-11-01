@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include "managers/services.h"
+#include "peripheral/peripherals/hdc2080/hdc2080.h"
 #include "peripheral/peripherals/sgp40/sgp40.h"
 
 namespace inamata {
@@ -35,6 +36,7 @@ class PollVoc : public BaseTask {
   std::shared_ptr<WebSocket> web_socket_;
 
   std::shared_ptr<peripheral::peripherals::sgp40::SGP40> voc_sensor_;
+  std::shared_ptr<peripheral::peripherals::hdc2080::HDC2080> air_sensor_;
 
   // Max time is ~72 minutes due to an overflow in the CPU load counter
   static const std::chrono::seconds default_interval_;

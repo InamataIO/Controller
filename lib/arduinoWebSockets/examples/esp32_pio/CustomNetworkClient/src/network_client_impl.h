@@ -1,12 +1,9 @@
 #pragma once
 
-#include <NetworkClientSecure.h>
 #include <SSLClient.h>
 #include <TinyGSM.h>
-#include <WebSocketsNetworkClient.h>
+#include <WebSocketsNetworkClientSecure.h>
 #include <WiFiClientSecure.h>
-
-#include "managers/logging.h"
 
 struct WebSocketsNetworkClient::Impl {
   static void enableWifi() {

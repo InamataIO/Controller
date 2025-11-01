@@ -34,11 +34,11 @@ NeoPixel::NeoPixel(const JsonObjectConst& parameters) {
     return;
   }
 
-  uint8_t pixel_type = color_encoding_int + NEO_KHZ800;
-
-  driver_.setPin(led_pin);
-  driver_.updateType(pixel_type);
-  driver_.updateLength(led_count);
+  pin_ = led_pin;
+  // uint8_t pixel_type = color_encoding_int + NEO_KHZ800;
+  // driver_.setPin(led_pin);
+  // driver_.updateType(pixel_type);
+  // driver_.updateLength(led_count.as<uint16_t>());
 }
 
 const String& NeoPixel::getType() const { return type(); }
@@ -54,12 +54,9 @@ void NeoPixel::turnOn(utils::Color color) {
 }
 
 void NeoPixel::turnOff() {
-  if (!is_driver_started_) {
-    driver_.begin();
-    is_driver_started_ = true;
-  }
-  driver_.setBrightness(0);
-  driver_.show();
+  rgbLedWrite(pin_, 0, 0, 0);
+  // driver_.setBrightness(0);
+  // driver_.show();
 }
 
 void NeoPixel::setOverride(utils::Color color) {
@@ -74,17 +71,18 @@ void NeoPixel::clearOverride() {
 }
 
 void NeoPixel::setOutput() {
-  if (!is_driver_started_) {
-    driver_.begin();
-    is_driver_started_ = true;
-  }
-  driver_.setBrightness(255);
+  // driver_.setBrightness(255);
+  utils::Color color;
   if (is_override_) {
-    driver_.fill(override_color_.getWrgbInt());
+    color = override_color_;
+    // driver_.fill(override_color_.getWrgbInt());
   } else {
-    driver_.fill(color_.getWrgbInt());
+    color = color_;
+    // driver_.fill(color_.getWrgbInt());
   }
-  driver_.show();
+  rgbLedWrite(pin_, color.getRed(), color.getGreen(), color.getBlue());
+  // driver_.show();
+  // rgbLedWrite(pin_, color_.getRed(), color_.getGreen(), color_.getBlue());
 }
 
 String NeoPixel::invalidColorEncodingError(const String& color_encoding) {

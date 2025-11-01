@@ -6,6 +6,10 @@
 
 #include "configuration.h"
 
+size_t rootca_crt_bundle_len() {
+  return rootca_crt_bundle_end - rootca_crt_bundle_start;
+}
+
 namespace inamata {
 
 const __FlashStringHelper* wifi_portal_ssid = FPSTR("InamataSetup");

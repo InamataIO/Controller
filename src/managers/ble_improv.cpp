@@ -351,8 +351,7 @@ void BleImprov::sendDeviceInfoResponse() {
   String board_name(Storage::arduino_board_);
   // From 'AA:BB:CC:DD:EE:FF' add '@DD:EE:FF'
   board_name += "@";
-  String mac_address = WiFi.macAddress();
-  board_name += mac_address.substring(mac_address.length() - 8);
+  board_name += Network.macAddress();
 
   device_info.emplace_back(board_name);
   device_info.emplace_back(Storage::device_type_name_);

@@ -17,7 +17,7 @@ class AsPhMeterI2C : public peripherals::i2c::I2CAbstractPeripheral,
                      public capabilities::StartMeasurement,
                      private Ezo_board {
  public:
-  AsPhMeterI2C(const JsonVariantConst& parameters);
+  AsPhMeterI2C(const JsonObjectConst& parameters);
   virtual ~AsPhMeterI2C() = default;
 
   // Type registration in the peripheral factory

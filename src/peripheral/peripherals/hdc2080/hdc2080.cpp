@@ -72,12 +72,20 @@ capabilities::GetValues::Result HDC2080::getValues() {
 
   capabilities::GetValues::Result result;
 
-  result.values.push_back(
-      utils::ValueUnit{.value = driver_.readTemp(),
-                       .data_point_type = temperature_data_point_type_});
-  result.values.push_back(
-      utils::ValueUnit{.value = driver_.readHumidity(),
-                       .data_point_type = humidity_data_point_type_});
+  const float temperature = driver_.readTemp();
+  if (temperature > -39.9f) {
+    result.values.push_back(
+        utils::ValueUnit(temperature, temperature_data_point_type_));
+  } else {
+    return {.error = ErrorResult(type(), "Invalid temperature")};
+  }
+  const float humidity = driver_.readHumidity();
+  if (humidity > 0.1f) {
+    result.values.push_back(
+        utils::ValueUnit(humidity, humidity_data_point_type_));
+  } else {
+    return {.error = ErrorResult(type(), "Invalid humidity")};
+  }
   return result;
 }
 

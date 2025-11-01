@@ -61,50 +61,25 @@ void Pwm::setValue(utils::ValueUnit value_unit) {
   value_unit.value = std::fmax(0, std::fmin(1, value_unit.value));
   const uint32_t max_value = (1 << resolution_) - 1;
   const uint32_t duty = roundf(value_unit.value * max_value);
-  ledcWrite(channel_, duty);
+  ledcWrite(pin_, duty);
 }
 
 bool Pwm::setup(const uint8_t pin, const uint32_t frequency,
                 const uint8_t resolution) {
   // If the PWM has already been setup, free it
-  if (channel_ != -1 || pin_ != -1) {
+  if (pin_ != -1) {
     freeResources();
   }
 
-  // Checks if there are any free channels remaining
-  if (busy_channels_.all()) {
-    return true;
-  }
-
-  // Find the first free channel
-  for (size_t i = 0; i < busy_channels_.size(); i++) {
-    if (!busy_channels_.test(i)) {
-      channel_ = i;
-      break;
-    }
-  }
-
-  // Reserve the channel as well as saving the pin and resolution
-  busy_channels_[channel_] = true;
+  // Save the pin and resolution. Invert return setup
   pin_ = pin;
   resolution_ = resolution;
-
-  // Setup the channel
-  ledcSetup(channel_, frequency, resolution);
-
-  // Attach the pin to the configured channel
-  ledcAttachPin(pin_, channel_);
-
-  return false;
+  return !ledcAttach(pin_, frequency, resolution);
 }
 
 void Pwm::freeResources() {
-  if (channel_ >= 0 && channel_ < busy_channels_.size()) {
-    busy_channels_[channel_] = false;
-  }
-  ledcDetachPin(pin_);
+  ledcDetach(pin_);
   pin_ = -1;
-  channel_ = -1;
   resolution_ = -1;
 }
 
@@ -119,8 +94,6 @@ std::shared_ptr<Peripheral> Pwm::factory(const ServiceGetters& services,
 bool Pwm::registered_ = PeripheralFactory::registerFactory(type(), factory);
 
 bool Pwm::capability_set_value_ = capabilities::SetValue::registerType(type());
-
-std::bitset<16> Pwm::busy_channels_;
 
 }  // namespace pwm
 }  // namespace peripherals

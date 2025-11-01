@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Adafruit_NeoPixel.h>
+// #include <Adafruit_NeoPixel.h>
 #include <ArduinoJson.h>
 
 #include <memory>
@@ -81,8 +81,7 @@ class NeoPixel : public Peripheral, public capabilities::LedStrip {
   uint8_t getColorEncoding(String color_encoding);
   bool cleanColorEncoding(String& color_encoding);
 
-  Adafruit_NeoPixel driver_;
-  bool is_driver_started_ = false;
+  uint8_t pin_ = 0;
 };
 
 }  // namespace neo_pixel

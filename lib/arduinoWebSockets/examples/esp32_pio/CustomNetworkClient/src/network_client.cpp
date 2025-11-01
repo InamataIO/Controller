@@ -1,6 +1,3 @@
-#ifdef GSM_NETWORK
-
-#include "managers/logging.h"
 #include "network_client_impl.h"
 
 WebSocketsNetworkClient::WebSocketsNetworkClient()
@@ -15,7 +12,7 @@ int WebSocketsNetworkClient::connect(IPAddress ip, uint16_t port) {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->connect(ip, port);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -25,7 +22,7 @@ int WebSocketsNetworkClient::connect(const char *host, uint16_t port) {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->connect(host, port);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 int WebSocketsNetworkClient::connect(const char *host, uint16_t port,
@@ -35,7 +32,7 @@ int WebSocketsNetworkClient::connect(const char *host, uint16_t port,
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->connect(host, port, timeout_ms);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -45,30 +42,30 @@ size_t WebSocketsNetworkClient::write(uint8_t data) {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->write(data);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
 size_t WebSocketsNetworkClient::write(const uint8_t *buf, size_t size) {
-  Serial.printf("Send_: %zu\r\n", size);
+  Serial.printf("Send_: %zu\n", size);
   if (_impl->gsm_client_) {
     return _impl->gsm_client_->write(buf, size);
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->write(buf, size);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
 size_t WebSocketsNetworkClient::write(const char *str) {
   const int size = strlen(str);
-  Serial.printf("Send: %zu\r\n", size);
+  Serial.printf("Send: %zu\n", size);
   if (_impl->gsm_client_) {
     return _impl->gsm_client_->write((const uint8_t *)str, size);
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->write((const uint8_t *)str, size);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -78,7 +75,7 @@ int WebSocketsNetworkClient::available() {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->available();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -88,7 +85,7 @@ int WebSocketsNetworkClient::read() {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->read();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -98,7 +95,7 @@ int WebSocketsNetworkClient::read(uint8_t *buf, size_t size) {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->read(buf, size);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -108,7 +105,7 @@ int WebSocketsNetworkClient::peek() {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->peek();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -116,9 +113,9 @@ void WebSocketsNetworkClient::flush() {
   if (_impl->gsm_client_) {
     return _impl->gsm_client_->flush();
   } else if (_impl->wifi_client_) {
-    return _impl->wifi_client_->clear();
+    return _impl->wifi_client_->flush();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
 }
 
 void WebSocketsNetworkClient::stop() {
@@ -127,7 +124,7 @@ void WebSocketsNetworkClient::stop() {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->stop();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
 }
 
 uint8_t WebSocketsNetworkClient::connected() {
@@ -136,7 +133,7 @@ uint8_t WebSocketsNetworkClient::connected() {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->connected();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -146,8 +143,6 @@ WebSocketsNetworkClient::operator bool() {
   } else if (_impl->wifi_client_) {
     return _impl->wifi_client_->operator bool();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
-
-#endif

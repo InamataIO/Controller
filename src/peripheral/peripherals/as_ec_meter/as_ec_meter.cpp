@@ -189,11 +189,11 @@ capabilities::StartMeasurement::Result AsEcMeterI2C::handleMeasurement() {
     // Be conservative. Wait another complete reading cycle
     return {.wait = reading_duration_};
   } else if (error == Ezo_board::errors::NO_DATA) {
-    return {.wait = {}, ErrorResult(type(), F("No data"))};
+    return {.wait = {}, .error = ErrorResult(type(), "No data")};
   } else if (error == Ezo_board::errors::NOT_READ_CMD) {
-    return {.wait = {}, ErrorResult(type(), F("Not started"))};
+    return {.wait = {}, .error = ErrorResult(type(), "Not started")};
   } else {
-    return {.wait = {}, ErrorResult(type(), F("Unknown error"))};
+    return {.wait = {}, .error = ErrorResult(type(), "Unknown error")};
   }
 }
 
@@ -202,8 +202,7 @@ capabilities::GetValues::Result AsEcMeterI2C::getValues() {
   // reading after returning it.
   if (!std::isnan(last_reading_)) {
     capabilities::GetValues::Result result = {
-        .values = {utils::ValueUnit{.value = reading,
-                                    .data_point_type = data_point_type_}}};
+        .values = {utils::ValueUnit(reading, data_point_type_)}};
     last_reading_ = NAN;
     return result;
   } else {

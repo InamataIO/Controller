@@ -1,8 +1,3 @@
-#ifdef GSM_NETWORK
-
-#include <WebSocketsNetworkClientSecure.h>
-
-#include "managers/logging.h"
 #include "network_client_impl.h"
 
 WebSocketsNetworkClientSecure::WebSocketsNetworkClientSecure() {}
@@ -20,7 +15,7 @@ int WebSocketsNetworkClientSecure::connect(IPAddress ip, uint16_t port) {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->connect(ip, port);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -30,7 +25,7 @@ int WebSocketsNetworkClientSecure::connect(const char *host, uint16_t port) {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->connect(host, port);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 int WebSocketsNetworkClientSecure::connect(const char *host, uint16_t port,
@@ -41,7 +36,7 @@ int WebSocketsNetworkClientSecure::connect(const char *host, uint16_t port,
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->connect(host, port, timeout_ms);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -51,7 +46,7 @@ size_t WebSocketsNetworkClientSecure::write(uint8_t data) {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->write(data);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -61,7 +56,7 @@ size_t WebSocketsNetworkClientSecure::write(const uint8_t *buf, size_t size) {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->write(buf, size);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -72,7 +67,7 @@ size_t WebSocketsNetworkClientSecure::write(const char *str) {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->write((const uint8_t *)str, size);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -82,7 +77,7 @@ int WebSocketsNetworkClientSecure::available() {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->available();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -92,7 +87,7 @@ int WebSocketsNetworkClientSecure::read() {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->read();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -102,7 +97,7 @@ int WebSocketsNetworkClientSecure::read(uint8_t *buf, size_t size) {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->read(buf, size);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -112,7 +107,7 @@ int WebSocketsNetworkClientSecure::peek() {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->peek();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -122,7 +117,7 @@ void WebSocketsNetworkClientSecure::flush() {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->flush();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
 }
 
 void WebSocketsNetworkClientSecure::stop() {
@@ -131,7 +126,7 @@ void WebSocketsNetworkClientSecure::stop() {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->stop();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
 }
 
 uint8_t WebSocketsNetworkClientSecure::connected() {
@@ -140,7 +135,7 @@ uint8_t WebSocketsNetworkClientSecure::connected() {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->connected();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -150,7 +145,7 @@ WebSocketsNetworkClientSecure::operator bool() {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->operator bool();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return 0;
 }
 
@@ -160,18 +155,16 @@ void WebSocketsNetworkClientSecure::setCACert(const char *rootCA) {
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->setCACert(rootCA);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
 }
 
-void WebSocketsNetworkClientSecure::setCACertBundle(const uint8_t *bundle_start,
-                                                    const size_t bundle_size) {
+void WebSocketsNetworkClientSecure::setCACertBundle(const uint8_t *bundle) {
   if (_impl->gsm_client_secure_) {
-    return _impl->gsm_client_secure_->setCACertBundle(bundle_start);
+    return _impl->gsm_client_secure_->setCACertBundle(bundle);
   } else if (_impl->wifi_client_secure_) {
-    return _impl->wifi_client_secure_->setCACertBundle(bundle_start,
-                                                       bundle_size);
+    return _impl->wifi_client_secure_->setCACertBundle(bundle);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
 }
 
 void WebSocketsNetworkClientSecure::setInsecure() {
@@ -180,7 +173,7 @@ void WebSocketsNetworkClientSecure::setInsecure() {
   } else if (_impl->wifi_client_secure_) {
     _impl->wifi_client_secure_->setInsecure();
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
 }
 
 bool WebSocketsNetworkClientSecure::verify(const char *fingerprint,
@@ -193,8 +186,6 @@ bool WebSocketsNetworkClientSecure::verify(const char *fingerprint,
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->verify(fingerprint, domain_name);
   }
-  TRACELN(_impl->no_interface_error_);
+  Serial.println(_impl->no_interface_error_);
   return false;
 }
-
-#endif

@@ -79,8 +79,8 @@ capabilities::GetValues::Result CSE6677::getValues() {
     const double voltage_coef = parse24bit(in_data_ + voltage_coef_offset);
     const double voltage_cycle = parse24bit(in_data_ + voltage_cycle_offset);
     const float voltage = voltage_coef / voltage_cycle;
-    result.values.push_back(utils::ValueUnit{
-        .value = voltage, .data_point_type = voltage_data_point_type_});
+    result.values.push_back(
+        utils::ValueUnit(voltage, voltage_data_point_type_));
   }
   bool is_power_valid = false;
   float power = 0.0;
@@ -105,10 +105,9 @@ capabilities::GetValues::Result CSE6677::getValues() {
   }
   // Ensure that if current or power are measured, always send both
   if (adj & adj_current_mask || adj & adj_power_mask) {
-    result.values.push_back(utils::ValueUnit{
-        .value = power, .data_point_type = power_data_point_type_});
-    result.values.push_back(utils::ValueUnit{
-        .value = current, .data_point_type = current_data_point_type_});
+    result.values.push_back(utils::ValueUnit(power, power_data_point_type_));
+    result.values.push_back(
+        utils::ValueUnit(current, current_data_point_type_));
   }
 
   // Mark frame as being read and allow frame to be cleared for next poll

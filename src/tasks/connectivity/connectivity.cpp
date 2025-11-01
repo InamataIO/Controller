@@ -98,30 +98,20 @@ bool CheckConnectivity::TaskCallback() {
   }
 #endif
   else {
-#ifdef PROV_WIFI
     if (now - mode_start_ > provision_timeout) {
-      if (disable_captive_portal_timeout_) {
-        TRACELN(F("Captive portal timeout reset"));
-        mode_start_ = now;
-      } else {
-        TRACELN(F("Captive portal timed out"));
-        setMode(Mode::ConnectWiFi);
-      }
-    }
-    handleCaptivePortal();
-#endif
-#ifdef PROV_IMPROV
-    if (now - mode_start_ > provision_timeout) {
-      TRACELN(F("Improv setup timed out"));
+      TRACELN("Improv setup timed out");
       setMode(Mode::ConnectWiFi);
     } else {
       handleBleServer();
       handleImprov();
       if (improv_ && improv_->getState() == improv::STATE_STOPPED) {
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
         handleGsmWifiSwitch(now, true);
+#else
+        enterConnectMode();
+#endif
       }
     }
-#endif
   }
 
   // Delay at end to ensure delay even if processing takes longer
@@ -193,8 +183,6 @@ void CheckConnectivity::handleGsmWifiSwitch(
       enterConnectMode();
     }
   }
-#else
-  enterConnectMode();
 #endif
 }
 
@@ -202,15 +190,15 @@ void CheckConnectivity::enterConnectMode() {
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
   switch (use_network_) {
     case UseNetwork::kWifi:
-      NetworkClient::Impl::disableGsm();
+      WebSocketsNetworkClient::Impl::disableGsm();
       gsm_network_->disable();
-      NetworkClient::Impl::enableWifi();
+      WebSocketsNetworkClient::Impl::enableWifi();
       setMode(Mode::ConnectWiFi);
       break;
     case UseNetwork::kGsm:
-      NetworkClient::Impl::disableWifi();
+      WebSocketsNetworkClient::Impl::disableWifi();
       gsm_network_->enable();
-      NetworkClient::Impl::enableGsm(&gsm_network_->modem_);
+      WebSocketsNetworkClient::Impl::enableGsm(&gsm_network_->modem_);
       setMode(Mode::ConnectGsm);
     case UseNetwork::kNone:
       TRACELN("Illegal switch");
@@ -230,19 +218,11 @@ void CheckConnectivity::setMode(Mode mode) {
   // Actions to run when leaving mode
   switch (mode_) {
     case Mode::ProvisionDevice:
-#ifdef PROV_IMPROV
       if (improv_) {
         improv_->stop();
       }
       improv_ = nullptr;
       ble_server_->disable();
-#endif
-#ifdef PROV_WIFI
-      wifi_manager_ = nullptr;
-      ws_token_parameter_ = nullptr;
-      core_domain_parameter_ = nullptr;
-      secure_url_parameter_ = nullptr;
-#endif
       break;
 #ifdef GSM_NETWORK
     // Do not disable GSM network on provision as it blocks sending SMS
@@ -272,14 +252,10 @@ void CheckConnectivity::setMode(Mode mode) {
       break;
 #endif
     case Mode::ProvisionDevice:
-#ifdef PROV_WIFI
-      disable_captive_portal_timeout_ = false;
-#endif
       break;
   }
 }
 
-#ifdef PROV_IMPROV
 void CheckConnectivity::handleBleServer() { ble_server_->enable(); }
 
 void CheckConnectivity::handleImprov() {
@@ -291,160 +267,6 @@ void CheckConnectivity::handleImprov() {
   }
   improv_->handle();
 }
-#endif
-
-#ifdef PROV_WIFI
-void CheckConnectivity::handleCaptivePortal() {
-  if (!wifi_manager_) {
-    setupCaptivePortal();
-  }
-  bool connected = wifi_manager_->process();
-  if (connected) {
-    TRACELN(F("Connected!"));
-    setMode(Mode::ConnectWiFi);
-  }
-}
-
-void CheckConnectivity::setupCaptivePortal() {
-  TRACELN(F("Setting up captive portal"));
-  wifi_manager_ = std::unique_ptr<WiFiManager>(new WiFiManager());
-  wifi_manager_->setConfigPortalBlocking(false);
-  wifi_manager_->setSaveConnectTimeout(
-      std::chrono::duration_cast<std::chrono::seconds>(wifi_connect_timeout)
-          .count());
-  wifi_manager_->setSaveConfigCallback(
-      std::bind(&CheckConnectivity::saveCaptivePortalWifi, this));
-  wifi_manager_->setSaveParamsCallback(
-      std::bind(&CheckConnectivity::saveCaptivePortalParameters, this));
-  wifi_manager_->setPreOtaUpdateCallback(
-      std::bind(&CheckConnectivity::preOtaUpdateCallback, this));
-
-  // Add WebSocket token param. If set, use placeholder to avoid secret leakage
-  String ws_token_state =
-      web_socket_->isWsTokenSet() ? ws_token_placeholder_ : F("");
-  ws_token_parameter_ = std::unique_ptr<WiFiManagerParameter>(
-      new WiFiManagerParameter(Storage::ws_token_key_, Storage::ws_token_key_,
-                               ws_token_state.c_str(), 64));
-  wifi_manager_->addParameter(ws_token_parameter_.get());
-
-  // Add core domain param. Set default or config loaded from secrets.json
-  core_domain_parameter_ =
-      std::unique_ptr<WiFiManagerParameter>(new WiFiManagerParameter(
-          Storage::core_domain_key_, Storage::core_domain_key_,
-          web_socket_->core_domain_.c_str(), 32));
-  wifi_manager_->addParameter(core_domain_parameter_.get());
-
-  // Add boolean secure url param. "y" is true, "n" is false
-  const char* secure_url_state = web_socket_->secure_url_ ? "y" : "n";
-  secure_url_parameter_ = std::unique_ptr<WiFiManagerParameter>(
-      new WiFiManagerParameter(Storage::secure_url_key_, "Use TLS? y=yes, n=no",
-                               secure_url_state, 1));
-  wifi_manager_->addParameter(secure_url_parameter_.get());
-
-  String ssid(wifi_portal_ssid);
-  String password(wifi_portal_password);
-  wifi_manager_->startConfigPortal(ssid.c_str(), password.c_str());
-}
-
-void CheckConnectivity::saveCaptivePortalWifi() {
-  TRACELN(F("Save WiFi"));
-
-  // Save the WiFi credentials by updating or adding the new AP
-  String ssid = wifi_manager_->getWiFiSSID(false);
-  String wifi_password = wifi_manager_->getWiFiPass(false);
-  TRACEF("Connected to %s:%s\r\n", ssid.c_str(), wifi_password.c_str());
-  bool saved = false;
-  for (WiFiAP& wifi_ap : wifi_network_->wifi_aps_) {
-    if (ssid == wifi_ap.ssid) {
-      wifi_ap.password = wifi_password;
-      saved = true;
-      break;
-    }
-  }
-  if (!saved) {
-    wifi_network_->wifi_aps_.push_back(
-        {.ssid = ssid, .password = wifi_password});
-  }
-  saved = false;
-
-  // Load WiFi APs from FS and update or add new AP details
-  JsonDocument secrets_doc;
-  ErrorResult error = services_.getStorage()->loadSecrets(secrets_doc);
-  if (error.isError()) {
-    TRACELN(error.toString());
-    return;
-  }
-  JsonObject secrets = secrets_doc.as<JsonObject>();
-  JsonArray wifi_aps = secrets[F("wifi_aps")].to<JsonArray>();
-  for (JsonObject wifi_ap : wifi_aps) {
-    if (wifi_ap[F("ssid")] == ssid) {
-      wifi_ap[F("password")] = wifi_password;
-      saved = true;
-      break;
-    }
-  }
-  if (!saved) {
-    JsonObject wifi_ap = wifi_aps.add<JsonObject>();
-    wifi_ap[F("ssid")] = ssid;
-    wifi_ap[F("password")] = wifi_password;
-  }
-  error = services_.getStorage()->storeSecrets(secrets);
-  if (error.isError()) {
-    TRACELN(error.toString());
-  }
-}
-
-void CheckConnectivity::saveCaptivePortalParameters() {
-  TRACELN(F("Save parameters"));
-  JsonDocument secrets_doc;
-  ErrorResult error = services_.getStorage()->loadSecrets(secrets_doc);
-  if (error.isError()) {
-    TRACELN(error.toString());
-    return;
-  }
-  JsonObject secrets = secrets_doc.isNull() ? secrets_doc.to<JsonObject>()
-                                            : secrets_doc.as<JsonObject>();
-
-  // Save the other parameters
-  WiFiManagerParameter** parameters = wifi_manager_->getParameters();
-  for (int i = 0; i < wifi_manager_->getParametersCount(); i++) {
-    WiFiManagerParameter* param = parameters[i];
-    if (strcmp(param->getID(), Storage::ws_token_key_) == 0) {
-      if (String(ws_token_placeholder_) != param->getValue()) {
-        secrets[Storage::ws_token_key_] = param->getValue();
-        web_socket_->setWsToken(param->getValue());
-      }
-    } else if (strcmp(param->getID(), WebSocket::core_domain_key_) == 0) {
-      secrets[WebSocket::core_domain_key_] = param->getValue();
-      web_socket_->core_domain_ = param->getValue();
-    } else if (strcmp(param->getID(), WebSocket::secure_url_key_) == 0) {
-      const char secure_url = *(param->getValue());
-      if (secure_url == 'y' || secure_url == 'Y') {
-        secrets[WebSocket::secure_url_key_] = true;
-        web_socket_->secure_url_ = true;
-      } else if (secure_url == 'n' || secure_url == 'N') {
-        secrets[WebSocket::secure_url_key_] = false;
-        web_socket_->secure_url_ = false;
-      }
-    }
-  }
-
-  // Save the input parameters to FS or EEPROM
-  error = services_.getStorage()->storeSecrets(secrets);
-  if (error.isError()) {
-    TRACELN(error.toString());
-  }
-}
-
-void CheckConnectivity::preOtaUpdateCallback() {
-  disable_captive_portal_timeout_ = true;
-}
-#endif
-
-#ifdef PROV_WIFI
-const __FlashStringHelper* CheckConnectivity::ws_token_placeholder_ =
-    FPSTR("<token set>");
-#endif
 
 }  // namespace connectivity
 }  // namespace tasks

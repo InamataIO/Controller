@@ -77,7 +77,8 @@ void OtaUpdater::handleCallback(const JsonObjectConst& message) {
                   .toString());
       return;
     }
-    wifi_client_.setCACertBundle(rootca_crt_bundle_start);
+    wifi_client_.setCACertBundle(rootca_crt_bundle_start,
+                                 rootca_crt_bundle_len());
     connected = client_.begin(wifi_client_, url.as<const char*>());
   } else {
     // Use an unencrypted connection

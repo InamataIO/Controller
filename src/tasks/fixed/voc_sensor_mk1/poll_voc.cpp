@@ -45,17 +45,26 @@ bool PollVoc::TaskCallback() {
     return true;
   }
 
-  // Get the values and check for error
+  JsonDocument doc_out;
+  // Get and send VOC data
   peripheral::capabilities::GetValues::Result result = voc_sensor_->getValues();
   // Try again next iteration on error or missing reading
-  if (result.error.isError() || result.values.size() < 1) {
-    return true;
+  if (!result.error.isError() && result.values.size() >= 1) {
+    JsonObject telemetry = doc_out.to<JsonObject>();
+    WebSocket::packageTelemetry(result.values, voc_sensor_->id, true,
+                                telemetry);
+    web_socket_->sendTelemetry(telemetry);
   }
 
-  JsonDocument doc_out;
-  JsonObject telemetry = doc_out.to<JsonObject>();
-  WebSocket::packageTelemetry(result.values, voc_sensor_->id, true, telemetry);
-  web_socket_->sendTelemetry(telemetry);
+  // Get and send temperature and humidity data
+  result = air_sensor_->getValues();
+  // Try again next iteration on error or missing reading
+  if (!result.error.isError() && result.values.size() >= 1) {
+    JsonObject telemetry = doc_out.to<JsonObject>();
+    WebSocket::packageTelemetry(result.values, air_sensor_->id, true,
+                                telemetry);
+    web_socket_->sendTelemetry(telemetry);
+  }
 
   return true;
 }
@@ -81,10 +90,31 @@ bool PollVoc::setFixedPeripherals() {
         peripheral::Peripheral::notAValidError(peripheral_id, sgp40_type));
     return false;
   }
+
+  peripheral_id = String(peripheral::fixed::peripheral_air_id).c_str();
+  peripheral = Services::getPeripheralController().getPeripheral(peripheral_id);
+  if (!peripheral) {
+    setInvalid(peripheral::Peripheral::peripheralNotFoundError(peripheral_id));
+    return false;
+  }
+
+  // Since the UUID is specified externally, check the type
+  const String& hdc2080_type =
+      peripheral::peripherals::hdc2080::HDC2080::type();
+  if (peripheral->getType() == hdc2080_type && peripheral->isValid()) {
+    air_sensor_ =
+        std::static_pointer_cast<peripheral::peripherals::hdc2080::HDC2080>(
+            peripheral);
+  } else {
+    setInvalid(
+        peripheral::Peripheral::notAValidError(peripheral_id, hdc2080_type));
+    return false;
+  }
+
   return true;
 }
 
-const std::chrono::seconds PollVoc::default_interval_{10};
+const std::chrono::seconds PollVoc::default_interval_{60};
 
 }  // namespace fixed
 }  // namespace tasks

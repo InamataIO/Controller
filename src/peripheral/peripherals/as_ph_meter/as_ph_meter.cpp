@@ -8,7 +8,7 @@ namespace peripheral {
 namespace peripherals {
 namespace as_ph_meter {
 
-AsPhMeterI2C::AsPhMeterI2C(const JsonVariantConst& parameters)
+AsPhMeterI2C::AsPhMeterI2C(const JsonObjectConst& parameters)
     : I2CAbstractPeripheral(parameters), Ezo_board(0) {
   // If the base class constructor failed, abort the constructor
   if (!isValid()) {
@@ -96,11 +96,11 @@ capabilities::StartMeasurement::Result AsPhMeterI2C::handleMeasurement() {
     // Be conservative. Wait another complete reading cycle
     return {.wait = reading_duration_};
   } else if (error == Ezo_board::errors::NO_DATA) {
-    return {.wait = {}, ErrorResult(type(), F("No data"))};
+    return {.wait = {}, .error = ErrorResult(type(), F("No data"))};
   } else if (error == Ezo_board::errors::NOT_READ_CMD) {
-    return {.wait = {}, ErrorResult(type(), F("Not started"))};
+    return {.wait = {}, .error = ErrorResult(type(), F("Not started"))};
   } else {
-    return {.wait = {}, ErrorResult(type(), F("Unknown error"))};
+    return {.wait = {}, .error = ErrorResult(type(), F("Unknown error"))};
   }
 }
 
@@ -109,8 +109,7 @@ capabilities::GetValues::Result AsPhMeterI2C::getValues() {
   // reading after returning it.
   if (!std::isnan(last_reading_)) {
     capabilities::GetValues::Result result = {
-        .values = {utils::ValueUnit{.value = reading,
-                                    .data_point_type = data_point_type_}}};
+        .values = {utils::ValueUnit(reading, data_point_type_)}};
     last_reading_ = NAN;
     return result;
   } else {

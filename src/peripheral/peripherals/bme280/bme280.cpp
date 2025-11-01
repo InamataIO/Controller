@@ -89,15 +89,12 @@ capabilities::GetValues::Result BME280::getValues() {
   capabilities::GetValues::Result result;
 
   result.values.push_back(
-      utils::ValueUnit{.value = driver_.readTempC(),
-                       .data_point_type = temperature_data_point_type_});
+      utils::ValueUnit(driver_.readTempC(), temperature_data_point_type_));
   result.values.push_back(
-      utils::ValueUnit{.value = driver_.readFloatPressure(),
-                       .data_point_type = pressure_data_point_type_});
+      utils::ValueUnit(driver_.readFloatPressure(), pressure_data_point_type_));
   if (chip_type_ == ChipType::BME280) {
-    result.values.push_back(
-        utils::ValueUnit{.value = driver_.readFloatHumidity(),
-                         .data_point_type = humidity_data_point_type_});
+    result.values.push_back(utils::ValueUnit(driver_.readFloatHumidity(),
+                                             humidity_data_point_type_));
   }
   return result;
 }

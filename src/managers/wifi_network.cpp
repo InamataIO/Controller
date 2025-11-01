@@ -25,7 +25,7 @@ void timeSyncCallback(struct timeval* tv) {
   }
 #endif
   // Use a smooth sync for future syncing
-  sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
+  esp_sntp_set_sync_mode(SNTP_SYNC_MODE_SMOOTH);
 }
 
 WiFiNetwork::WiFiNetwork(std::vector<WiFiAP>& wifi_aps, String& controller_name)
@@ -357,9 +357,9 @@ bool WiFiNetwork::tryCyclePower() {
 void WiFiNetwork::initTimeSync() {
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
   sntp_set_time_sync_notification_cb(timeSyncCallback);
-  if (!sntp_enabled()) {
-    sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
-    sntp_init();
+  if (!esp_sntp_enabled()) {
+    esp_sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
+    esp_sntp_init();
   }
   TRACELN(F("Start time sync"));
 }

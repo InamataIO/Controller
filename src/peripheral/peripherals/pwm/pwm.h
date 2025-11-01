@@ -56,13 +56,9 @@ class Pwm : public Peripheral, public capabilities::SetValue {
   /// Interface to send data to the server
   std::shared_ptr<WebSocket> web_socket_;
 
-  /// Marks which PWM channels are currently in use
-  static std::bitset<16> busy_channels_;
-
   utils::UUID data_point_type_{nullptr};
 
   int pin_ = -1;
-  Safe::Integer<int> channel_ = -1;
   int resolution_ = -1;
 
   /// Name of the parameter to which the pin the PWM signal is connected

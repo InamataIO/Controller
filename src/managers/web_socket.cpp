@@ -52,6 +52,8 @@ bool WebSocket::isConnected() {
   return is_connected;
 }
 
+void WebSocket::disconnect() { websocket_client.disconnect(); }
+
 WebSocket::ConnectState WebSocket::connect() {
   // Configure the WebSocket interface with the server, TLS certificate and the
   // reconnect interval
@@ -69,7 +71,7 @@ WebSocket::ConnectState WebSocket::connect() {
     if (secure_url_) {
       websocket_client.beginSslWithBundle(
           core_domain_.c_str(), 443, ws_url_path_.c_str(),
-          rootca_crt_bundle_start, ws_token_.c_str());
+          rootca_crt_bundle_start, rootca_crt_bundle_len(), ws_token_.c_str());
     } else {
       websocket_client.begin(core_domain_.c_str(), 8000, ws_url_path_.c_str(),
                              ws_token_.c_str());

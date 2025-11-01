@@ -13,6 +13,8 @@ void ActionController::handleCallback(const JsonObjectConst& message) {
   }
 
   if (action == action_restart_) {
+    services_.getWebSocket()->disconnect();
+    delay(500);
     ESP.restart();
   } else if (action == action_clear_stored_resources_) {
     services_.getStorage()->deletePeripherals();

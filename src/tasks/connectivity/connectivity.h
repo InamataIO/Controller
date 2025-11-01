@@ -1,9 +1,6 @@
 #pragma once
 
 #include <TaskSchedulerDeclarations.h>
-#ifdef PROV_WIFI
-#include <WiFiManager.h>
-#endif
 
 #include <chrono>
 #include <limits>
@@ -85,48 +82,13 @@ class CheckConnectivity : public BaseTask {
    */
   void enterConnectMode();
 
-#ifdef PROV_IMPROV
   enum class WiFiScanMode { kNone, kScanning, kFinished };
 
   void handleBleServer();
   void handleImprov();
 
   std::unique_ptr<BleImprov> improv_;
-#endif
 
-#ifdef PROV_WIFI
-  /**
-   * Process captive portal loop
-   */
-  void handleCaptivePortal();
-
-  /**
-   * Setup captive portal
-   */
-  void setupCaptivePortal();
-
-  /**
-   * Save credentials of setup WiFi connection to LittleFS/EEPROM
-   */
-  void saveCaptivePortalWifi();
-
-  /**
-   * Save parameters (WS Token, domain) to LittleFS/EEPROM
-   */
-  void saveCaptivePortalParameters();
-
-  /**
-   * Disable captive portal timeout before OTA update
-   */
-  void preOtaUpdateCallback();
-
-  std::unique_ptr<WiFiManager> wifi_manager_;
-  std::unique_ptr<WiFiManagerParameter> ws_token_parameter_;
-  static const __FlashStringHelper* ws_token_placeholder_;
-  std::unique_ptr<WiFiManagerParameter> core_domain_parameter_;
-  std::unique_ptr<WiFiManagerParameter> secure_url_parameter_;
-  bool disable_captive_portal_timeout_ = false;
-#endif
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
   std::shared_ptr<DigitalIn> gsm_wifi_toggle_;
 #endif

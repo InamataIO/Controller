@@ -72,8 +72,7 @@ capabilities::Calibrate::Result SGP40::handleCalibration() {
 capabilities::GetValues::Result SGP40::getValues() {
   capabilities::GetValues::Result result;
   result.values.push_back(
-      utils::ValueUnit{.value = float(driver_.getVoclndex()),
-                       .data_point_type = data_point_type_});
+      utils::ValueUnit(float(driver_.getVoclndex()), data_point_type_));
   return result;
 }
 

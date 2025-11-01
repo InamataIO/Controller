@@ -125,6 +125,7 @@ bool Alarms::TaskCallback() {
   Task::delay(std::chrono::milliseconds(default_interval_).count());
   now_ = std::chrono::steady_clock::now();
   handleMaintenanceMode();
+  handleFactoryReset();
   handleSmsReminders();
 
   if (!is_maintenance_mode_) {
@@ -687,6 +688,17 @@ void Alarms::handleMaintenanceMode() {
         utils::ValueUnit(1, peripheral::fixed::dpt_maintenance_mode_id),
         utils::LimitEvent::Type::kContinue);
     maintenance_limit_.last_continue_event_sent = now_;
+  }
+}
+
+void Alarms::handleFactoryReset() {
+  // If button pressed continually for period, factory reset the device
+  if (maintenance_button_->read() &&
+      maintenance_button_->currentDuration() >
+          std::chrono::milliseconds(factory_reset_button_hold_).count()) {
+    Serial.println("Deleting all files and then resetting");
+    Storage::recursiveRm("/");
+    ESP.restart();
   }
 }
 

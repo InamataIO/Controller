@@ -163,6 +163,7 @@ class Alarms : public BaseTask {
                           const std::chrono::milliseconds duration);
 
   void handleMaintenanceMode();
+  void handleFactoryReset();
 
   /**
    * Set the config for a bool limit
@@ -331,6 +332,7 @@ class Alarms : public BaseTask {
   BaseLimit maintenance_limit_;
   std::chrono::steady_clock::time_point maintenance_mode_start_ =
       std::chrono::steady_clock::time_point::min();
+  static constexpr std::chrono::seconds factory_reset_button_hold_{10};
 
   std::shared_ptr<peripheral::peripherals::neo_pixel::NeoPixel> status_led_;
 
