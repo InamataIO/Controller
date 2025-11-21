@@ -3,40 +3,36 @@ Amazon Trust Services,Amazon Root CA 1
 Amazon Trust Services,Amazon Root CA 2
 Amazon Trust Services,Amazon Root CA 3
 Amazon Trust Services,Amazon Root CA 4
-Amazon Trust Services,Starfield Services Root Certificate Authority - G2
-DigiCert,Baltimore CyberTrust Root
-DigiCert,DigiCert Assured ID Root CA
-DigiCert,DigiCert Assured ID Root G2
-DigiCert,DigiCert Assured ID Root G3
-DigiCert,DigiCert Global Root CA
-DigiCert,DigiCert Global Root G2
-DigiCert,DigiCert Global Root G3
-DigiCert,DigiCert High Assurance EV Root CA
-DigiCert,DigiCert TLS ECC P384 Root G5
-DigiCert,DigiCert TLS RSA4096 Root G5
-DigiCert,DigiCert Trusted Root G4
-GlobalSign nv-sa,GlobalSign Root CA - R3
-GlobalSign nv-sa,GlobalSign ECC Root CA - R5
-GlobalSign nv-sa,GlobalSign Root CA - R6
-GlobalSign nv-sa,GlobalSign Root CA
-GlobalSign nv-sa,GlobalSign Root E46
-GlobalSign nv-sa,GlobalSign Root R46
-GoDaddy,Go Daddy Class 2 CA
-GoDaddy,Go Daddy Root Certificate Authority - G2
-GoDaddy,Starfield Class 2 CA
-GoDaddy,Starfield Root Certificate Authority - G2
-Google Trust Services LLC,GlobalSign ECC Root CA - R4
 Google Trust Services LLC,GTS Root R1
 Google Trust Services LLC,GTS Root R2
 Google Trust Services LLC,GTS Root R3
 Google Trust Services LLC,GTS Root R4
-"IdenTrust Services, LLC",DST Root CA X3
-"IdenTrust Services, LLC",IdenTrust Commercial Root CA 1
-"IdenTrust Services, LLC",IdenTrust Public Sector Root CA 1
+Microsoft Corporation,Microsoft RSA Root Certificate Authority 2017
+Microsoft Corporation,Microsoft ECC Root Certificate Authority 2017
 Internet Security Research Group,ISRG Root X1
 Internet Security Research Group,ISRG Root X2
-Sectigo,COMODO Certification Authority
-Sectigo,COMODO ECC Certification Authority
+"IdenTrust Services, LLC",IdenTrust Commercial Root CA 1
+"IdenTrust Services, LLC",IdenTrust Public Sector Root CA 1
+DigiCert,DigiCert Trusted Root G4
+DigiCert,DigiCert TLS ECC P384 Root G5
+DigiCert,DigiCert TLS RSA4096 Root G5
+DigiCert,DigiCert Global Root G3
+GlobalSign nv-sa,GlobalSign Root CA - R3
+GlobalSign nv-sa,GlobalSign Root CA - R6
+GlobalSign nv-sa,GlobalSign ECC Root CA - R5
 Sectigo,COMODO RSA Certification Authority
-Sectigo,USERTrust ECC Certification Authority
+Sectigo,COMODO ECC Certification Authority
 Sectigo,USERTrust RSA Certification Authority
+Sectigo,USERTrust ECC Certification Authority
+GoDaddy,Go Daddy Root Certificate Authority - G2
+GoDaddy,Starfield Root Certificate Authority - G2
+Entrust,Entrust Root Certification Authority
+Entrust,Entrust Root Certification Authority - G2
+Certum,Certum Trusted Network CA
+Certum,Certum Trusted Network CA 2
+QuoVadis,QuoVadis Root CA 2
+QuoVadis,QuoVadis Root CA 2 G3
+QuoVadis,QuoVadis Root CA 3 G3
+Trustwave,Trustwave Global Certification Authority
+Trustwave,Trustwave Global ECC P256 Certification Authority
+Trustwave,Trustwave Global ECC P384 Certification Authority
