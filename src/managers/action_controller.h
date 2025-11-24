@@ -23,14 +23,14 @@ class ActionController {
   void clearIdentifyCallback();
 
  private:
-  /// The server to which to reply to
   ServiceGetters services_;
 
   std::function<void()> identify_callback_;
 
-  static const __FlashStringHelper* action_restart_;
-  static const __FlashStringHelper* action_clear_stored_resources_;
-  static const __FlashStringHelper* action_identify_;
+  static const char* action_restart_;
+  static const char* action_clear_stored_resources_;
+  static const char* action_factory_reset_;
+  static const char* action_identify_;
 };
 
 }  // namespace inamata

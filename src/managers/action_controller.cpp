@@ -19,6 +19,9 @@ void ActionController::handleCallback(const JsonObjectConst& message) {
   } else if (action == action_clear_stored_resources_) {
     services_.getStorage()->deletePeripherals();
     ESP.restart();
+  } else if (action == action_factory_reset_) {
+    services_.getStorage()->recursiveRm("/");
+    ESP.restart();
   } else if (action == action_identify_) {
     identify();
   } else {
@@ -38,9 +41,9 @@ void ActionController::setIdentifyCallback(std::function<void()> callback) {
 
 void ActionController::clearIdentifyCallback() { identify_callback_ = nullptr; }
 
-const __FlashStringHelper* ActionController::action_restart_ = FPSTR("rst");
-const __FlashStringHelper* ActionController::action_clear_stored_resources_ =
-    FPSTR("clrStrdRes");
-const __FlashStringHelper* ActionController::action_identify_ = FPSTR("ident");
+const char* ActionController::action_restart_ = "rst";
+const char* ActionController::action_clear_stored_resources_ = "clrStrdRes";
+const char* ActionController::action_factory_reset_ = "factoryReset";
+const char* ActionController::action_identify_ = "ident";
 
 }  // namespace inamata
