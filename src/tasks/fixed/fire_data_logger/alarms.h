@@ -198,6 +198,15 @@ class Alarms : public BaseTask {
 
   // Limits
   // Digital alarms
+  BoolLimit limit_diesel_1_pump_run_ = {"diesel_1_pump_run",
+                                        &peripheral::fixed::peripheral_io_1_id};
+  BoolLimit limit_diesel_2_pump_run_ = {"diesel_2_pump_run",
+                                        &peripheral::fixed::peripheral_io_1_id};
+  BoolLimit limit_diesel_3_pump_run_ = {"diesel_3_pump_run",
+                                        &peripheral::fixed::peripheral_io_1_id};
+  BoolLimit limit_diesel_4_pump_run_ = {"diesel_4_pump_run",
+                                        &peripheral::fixed::peripheral_io_1_id};
+
   BoolLimit limit_diesel_1_fire_alarm_ = {
       "diesel_1_fire_alarm", &peripheral::fixed::peripheral_io_1_id};
   BoolLimit limit_diesel_2_fire_alarm_ = {
@@ -245,6 +254,10 @@ class Alarms : public BaseTask {
   BoolLimit limit_diesel_fuel_tank_low_ = {
       "diesel_fuel_tank_low", &peripheral::fixed::peripheral_io_2_id};
 
+  BoolLimit limit_electric_1_pump_run_ = {
+      "electric_1_pump_run", &peripheral::fixed::peripheral_io_2_id};
+  BoolLimit limit_electric_2_pump_run_ = {
+      "electric_2_pump_run", &peripheral::fixed::peripheral_io_2_id};
   BoolLimit limit_electric_1_fire_alarm_ = {
       "electric_1_fire_alarm", &peripheral::fixed::peripheral_io_2_id};
   BoolLimit limit_electric_2_fire_alarm_ = {
@@ -288,7 +301,11 @@ class Alarms : public BaseTask {
       "activation_jockey_2_pump_run",
       &peripheral::fixed::peripheral_jockey_2_pump_run_id};
 
-  std::array<BoolLimit*, 32> bool_limits_ = {
+  std::array<BoolLimit*, 38> bool_limits_ = {
+      &limit_diesel_1_pump_run_,
+      &limit_diesel_2_pump_run_,
+      &limit_diesel_3_pump_run_,
+      &limit_diesel_4_pump_run_,
       &limit_diesel_1_fire_alarm_,
       &limit_diesel_2_fire_alarm_,
       &limit_diesel_3_fire_alarm_,
@@ -310,6 +327,8 @@ class Alarms : public BaseTask {
       &limit_diesel_pump_fail_,
       &limit_diesel_engine_overheat_fail_,
       &limit_diesel_fuel_tank_low_,
+      &limit_electric_1_pump_run_,
+      &limit_electric_2_pump_run_,
       &limit_electric_1_fire_alarm_,
       &limit_electric_2_fire_alarm_,
       &limit_electric_1_pump_fail_,

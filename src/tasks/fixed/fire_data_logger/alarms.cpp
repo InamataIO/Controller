@@ -180,8 +180,22 @@ void Alarms::resetLimits() {
 
 void Alarms::handleResult(const utils::ValueUnit& value_unit) {
   /// Digital alarms
-  if (peripheral::fixed::dpt_diesel_1_fire_alarm_id ==
+  if (peripheral::fixed::dpt_diesel_1_pump_run_id ==
       value_unit.data_point_type) {
+    handleBoolLimit(limit_diesel_1_pump_run_, value_unit);
+  } else if (peripheral::fixed::dpt_diesel_2_pump_run_id ==
+             value_unit.data_point_type) {
+    handleBoolLimit(limit_diesel_2_pump_run_, value_unit);
+  } else if (peripheral::fixed::dpt_diesel_3_pump_run_id ==
+             value_unit.data_point_type) {
+    handleBoolLimit(limit_diesel_3_pump_run_, value_unit);
+  } else if (peripheral::fixed::dpt_diesel_4_pump_run_id ==
+             value_unit.data_point_type) {
+    handleBoolLimit(limit_diesel_4_pump_run_, value_unit);
+  }
+
+  else if (peripheral::fixed::dpt_diesel_1_fire_alarm_id ==
+           value_unit.data_point_type) {
     handleBoolLimit(limit_diesel_1_fire_alarm_, value_unit);
   } else if (peripheral::fixed::dpt_diesel_2_fire_alarm_id ==
              value_unit.data_point_type) {
@@ -253,8 +267,14 @@ void Alarms::handleResult(const utils::ValueUnit& value_unit) {
     handleBoolLimit(limit_diesel_fuel_tank_low_, value_unit);
   }
 
-  else if (peripheral::fixed::dpt_electric_1_fire_alarm_id ==
+  else if (peripheral::fixed::dpt_electric_1_pump_run_id ==
            value_unit.data_point_type) {
+    handleBoolLimit(limit_electric_1_pump_run_, value_unit);
+  } else if (peripheral::fixed::dpt_electric_2_pump_run_id ==
+             value_unit.data_point_type) {
+    handleBoolLimit(limit_electric_2_pump_run_, value_unit);
+  } else if (peripheral::fixed::dpt_electric_1_fire_alarm_id ==
+             value_unit.data_point_type) {
     handleBoolLimit(limit_electric_1_fire_alarm_, value_unit);
   } else if (peripheral::fixed::dpt_electric_2_fire_alarm_id ==
              value_unit.data_point_type) {
