@@ -128,6 +128,9 @@ void GsmNetwork::handleConnection() {
     if (network_connected_) {
       gprs_connected_ = modem_.isGprsConnected();
       signal_quality_ = modem_.getSignalQuality();
+      // Get NSM (GPRS, EDGE, LTE) and ignore auto_nsm state
+      bool auto_nsm;
+      modem_.getNetworkSystemMode(auto_nsm, network_system_mode_);
     } else {
       gprs_connected_ = false;
       signal_quality_ = 0;

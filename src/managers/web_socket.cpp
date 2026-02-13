@@ -1,5 +1,6 @@
 #include "web_socket.h"
 
+#include <esp_system.h>
 #include <esp_tls.h>
 
 #include "managers/services.h"
@@ -189,6 +190,11 @@ void WebSocket::sendRegister() {
   // Set the firmware version number
   register_obj["version"] = firmware_version_;
 
+  // Why the controller reset. Only send once
+  if (!sent_register_message_) {
+    setResetReason(register_obj);
+  }
+
   // Collect all added peripheral ids and write them to a JSON doc
   if (behavior_based) {
     set_behavior_register_data_(register_obj);
@@ -216,6 +222,7 @@ void WebSocket::sendRegister() {
   }
 
   sendJson(register_obj);
+  sent_register_message_ = true;
 }
 
 void WebSocket::sendError(const String& who, const String& message) {
@@ -421,6 +428,62 @@ void WebSocket::sendUpDownTimeData() {
     }
     sendSystem(doc_out.as<JsonObject>());
   }
+}
+
+void WebSocket::setResetReason(JsonObject& register_obj) {
+  const esp_reset_reason_t reset_reason = esp_reset_reason();
+  const char* reset_reason_str;
+  switch (reset_reason) {
+    case ESP_RST_POWERON:
+      reset_reason_str = "poweron";
+      break;
+    case ESP_RST_EXT:
+      reset_reason_str = "ext";
+      break;
+    case ESP_RST_SW:
+      reset_reason_str = "sw";
+      break;
+    case ESP_RST_PANIC:
+      reset_reason_str = "panic";
+      break;
+    case ESP_RST_INT_WDT:
+      reset_reason_str = "int_wdt";
+      break;
+    case ESP_RST_TASK_WDT:
+      reset_reason_str = "task_wdt";
+      break;
+    case ESP_RST_WDT:
+      reset_reason_str = "wdt";
+      break;
+    case ESP_RST_DEEPSLEEP:
+      reset_reason_str = "deepsleep";
+      break;
+    case ESP_RST_BROWNOUT:
+      reset_reason_str = "brownout";
+      break;
+    case ESP_RST_SDIO:
+      reset_reason_str = "sdio";
+      break;
+    case ESP_RST_USB:
+      reset_reason_str = "usb";
+      break;
+    case ESP_RST_JTAG:
+      reset_reason_str = "jtag";
+      break;
+    case ESP_RST_EFUSE:
+      reset_reason_str = "efuse";
+      break;
+    case ESP_RST_PWR_GLITCH:
+      reset_reason_str = "pwr_glitch";
+      break;
+    case ESP_RST_CPU_LOCKUP:
+      reset_reason_str = "cpu_lockup";
+      break;
+    case ESP_RST_UNKNOWN:
+    default:
+      reset_reason_str = "unknown";
+  }
+  register_obj["reset_reason"] = reset_reason_str;
 }
 
 void WebSocket::sendJson(JsonVariantConst doc, const bool retry) {

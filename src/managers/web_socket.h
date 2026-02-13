@@ -230,6 +230,8 @@ class WebSocket {
   void updateUpDownTime(const bool is_connected);
   void sendUpDownTimeData();
 
+  void setResetReason(JsonObject& register_obj);
+
   /**
    * Send JSON data to the server
    *
@@ -254,6 +256,7 @@ class WebSocket {
   /// Whether the WebSocket was connected during the last check
   bool was_connected_ = false;
   bool send_on_connect_messages_ = false;
+  bool sent_register_message_ = false;
   /// The timepoint when the last connect attempt started
   std::chrono::steady_clock::time_point last_connect_start_ =
       std::chrono::steady_clock::time_point::min();

@@ -80,6 +80,7 @@ class GsmNetwork {
   bool network_connected_ = false;
   bool gprs_connected_ = false;
   int16_t signal_quality_ = 0;
+  int16_t network_system_mode_ = 0;
 
 #ifdef DUMP_AT_COMMANDS
   StreamDebugger debugger_;

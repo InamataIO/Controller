@@ -48,6 +48,15 @@ This is a controller's typical start up sequence:
 
 The WebSocket protocol is described on the [WebSocket API page](doc/websocket_api.md).
 
+## Firmware Runtime Logic
+
+High-level documentation of the firmware's boot process, connectivity, command handling,
+and message flow is in [Firmware Runtime Logic](doc/firmware_logic.md).
+
+## Fixed Devices
+
+- Fire Data Logger behavior (alarms-centric): [Fire Data Logger](doc/fire_data_logger.md)
+
 ## Development
 
 Development is mainly done in a private GitLab repository but changes are automatically pushed to this public GitHub repository. To build the software, install VS Code and the PlatformIO extenstion, select your build target and press the build button.

@@ -23,13 +23,6 @@ class SystemMonitor : public BaseTask {
   const String& getType() const final;
   static const String& type();
 
-  /**
-   * Specifies how often the system monitor should check and send its state
-   *
-   * \param interval How often the check should be performed
-   */
-  void SetInterval(std::chrono::milliseconds interval);
-
  private:
   /**
    * Resets the CPU load counters and delays the task for one iteration
@@ -51,6 +44,7 @@ class SystemMonitor : public BaseTask {
 
   // Max time is ~72 minutes due to an overflow in the CPU load counter
   static const std::chrono::seconds default_interval_;
+  static const std::chrono::seconds offline_interval_;
 };
 
 }  // namespace system_monitor
