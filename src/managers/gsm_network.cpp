@@ -14,7 +14,7 @@
 
 namespace inamata {
 
-GsmNetwork::GsmNetwork()
+GsmNetwork::GsmNetwork(std::shared_ptr<Storage> storage)
     :
 #ifdef DUMP_AT_COMMANDS
       debugger_(SerialAT, SerialMon),
@@ -22,11 +22,26 @@ GsmNetwork::GsmNetwork()
 #else
       modem_(SerialAT),
 #endif
-      client_(modem_) {
+      client_(modem_),
+      storage_(storage) {
   pinMode(peripheral::fixed::gsm_enable_pin, OUTPUT);
   pinMode(peripheral::fixed::gsm_reset_pin, OUTPUT);
   SerialAT.begin(115200, SERIAL_8N1, peripheral::fixed::gsm_rx_pin,
                  peripheral::fixed::gsm_tx_pin);
+
+  // Load config from file. Get allowed MNOs and set last connected as default
+  JsonDocument mobile_config_doc;
+  ErrorResult result = storage_->loadMobileConfig(mobile_config_doc);
+  if (result.isError()) {
+    TRACELN(result.toString());
+    return;
+  }
+  JsonObject mobile_config = mobile_config_doc.as<JsonObject>();
+  JsonArray allowed_mnos = mobile_config[allowed_mnos_key_].as<JsonArray>();
+  for (JsonVariantConst mno : allowed_mnos) {
+    allowed_mnos_.push_back(mno);
+  }
+  connect_to_mno_ = mobile_config[last_connected_mno_key_].as<const char*>();
 }
 
 void GsmNetwork::enable() {
@@ -37,6 +52,8 @@ void GsmNetwork::enable() {
   digitalWrite(peripheral::fixed::gsm_reset_pin, HIGH);
   delay(2000);
   modem_.init();
+  connection_state_ = ConnectionState::kIdle;
+  enterModemConnectMode();
 
   is_enabled_ = true;
 }
@@ -44,6 +61,7 @@ void GsmNetwork::enable() {
 void GsmNetwork::disable() {
   digitalWrite(peripheral::fixed::gsm_enable_pin, LOW);
 
+  disconnectModem();
   is_enabled_ = false;
 }
 
@@ -120,6 +138,11 @@ void GsmNetwork::syncTime() {
 }
 
 void GsmNetwork::handleConnection() {
+  if (cops_scan_ && cops_scan_->active) {
+    pollCopsScan();
+    return;
+  }
+
   const auto now = std::chrono::steady_clock::now();
   if (utils::chrono_abs(now - last_network_check_) > check_period_) {
     last_network_check_ = now;
@@ -128,25 +151,42 @@ void GsmNetwork::handleConnection() {
     if (network_connected_) {
       gprs_connected_ = modem_.isGprsConnected();
       signal_quality_ = modem_.getSignalQuality();
-      operator_id_ = modem_.getOperator();
+      current_mno_ = modem_.getOperator();
       // Get NSM (GPRS, EDGE, LTE) and ignore auto_nsm state
       bool auto_nsm;
       modem_.getNetworkSystemMode(auto_nsm, network_system_mode_);
     } else {
       gprs_connected_ = false;
       signal_quality_ = 0;
-      operator_id_ = "";
+      current_mno_ = "";
     }
-    TRACEF("Network: %d GPRS: %d CSQ: %d\r\n", network_connected_,
-           gprs_connected_, signal_quality_);
+    TRACEF("Network: %d GPRS: %d CSQ: %d, MNO: %s\r\n", network_connected_,
+           gprs_connected_, signal_quality_, current_mno_.c_str());
 
     if (network_connected_ && !gprs_connected_) {
       if (modem_.isGprsConnected()) {
         TRACELN("GRPS already connected");
+        if (connection_state_ == ConnectionState::kTryingCandidate) {
+          connection_state_ = ConnectionState::kConnected;
+          saveLastConnectedMno(connect_to_mno_);
+        }
         gprs_connected_ = true;
       } else {
         TRACELN("GRPS connecting");
         gprs_connected_ = modem_.gprsConnect(GSM_APN);
+      }
+    }
+
+    // If idle or trying connect and timed out, iterate to next MNO
+    if (connection_state_ == ConnectionState::kIdle ||
+        (connection_state_ == ConnectionState::kTryingCandidate &&
+         utils::chrono_abs(now - connection_attempt_start_) >
+             max_connection_period_)) {
+      String mno = iterateNextAllowedMno();
+      if (!mno.length()) {
+        disconnectModem();
+      } else {
+        connectToMno(mno);
       }
     }
   }
@@ -199,6 +239,200 @@ String GsmNetwork::encodeSms(const char* text) {
   }
   return gsm7;
 }
+
+void GsmNetwork::startCopsScan(CopsScanType scan_type) {
+  if (cops_scan_ && cops_scan_->active) {
+    return;
+  }
+
+  cops_scan_ = std::make_unique<AtJob>();
+  cops_scan_->active = true;
+  cops_scan_->started_ms = millis();
+  cops_result_ = "";
+  enterModemScanMode(scan_type);
+}
+
+void GsmNetwork::pollCopsScan() {
+  if (!cops_scan_ || !cops_scan_->active) {
+    return;
+  }
+
+  if (millis() - cops_scan_->started_ms > cops_scan_->timeout_ms) {
+    cops_scan_->success = false;
+    cops_scan_->active = false;
+
+    enterModemConnectMode();
+    return;
+  }
+
+  while (modem_.stream.available()) {
+    char c = (char)modem_.stream.read();
+    if (c == '\r') continue;
+
+    if (c == '\n') {
+      // We have a full line in currentLine
+      if (cops_scan_->buffer == "OK") {
+        cops_scan_->success = true;
+        cops_scan_->active = false;
+        cops_scan_->buffer = "";
+        enterModemConnectMode();
+        return;
+      }
+      if (cops_scan_->buffer == "ERROR" ||
+          cops_scan_->buffer.startsWith("+CME ERROR:")) {
+        cops_scan_->success = false;
+        cops_scan_->active = false;
+        cops_scan_->buffer = "";
+        enterModemConnectMode();
+        return;
+      }
+
+      // Capture the network list line
+      if (cops_scan_->buffer.startsWith("+COPS:")) {
+        cops_result_ = cops_scan_->buffer.substring(6);
+        TRACEF("COPS result: %s\r\n", cops_result_.c_str());
+      } else {
+        TRACEF("URC: %s\r\n", cops_scan_->buffer);
+      }
+
+      cops_scan_->buffer = "";
+    } else {
+      cops_scan_->buffer += c;
+      if (cops_scan_->buffer.length() > 1024) {
+        // prevent runaway
+        cops_scan_->buffer.remove(0, cops_scan_->buffer.length() - 1024);
+      }
+    }
+  }
+}
+
+void GsmNetwork::clearCopsScan() {
+  cops_scan_ = nullptr;
+  cops_result_ = "";
+}
+
+ErrorResult GsmNetwork::setAllowedMobileOperators(std::vector<String>& mnos) {
+  JsonDocument mobile_config_doc;
+  ErrorResult result = storage_->loadMobileConfig(mobile_config_doc);
+  if (result.isError()) {
+    return result;
+  }
+
+  JsonObject mobile_config = mobile_config_doc.isNull()
+                                 ? mobile_config_doc.to<JsonObject>()
+                                 : mobile_config_doc.as<JsonObject>();
+
+  JsonArray allowed_mnos = mobile_config[allowed_mnos_key_].to<JsonArray>();
+  allowed_mnos_.clear();
+  for (const String& mno : mnos) {
+    allowed_mnos.add(mno);
+    allowed_mnos_.push_back(mno);
+  }
+
+  return storage_->storeMobileConfig(mobile_config);
+}
+
+void GsmNetwork::enterModemScanMode(CopsScanType scan_type) {
+  if (connection_state_ == ConnectionState::kDisconnected) {
+    modem_.init();
+    connection_state_ = ConnectionState::kIdle;
+  }
+  modem_.sendAT("+COPS=0");
+  modem_.waitResponse();
+  // Set modem to LTE mode (crashes on auto mode: 2)
+  switch (scan_type) {
+    case CopsScanType::kAuto:
+      modem_.sendAT("+CNMP=2");
+      break;
+    case CopsScanType::kGsm:
+      modem_.sendAT("+CNMP=13");
+      break;
+    case CopsScanType::kDefault:
+    case CopsScanType::kLte:
+    default:
+      modem_.sendAT("+CNMP=38");
+      break;
+  }
+  modem_.waitResponse();
+  // Scan for networks but don't wait for response
+  modem_.sendAT("+COPS=?");
+}
+
+void GsmNetwork::enterModemConnectMode() {
+  if (connection_state_ == ConnectionState::kDisconnected) {
+    modem_.init();
+    connection_state_ = ConnectionState::kIdle;
+  }
+  // Set modem to auto tech mode (LTE + GSM)
+  modem_.sendAT("+CNMP=2");
+  modem_.waitResponse();
+
+  // Select a Mobile Operator to connect to
+  // 1. Try last used operator
+  // 2. Get next valid operator if empty
+  // 3. Set disconnected mode if no valid options available
+  if (!connect_to_mno_.length()) {
+    connect_to_mno_ = iterateNextAllowedMno();
+    if (!connect_to_mno_.length()) {
+      return disconnectModem();
+    }
+  }
+  connectToMno(connect_to_mno_);
+}
+
+void GsmNetwork::connectToMno(String& mno) {
+  if (!mno.length()) {
+    TRACELN("Empty MNO");
+    return;
+  }
+  if (connection_state_ == ConnectionState::kDisconnected) {
+    modem_.init();
+    connection_state_ = ConnectionState::kIdle;
+  }
+  modem_.sendAT("+COPS=1,2,\"" + mno + "\"");
+  modem_.waitResponse();
+  connection_state_ = ConnectionState::kTryingCandidate;
+  connection_attempt_start_ = std::chrono::steady_clock::now();
+  TRACEF("Trying to connect to: %s\r\n", connect_to_mno_.c_str());
+}
+
+void GsmNetwork::disconnectModem() {
+  modem_.sendAT("+COPS=2");
+  modem_.waitResponse();
+  connection_state_ = ConnectionState::kDisconnected;
+  connection_attempt_start_ = std::chrono::steady_clock::time_point::min();
+  TRACELN("Disconnecting");
+}
+
+String GsmNetwork::iterateNextAllowedMno() {
+  if (!allowed_mnos_.size()) {
+    return String();
+  }
+  last_mno_idx_++;
+  if (last_mno_idx_ >= allowed_mnos_.size()) {
+    last_mno_idx_ = 0;
+  }
+  return allowed_mnos_[last_mno_idx_];
+}
+
+void GsmNetwork::saveLastConnectedMno(String& mno) {
+  JsonDocument mobile_config_doc;
+  ErrorResult result = storage_->loadMobileConfig(mobile_config_doc);
+  if (result.isError()) {
+    TRACELN(result.toString());
+    return;
+  }
+  JsonObject mobile_config = mobile_config_doc.as<JsonObject>();
+  mobile_config[last_connected_mno_key_] = mno.c_str();
+  result = storage_->storeMobileConfig(mobile_config);
+  if (result.isError()) {
+    TRACELN(result.toString());
+    return;
+  }
+}
+
+const char* GsmNetwork::allowed_mnos_key_ = "allowed_mnos";
+const char* GsmNetwork::last_connected_mno_key_ = "last_connected_mno";
 
 }  // namespace inamata
 

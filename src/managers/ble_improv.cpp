@@ -22,6 +22,9 @@ void BleImprov::handle() {
   // Handle active commands
   handleWiFiConnectTimeout();
   handleGetWifiNetworks();
+#ifdef GSM_NETWORK
+  handleGetMobileOperators();
+#endif
 
   // Handle incoming RPC data
   if (!rpc_data_.empty()) {
@@ -51,6 +54,12 @@ void BleImprov::handle() {
         setState(improv::STATE_PROVISIONED);
         sendProvisionedResponse();
       }
+#ifdef GSM_NETWORK
+      if (services_.getGsmNetwork()->gprs_connected_) {
+        setState(improv::STATE_PROVISIONED);
+        sendProvisionedResponse();
+      }
+#endif
       break;
     case improv::STATE_PROVISIONED:
       // Instance will be cleaned up after setting state to stopped
@@ -92,7 +101,7 @@ void BleImprov::setState(improv::State state) {
   service_data[4] = 0x00;  // Reserved
   service_data[5] = 0x00;  // Reserved
 
-  NimBLEAdvertising *ble_advertising =
+  NimBLEAdvertising* ble_advertising =
       ble_improv_service_->getServer()->getAdvertising();
   ble_advertising->stop();
   ble_advertising->setName(Storage::device_type_name_);
@@ -121,8 +130,8 @@ void BleImprov::setError(improv::Error error) {
   }
 }
 
-void BleImprov::onWrite(NimBLECharacteristic *characteristic,
-                        NimBLEConnInfo &connInfo) {
+void BleImprov::onWrite(NimBLECharacteristic* characteristic,
+                        NimBLEConnInfo& connInfo) {
   if (characteristic == ble_rpc_command_char_) {
     NimBLEAttValue rpc_data = characteristic->getValue();
     if (!rpc_data.size()) {
@@ -161,7 +170,7 @@ void BleImprov::setupService() {
 
   ble_improv_service_->start();
 
-  NimBLEAdvertising *ble_advertising = NimBLEDevice::getAdvertising();
+  NimBLEAdvertising* ble_advertising = NimBLEDevice::getAdvertising();
   ble_advertising->setName(Storage::device_type_name_);
   ble_advertising->enableScanResponse(true);
   ble_advertising->addServiceUUID(ble_improv_service_->getUUID());
@@ -244,12 +253,26 @@ void BleImprov::processRpcData() {
         setError(improv::ERROR_NOT_AUTHORIZED);
         break;
       }
-      handleSetServerAuth(command);
+      setServerAuth(command);
     } break;
     case improv::X_SET_USER_DATA: {
-      handleSetUserData(command);
+      setUserData(command);
       break;
     }
+#ifdef GSM_NETWORK
+    case improv::X_GET_MOBILE_STATE: {
+      sendMobileStateResponse();
+      break;
+    }
+    case improv::X_GET_MOBILE_OPERATORS: {
+      startGetMobileNetworks(command);
+      break;
+    }
+    case improv::X_SET_ALLOWED_MOBILE_OPERATORS: {
+      setAllowedMobileOperators(command);
+      break;
+    }
+#endif
     default:
       setError(improv::ERROR_UNKNOWN_RPC);
       break;
@@ -262,7 +285,7 @@ void BleImprov::processRpcData() {
   }
 }
 
-void BleImprov::handleSetServerAuth(const improv::ImprovCommand &command) {
+void BleImprov::setServerAuth(const improv::ImprovCommand& command) {
   std::shared_ptr<Storage> storage = services_.getStorage();
   std::shared_ptr<WebSocket> web_socket = services_.getWebSocket();
   TRACELN("Clearing local resources");
@@ -274,7 +297,9 @@ void BleImprov::handleSetServerAuth(const improv::ImprovCommand &command) {
     std::vector<char> url_data(command.ssid.size() + 1, '\0');
     strcpy(url_data.data(), command.ssid.data());
     if (yuarel_parse(&url, &url_data[0]) == -1) {
-      TRACELN(F("Invalid URL"));
+      TRACELN("Invalid URL");
+      setError(improv::ERROR_INVALID_RPC);
+      return;
     } else {
       bool secure_url = true;
       if (strcmp(url.scheme, "ws") == 0) {
@@ -288,7 +313,7 @@ void BleImprov::handleSetServerAuth(const improv::ImprovCommand &command) {
       storage->saveWsUrl(url.host, path.c_str(), secure_url);
     }
   } else {
-    TRACELN(F("Clearing URL"));
+    TRACELN("Clearing URL");
     web_socket->resetUrl();
     storage->deleteWsUrl();
   }
@@ -349,14 +374,13 @@ void BleImprov::sendDeviceInfoResponse() {
 
   // Set the hardware type and controller name
   String board_name(Storage::arduino_board_);
-  // From 'AA:BB:CC:DD:EE:FF' add '@DD:EE:FF'
   board_name += "@";
   board_name += Network.macAddress();
 
   device_info.emplace_back(board_name);
   device_info.emplace_back(Storage::device_type_name_);
   device_info.emplace_back(services_.getWifiNetwork()->controller_name_);
-  for (const String &str : device_info) {
+  for (const String& str : device_info) {
     TRACELN(str);
   }
 
@@ -364,7 +388,7 @@ void BleImprov::sendDeviceInfoResponse() {
       improv::build_rpc_response(improv::GET_DEVICE_INFO, device_info);
   ble_rpc_response_char_->setValue(data);
   ble_rpc_response_char_->notify();
-  TRACELN(F("Sent device info"));
+  TRACELN("Sent device info");
 }
 
 void BleImprov::sendDeviceTypeResponse() {
@@ -382,10 +406,9 @@ void BleImprov::sendDeviceTypeResponse() {
 
 void BleImprov::startGetWifiNetworks() {
   if (scan_wifi_aps_) {
-    TRACELN("Already scanning WiFi");
+    setError(improv::Error::X_ERROR_ALREADY_SCANNING);
     return;
   }
-  TRACELN(F("Starting WiFi scan"));
   scan_wifi_aps_ = true;
   WiFi.scanDelete();
   WiFi.disconnect();
@@ -412,7 +435,7 @@ void BleImprov::handleGetWifiNetworks() {
     WiFiNetwork::populateNetworkInfo(network_info);
     // Check if network was already found and update signal strength (RSSI)
     bool found = false;
-    for (auto &wifi_ap : scanned_wifi_aps) {
+    for (auto& wifi_ap : scanned_wifi_aps) {
       if (wifi_ap.ssid == network_info.ssid) {
         if (network_info.rssi > wifi_ap.rssi) {
           wifi_ap.rssi = network_info.rssi;
@@ -428,12 +451,12 @@ void BleImprov::handleGetWifiNetworks() {
   }
   // Sort WiFi networks by RSSI (strongest to weakest)
   std::sort(scanned_wifi_aps.begin(), scanned_wifi_aps.end(),
-            [](const BleImprov::WiFiScanAP &a, const BleImprov::WiFiScanAP &b) {
+            [](const BleImprov::WiFiScanAP& a, const BleImprov::WiFiScanAP& b) {
               return a.rssi > b.rssi;
             });
 
   // Send found WiFi APs as BLE RPC response
-  for (const WiFiScanAP &ap : scanned_wifi_aps) {
+  for (const WiFiScanAP& ap : scanned_wifi_aps) {
     std::vector<String> wifi_info;
     wifi_info.emplace_back(ap.ssid);
     wifi_info.emplace_back(ap.rssi);
@@ -443,7 +466,7 @@ void BleImprov::handleGetWifiNetworks() {
     ble_rpc_response_char_->setValue(data);
     ble_rpc_response_char_->notify();
     data[data.size() - 1] = '\0';
-    Serial.println((char *)data.data());
+    Serial.println((char*)data.data());
   }
 
   // Send RPC response without WiFi AP, reset state and delete scan details
@@ -453,10 +476,10 @@ void BleImprov::handleGetWifiNetworks() {
   ble_rpc_response_char_->notify();
   scan_wifi_aps_ = false;
   WiFi.scanDelete();
-  TRACELN(F("Sent wifi networks"));
+  TRACELN("Sent wifi networks");
 }
 
-void BleImprov::handleSetUserData(const improv::ImprovCommand &command) {
+void BleImprov::setUserData(const improv::ImprovCommand& command) {
   user_data_ += command.ssid.c_str();
   // Accumulate all message parts before parsing and handling JSON
   if (command.ssid.length() >= 200) {
@@ -469,18 +492,210 @@ void BleImprov::handleSetUserData(const improv::ImprovCommand &command) {
     TRACEF("Failed parsing user data: %s\r\n", error.c_str());
     setError(improv::Error::ERROR_UNKNOWN);
     user_data_ = "";
+    return;
   }
   TRACEF("User data: %d, %d\r\n", user_data_.length(),
          services_.getBleServer()->user_data_handlers_.size());
-  for (const auto &handler : services_.getBleServer()->user_data_handlers_) {
+  for (const auto& handler : services_.getBleServer()->user_data_handlers_) {
     const bool success = handler(doc.as<JsonObject>());
     if (!success) {
       setError(improv::Error::ERROR_UNKNOWN);
       user_data_ = "";
-      break;
+      return;
     }
   }
   user_data_ = "";
+
+  std::vector<uint8_t> rpc_response = improv::build_rpc_response(
+      improv::X_SET_USER_DATA, std::vector<String>());
+  ble_rpc_response_char_->setValue(rpc_response);
+  ble_rpc_response_char_->notify();
 }
+
+#ifdef GSM_NETWORK
+void BleImprov::sendMobileStateResponse() {
+  if (state_ == improv::STATE_STOPPED) {
+    return;
+  }
+  const auto gsm_network = services_.getGsmNetwork();
+  if (gsm_network->cops_scan_ && gsm_network->cops_scan_->active) {
+    setError(improv::Error::X_ERROR_ALREADY_SCANNING);
+    return;
+  }
+
+  char connection_state = gsm_network->modem_.isNetworkConnected() |
+                          gsm_network->modem_.isGprsConnected() << 1;
+  bool auto_nsm;  // Ignored value
+  int16_t nsm = 0;
+  gsm_network->modem_.getNetworkSystemMode(auto_nsm, nsm);
+  int16_t signal_quality = gsm_network->modem_.getSignalQuality();
+
+  std::vector<String> mobile_state = {
+      gsm_network->modem_.getSimCCID(), gsm_network->modem_.getIMEI(),
+      String(connection_state),         gsm_network->modem_.getOperator(),
+      String(signal_quality),           String(nsm)};
+  std::vector<uint8_t> data =
+      improv::build_rpc_response(improv::X_GET_MOBILE_STATE, mobile_state);
+  ble_rpc_response_char_->setValue(data);
+  ble_rpc_response_char_->notify();
+  TRACEF("Sent ICCID: %s IMEI: %s Con: %d:%d Oper: %s CSQ: %d NSM: %d\r\n",
+         mobile_state[0].c_str(), mobile_state[1].c_str(), connection_state & 1,
+         (connection_state >> 1) & 1, mobile_state[3].c_str(), signal_quality,
+         nsm);
+}
+
+void BleImprov::startGetMobileNetworks(const improv::ImprovCommand& command) {
+  const auto gsm_network = services_.getGsmNetwork();
+  if (gsm_network->cops_scan_ && gsm_network->cops_scan_->active) {
+    setError(improv::Error::X_ERROR_ALREADY_SCANNING);
+    return;
+  }
+
+  GsmNetwork::CopsScanType scan_type = GsmNetwork::CopsScanType::kDefault;
+  if (command.ssid.length()) {
+    if (command.ssid.starts_with("auto")) {
+      scan_type = GsmNetwork::CopsScanType::kAuto;
+    } else if (command.ssid.starts_with("gsm")) {
+      scan_type = GsmNetwork::CopsScanType::kGsm;
+    } else if (command.ssid.starts_with("lte")) {
+      scan_type = GsmNetwork::CopsScanType::kLte;
+    }
+  }
+  TRACELN("Starting mobile scan");
+  gsm_network->startCopsScan(scan_type);
+  scan_mobile_operators_ = true;
+}
+
+void BleImprov::handleGetMobileOperators() {
+  if (state_ == improv::STATE_STOPPED || !scan_mobile_operators_) {
+    return;
+  }
+
+  const auto gsm_network = services_.getGsmNetwork();
+
+  gsm_network->pollCopsScan();
+  if (!gsm_network->cops_scan_) {
+    TRACELN("COPS Scan nullptr");
+    scan_mobile_operators_ = false;
+    return;
+  }
+
+  // Wait for COPS scan to finish, error or timeout
+  if (gsm_network->cops_scan_->active) {
+    return;
+  }
+
+  // On failure, send the error via BLE and clear COPS scan
+  if (!gsm_network->cops_scan_->success) {
+    setError(improv::ERROR_UNKNOWN);
+    std::vector<uint8_t> data = improv::build_rpc_response(
+        improv::X_GET_MOBILE_OPERATORS,
+        std::vector<String>({gsm_network->cops_result_}));
+    ble_rpc_response_char_->setValue(data);
+    ble_rpc_response_char_->notify();
+    scan_mobile_operators_ = false;
+    gsm_network->clearCopsScan();
+    return;
+  }
+
+  // Send one BLE response for each top-level tuple in COPS result.
+  // Example tuple payload: 2,"CHN-UNICOM","UNICOM","46001",7
+  const String& cops_result = gsm_network->cops_result_;
+  int8_t tuple_depth = 0;
+  int32_t tuple_start = -1;
+
+  for (uint16_t i = 0; i < cops_result.length(); i++) {
+    const char c = cops_result[i];
+
+    if (c == '(') {
+      if (tuple_depth == 0) {
+        // Start payload right after opening parenthesis.
+        tuple_start = static_cast<int32_t>(i) + 1;
+      }
+      tuple_depth++;
+      continue;
+    }
+
+    if (c == ')' && tuple_depth > 0) {
+      tuple_depth--;
+      if (tuple_depth == 0 && tuple_start >= 0) {
+        TRACEF("Operator: %s\r\n",
+               cops_result.substring(tuple_start, i).c_str());
+        std::vector<uint8_t> data = improv::build_rpc_response(
+            improv::X_GET_MOBILE_OPERATORS,
+            std::vector<String>({cops_result.substring(tuple_start, i)}));
+        ble_rpc_response_char_->setValue(data);
+        ble_rpc_response_char_->notify();
+        tuple_start = -1;
+      }
+      continue;
+    }
+  }
+
+  // Send an empty response to signal completion.
+  std::vector<uint8_t> data = improv::build_rpc_response(
+      improv::X_GET_MOBILE_OPERATORS, std::vector<String>());
+  ble_rpc_response_char_->setValue(data);
+  ble_rpc_response_char_->notify();
+
+  scan_mobile_operators_ = false;
+  gsm_network->clearCopsScan();
+  TRACELN(F("Sent mobile networks"));
+}
+
+void BleImprov::setAllowedMobileOperators(
+    const improv::ImprovCommand& command) {
+  std::vector<String> operators;
+  String current_operator;
+  // Empty payload clears the allowlist.
+  // Otherwise parse comma-separated MCC/MNC codes from the SSID field.
+  if (command.ssid.length() != 0) {
+    // Set an error on invalid payload.
+    for (uint i = 0; i <= command.ssid.length(); i++) {
+      // Add synthetic comma at end to handle last item
+      const char c = (i == command.ssid.length()) ? ',' : command.ssid[i];
+
+      if (c == ',') {
+        if (current_operator.length() < 5 || current_operator.length() > 6) {
+          setError(improv::ERROR_INVALID_RPC);
+          return;
+        }
+        operators.emplace_back(current_operator);
+        current_operator = "";
+        continue;
+      }
+
+      if (c < '0' || c > '9') {
+        setError(improv::ERROR_INVALID_RPC);
+        return;
+      }
+
+      current_operator += c;
+
+      if (current_operator.length() > 6) {
+        setError(improv::ERROR_INVALID_RPC);
+        return;
+      }
+    }
+  }
+
+  // Set and replace parsed MCC/MNC codes to storage
+  ErrorResult result =
+      services_.getGsmNetwork()->setAllowedMobileOperators(operators);
+  if (result.isError()) {
+    TRACEF("Failed saving allowed MNOs: %s\r\n", result.toString().c_str());
+    setError(improv::ERROR_UNKNOWN);
+    return;
+  }
+
+  std::vector<uint8_t> rpc_response = improv::build_rpc_response(
+      improv::X_SET_ALLOWED_MOBILE_OPERATORS, std::vector<String>());
+  ble_rpc_response_char_->setValue(rpc_response);
+  ble_rpc_response_char_->notify();
+
+  setState(improv::STATE_PROVISIONING);
+  Services::getActionController().identify();
+}
+#endif
 
 }  // namespace inamata

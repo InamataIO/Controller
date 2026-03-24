@@ -9,6 +9,11 @@ ImprovCommand parse_improv_data(const std::vector<uint8_t> &data, bool check_che
 
 ImprovCommand parse_improv_data(const uint8_t *data, size_t length, bool check_checksum) {
   ImprovCommand improv_command;
+  if (length < 2) {
+    improv_command.command = UNKNOWN;
+    return improv_command;
+  }
+
   Command command = (Command) data[0];
   uint8_t data_length = data[1];
 
@@ -32,10 +37,17 @@ ImprovCommand parse_improv_data(const uint8_t *data, size_t length, bool check_c
   }
 
   if (command == WIFI_SETTINGS || command == X_SET_SERVER_AUTH) {
+    if (data_length < 2 || length < 4) {
+      improv_command.command = UNKNOWN;
+      return improv_command;
+    }
+
+    // Byte layout: [0]=cmd [1]=data_len [2]=ssid_len [3..ssid_end-1]=ssid
+    //              [ssid_end]=pass_len [ssid_end+1..pass_end-1]=password
     uint8_t ssid_length = data[2];
     uint8_t ssid_start = 3;
     size_t ssid_end = ssid_start + ssid_length;
-    if (ssid_end > length) {
+    if (ssid_end >= length) {
       improv_command.command = UNKNOWN;
       return improv_command;
     }
@@ -43,7 +55,8 @@ ImprovCommand parse_improv_data(const uint8_t *data, size_t length, bool check_c
     uint8_t pass_length = data[ssid_end];
     size_t pass_start = ssid_end + 1;
     size_t pass_end = pass_start + pass_length;
-    if (pass_end > length) {
+    // +2 skips command byte [0] and data_length byte [1]
+    if (pass_end != 2 + data_length || pass_end > length) {
       improv_command.command = UNKNOWN;
       return improv_command;
     }
@@ -53,11 +66,23 @@ ImprovCommand parse_improv_data(const uint8_t *data, size_t length, bool check_c
     return {.command = command, .ssid = ssid, .password = password};
   }
 
-  if (command == X_SET_USER_DATA) {
+  if (command == X_SET_USER_DATA || command == X_SET_ALLOWED_MOBILE_OPERATORS ||
+      command == X_GET_MOBILE_OPERATORS) {
+    // X_GET_MOBILE_OPERATORS accepts omitted payload and falls back to default scan mode.
+    if (command == X_GET_MOBILE_OPERATORS && data_length == 0) {
+      return {.command = command};
+    }
+
+    if (data_length < 1 || length < 3) {
+      improv_command.command = UNKNOWN;
+      return improv_command;
+    }
+
     uint8_t user_data_length = data[2];
     uint8_t user_data_start = 3;
     size_t user_data_end = user_data_start + user_data_length;
-    if (user_data_end > length) {
+    const size_t expected_data_end = 2 + data_length;
+    if (user_data_end != expected_data_end || user_data_end > length) {
       improv_command.command = UNKNOWN;
       return improv_command;
     }

@@ -104,8 +104,16 @@ bool CheckConnectivity::TaskCallback() {
     } else {
       handleBleServer();
       handleImprov();
+
+#ifdef GSM_NETWORK
+      if (improv_ && improv_->getState() == improv::STATE_PROVISIONING &&
+          use_network_ == UseNetwork::kGsm) {
+        gsm_network_->handleConnection();
+      }
+#endif
+
       if (improv_ && improv_->getState() == improv::STATE_STOPPED) {
-#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+#ifdef GSM_NETWORK
         handleGsmWifiSwitch(now, true);
 #else
         enterConnectMode();
@@ -200,6 +208,7 @@ void CheckConnectivity::enterConnectMode() {
       gsm_network_->enable();
       WebSocketsNetworkClient::Impl::enableGsm(&gsm_network_->modem_);
       setMode(Mode::ConnectGsm);
+      break;
     case UseNetwork::kNone:
       TRACELN("Illegal switch");
       break;

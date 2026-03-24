@@ -89,7 +89,7 @@ bool SystemMonitor::TaskCallback() {
   if (gsm_network->isEnabled()) {
     set_wifi_details = false;
     doc_out[network_mode_key] = "mobile";
-    doc_out["mobile_operator"] = gsm_network->operator_id_.c_str();
+    doc_out["mobile_operator"] = gsm_network->current_mno_.c_str();
     doc_out["mobile_rssi"] = gsm_network->signal_quality_;
     const char* mobile_nsm;
     switch (gsm_network->network_system_mode_) {

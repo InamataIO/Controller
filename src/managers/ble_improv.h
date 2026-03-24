@@ -14,7 +14,7 @@ class BleImprov : public NimBLECharacteristicCallbacks {
     int32_t rssi;
     bool auth_required;
 
-    WiFiScanAP(const String &ssid = "", const int32_t rssi = 0,
+    WiFiScanAP(const String& ssid = "", const int32_t rssi = 0,
                bool auth_required = false)
         : ssid(ssid), rssi(rssi), auth_required(auth_required) {}
   };
@@ -52,8 +52,8 @@ class BleImprov : public NimBLECharacteristicCallbacks {
    *
    * \param characteristic The BLE char that received the data
    */
-  void onWrite(NimBLECharacteristic *characteristic,
-               NimBLEConnInfo &connInfo) final;
+  void onWrite(NimBLECharacteristic* characteristic,
+               NimBLEConnInfo& connInfo) final;
 
  private:
   /**
@@ -69,7 +69,7 @@ class BleImprov : public NimBLECharacteristicCallbacks {
   /**
    * Handle X_SET_SERVER_AUTH
    */
-  void handleSetServerAuth(const improv::ImprovCommand &command);
+  void setServerAuth(const improv::ImprovCommand& command);
 
   /**
    * Check if connecting to WiFi AP for provisioning has timed out
@@ -101,14 +101,61 @@ class BleImprov : public NimBLECharacteristicCallbacks {
   /**
    * Handles user sending custom data
    */
-  void handleSetUserData(const improv::ImprovCommand &command);
+  void setUserData(const improv::ImprovCommand& command);
 
-  NimBLEService *ble_improv_service_{nullptr};
-  NimBLECharacteristic *ble_status_char_{nullptr};
-  NimBLECharacteristic *ble_error_char_{nullptr};
-  NimBLECharacteristic *ble_rpc_command_char_{nullptr};
-  NimBLECharacteristic *ble_rpc_response_char_{nullptr};
-  NimBLECharacteristic *ble_capabilities_char_{nullptr};
+#ifdef GSM_NETWORK
+  /**
+   * Handles returning the device's state incl. ICCID and IMEI
+   */
+  void sendMobileStateResponse();
+
+  /**
+   * Starts scanning for available mobile networks
+   *
+   * Optional mobile technology parameter. Valid options: auto, gsm, lte
+   *
+   * \param command Improv command with search params in SSID field
+   */
+  void startGetMobileNetworks(const improv::ImprovCommand& command);
+
+  /**
+   * Check if mobile networks scan finished, then send BLE response for mobile
+   * networks
+   */
+  void handleGetMobileOperators();
+
+  /**
+   * List of mobile operators the device is allowed to connect to
+   *
+   * The data format of the operator list is: <op1,op2,op3,...> where op_n is an
+   * MCC/MNC tuple. MCC is the mobile country code, a 3 digit code for each
+   * country, and MNC is the mobile network code, a 2-3 digit code for each
+   * operator in a country. One point, MNC 01 and 001 are not the same and both
+   * valid.
+   *
+   * The SSID payload of an example command in South Africa would be:
+   *
+   *     65501,65510
+   *
+   * This would correspond to Vodacom and MTN. For vodavom in Lesotho, the
+   * MCC/MNC tuple would be:
+   *
+   *     65101
+   *
+   * \param command Improv command with SSID field containing the MNC/MCC tuple
+   */
+  void setAllowedMobileOperators(const improv::ImprovCommand& command);
+
+  /// Whether X_GET_MOBILE_OPERATORS command is active
+  bool scan_mobile_operators_ = false;
+#endif
+
+  NimBLEService* ble_improv_service_{nullptr};
+  NimBLECharacteristic* ble_status_char_{nullptr};
+  NimBLECharacteristic* ble_error_char_{nullptr};
+  NimBLECharacteristic* ble_rpc_command_char_{nullptr};
+  NimBLECharacteristic* ble_rpc_response_char_{nullptr};
+  NimBLECharacteristic* ble_capabilities_char_{nullptr};
 
   ServiceGetters services_;
 
@@ -122,10 +169,10 @@ class BleImprov : public NimBLECharacteristicCallbacks {
 
   String user_data_;
 
-  // Whether GET_WIFI_NETWORKS command is active
+  /// Whether GET_WIFI_NETWORKS command is active
   bool scan_wifi_aps_ = false;
 
-  // Verify WIFI_SETTINGS command and save AP details on success
+  /// Verify WIFI_SETTINGS command and save AP details on success
   WiFiAP wifi_ap_;
   std::chrono::steady_clock::time_point wifi_connect_start_ =
       std::chrono::steady_clock::time_point::min();

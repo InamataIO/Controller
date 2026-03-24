@@ -29,7 +29,7 @@ bool loadNetwork(Services& services, JsonObjectConst secrets) {
       std::make_shared<WiFiNetwork>(wifi_aps, controller_name));
 
 #ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
-  services.setGsmNetwork(std::make_shared<GsmNetwork>());
+  services.setGsmNetwork(std::make_shared<GsmNetwork>(services.getStorage()));
 #endif
   return true;
 }

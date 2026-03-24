@@ -56,9 +56,9 @@ void Storage::openFS() {
   // Initialize the file system
   if (!LittleFS.begin()) {
     if (!LittleFS.begin(true)) {
-      TRACELN(F("Failed mounting LittleFS"));
+      TRACELN("Failed mounting LittleFS");
     } else {
-      TRACELN(F("Formatted LittleFS on fail"));
+      TRACELN("Formatted LittleFS on fail");
     }
   }
 #ifdef ENABLE_TRACE
@@ -67,21 +67,6 @@ void Storage::openFS() {
 }
 
 void Storage::closeFS() { LittleFS.end(); }
-
-ErrorResult Storage::loadSecrets(JsonDocument& secrets_doc) {
-  fs::File secrets_file = LittleFS.open(secrets_path_, "r");
-  if (secrets_file) {
-    DeserializationError error = deserializeJson(secrets_doc, secrets_file);
-    secrets_file.close();
-    if (error) {
-      TRACEF("Failed parsing secrets.json: %s\r\n", error.c_str());
-      return ErrorResult(type_, error.c_str());
-    }
-  } else {
-    TRACELN(F("Failed opening (r) secrets.json"));
-  }
-  return ErrorResult();
-}
 
 void Storage::recursiveRm(const char* path) {
   if (strlen(path) == 0) {
@@ -115,22 +100,12 @@ void Storage::recursiveRm(const char* path) {
   }
 }
 
-ErrorResult Storage::storeSecrets(JsonVariantConst secrets) {
-  fs::File secrets_file = LittleFS.open(secrets_path_, "w+", true);
-  if (!secrets_file) {
-    return ErrorResult(type_, F("Failed opening (w+) secrets.json"));
-  }
+ErrorResult Storage::loadSecrets(JsonDocument& secrets_doc) {
+  return loadJsonFile(secrets_doc, secrets_path_);
+}
 
-  size_t bytes_written = serializeJson(secrets, secrets_file);
-  TRACEF("Saved secrets: %d : %d\r\n", bytes_written, measureJson(secrets));
-  if (bytes_written == 0 && secrets.size()) {
-    return ErrorResult(type_, F("Failed to write secrets"));
-  }
-  secrets_file.close();
-#ifdef ENABLE_TRACE
-  serializeJson(secrets, Serial);
-#endif
-  return ErrorResult();
+ErrorResult Storage::storeSecrets(JsonVariantConst secrets) {
+  return storeJsonFile(secrets, secrets_path_);
 }
 
 ErrorResult Storage::saveWiFiAP(const WiFiAP& wifi_ap) {
@@ -254,36 +229,11 @@ ErrorResult Storage::savePeripheral(const JsonObjectConst& peripheral) {
 }
 
 ErrorResult Storage::loadPeripherals(JsonDocument& peripherals_doc) {
-  fs::File file = LittleFS.open(peripherals_path_, "r+", true);
-  if (file.size() == 0) {
-    return ErrorResult();
-  }
-  if (file) {
-    DeserializationError error = deserializeJson(peripherals_doc, file);
-    TRACEKJSON("Peris", peripherals_doc);
-    file.close();
-    if (error) {
-      return ErrorResult(type_, F("Failed loading peripheral doc"));
-    }
-  }
-  return ErrorResult();
+  return loadJsonFile(peripherals_doc, peripherals_path_);
 }
 
 ErrorResult Storage::storePeripherals(JsonArrayConst peripherals) {
-  fs::File file = LittleFS.open(peripherals_path_, "w+", true);
-  if (!file) {
-    return ErrorResult(type_, F("Failed opening file"));
-  }
-
-  TRACELN(F("Saving param peris"));
-  size_t bytes_written = serializeJson(peripherals, file);
-  TRACEJSON(peripherals);
-
-  file.close();
-  if (bytes_written == 0 && peripherals.size()) {
-    return ErrorResult(type_, F("Failed to write"));
-  }
-  return ErrorResult();
+  return storeJsonFile(peripherals, peripherals_path_);
 }
 
 void Storage::deletePeripherals() { LittleFS.remove(peripherals_path_); }
@@ -306,62 +256,62 @@ void Storage::deletePeripheral(const char* peripheral_id) {
 }
 
 ErrorResult Storage::loadBehavior(JsonDocument& behavior_doc) {
-  fs::File file = LittleFS.open(behavior_path_, "r+");
-  if (file) {
-    DeserializationError error = deserializeJson(behavior_doc, file);
-    TRACEKJSON("Behav: ", behavior_doc);
-    file.close();
-    if (error) {
-      return ErrorResult(type_, F("Failed loading behavior doc"));
-    }
-  }
-  return ErrorResult();
+  return loadJsonFile(behavior_doc, behavior_path_);
 }
 
 ErrorResult Storage::storeBehavior(const JsonObjectConst& behavior) {
-  fs::File file = LittleFS.open(behavior_path_, "w+");
-  if (!file) {
-    return ErrorResult(type_, F("Failed opening file"));
-  }
-  size_t bytes_written = serializeJson(behavior, file);
-  TRACEKJSON("Behav: ", behavior);
-  file.close();
-  if (bytes_written == 0 && !behavior.isNull()) {
-    return ErrorResult(type_, F("Failed to write"));
-  }
-  return ErrorResult();
+  return storeJsonFile(behavior, behavior_path_);
 }
 
 void Storage::deleteBehavior() { LittleFS.remove(behavior_path_); }
 
 ErrorResult Storage::loadCustomConfig(JsonDocument& config_doc) {
-  fs::File file = LittleFS.open(custom_config_path_, "r+");
+  return loadJsonFile(config_doc, custom_config_path_);
+}
+
+ErrorResult Storage::storeCustomConfig(const JsonObjectConst& config) {
+  return storeJsonFile(config, custom_config_path_);
+}
+
+void Storage::deleteCustomConfig() { LittleFS.remove(custom_config_path_); }
+
+ErrorResult Storage::loadMobileConfig(JsonDocument& config_doc) {
+  return loadJsonFile(config_doc, mobile_config_path_);
+}
+
+ErrorResult Storage::storeMobileConfig(const JsonObjectConst& config) {
+  return storeJsonFile(config, mobile_config_path_);
+}
+
+void Storage::deleteMobileConfig() { LittleFS.remove(mobile_config_path_); }
+
+ErrorResult Storage::loadJsonFile(JsonDocument& config, const char* path) {
+  fs::File file = LittleFS.open(path, "r+");
   if (file) {
-    DeserializationError error = deserializeJson(config_doc, file);
-    TRACEKJSON("Custom config: ", config_doc);
+    DeserializationError error = deserializeJson(config, file);
+    TRACEKJSON(path, config);
     file.close();
     if (error) {
-      return ErrorResult(type_, F("Failed loading custom config doc"));
+      return ErrorResult(type_, String("Failed loading ") + path);
     }
   }
   return ErrorResult();
 }
 
-ErrorResult Storage::storeCustomConfig(const JsonObjectConst& config) {
-  fs::File file = LittleFS.open(custom_config_path_, "w+");
+ErrorResult Storage::storeJsonFile(const JsonVariantConst& config,
+                                   const char* path) {
+  fs::File file = LittleFS.open(path, "w+");
   if (!file) {
-    return ErrorResult(type_, F("Failed opening file"));
+    return ErrorResult(type_, String("Failed opening ") + path);
   }
   size_t bytes_written = serializeJson(config, file);
-  TRACEKJSON("Custom config: ", config);
+  TRACEKJSON(path, config);
   file.close();
   if (bytes_written == 0 && !config.isNull()) {
-    return ErrorResult(type_, F("Failed to write"));
+    return ErrorResult(type_, String("Failed to write ") + path);
   }
   return ErrorResult();
 }
-
-void Storage::deleteCustomConfig() { LittleFS.remove(custom_config_path_); }
 
 const char* Storage::arduino_board_ = ARDUINO_BOARD;
 const char* Storage::device_type_name_ = DEVICE_TYPE_NAME;
@@ -380,6 +330,7 @@ const char* Storage::secrets_path_ = "/secrets.json";
 const char* Storage::peripherals_path_ = "/peripherals.json";
 const char* Storage::behavior_path_ = "/behavior.json";
 const char* Storage::custom_config_path_ = "/custom_config.json";
+const char* Storage::mobile_config_path_ = "/mobile_config.json";
 const char* Storage::type_ = "storage";
 
 }  // namespace inamata

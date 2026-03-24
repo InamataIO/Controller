@@ -53,6 +53,11 @@ The WebSocket protocol is described on the [WebSocket API page](doc/websocket_ap
 High-level documentation of the firmware's boot process, connectivity, command handling,
 and message flow is in [Firmware Runtime Logic](doc/firmware_logic.md).
 
+## Improv BLE Commands
+
+The custom Improv BLE command reference, including the extended `X_*` commands and
+their request and response formats, is in [Improv BLE Commands](doc/improv_commands.md).
+
 ## Fixed Devices
 
 - Fire Data Logger behavior (alarms-centric): [Fire Data Logger](doc/fire_data_logger.md)
