@@ -17,14 +17,14 @@ const std::set<String>& GetValues::getTypes() { return getSupportedTypes(); }
 
 String GetValues::invalidTypeError(const utils::UUID& uuid,
                                    std::shared_ptr<Peripheral> peripheral) {
-  String error(F("GetValues capability not supported: "));
+  String error("GetValues capability not supported: ");
   error += uuid.toString();
-  error += F(" is a ");
+  error += " is a ";
   error += peripheral->getType();
   return error;
 }
 
-const __FlashStringHelper* GetValues::get_values_error_ = FPSTR("GetValues error");
+const char* GetValues::get_values_error_ = "GetValues error";
 
 std::set<String>& GetValues::getSupportedTypes() {
   static std::set<String> supported_types;

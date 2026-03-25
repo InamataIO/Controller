@@ -54,12 +54,11 @@ void AntiCondensation::handleResult(std::vector<utils::ValueUnit>& values) {
     }
   }
   if (isnan(humidity)) {
-    TRACELN(F("No humidity"));
+    TRACELN("No humidity");
     return;
   }
   const bool heater_state = humidity > 65 ? 1 : 0;
-  const utils::UUID heater_dpt =
-      utils::UUID(peripheral::fixed::dpt_heater_id);
+  const utils::UUID heater_dpt = utils::UUID(peripheral::fixed::dpt_heater_id);
   modbus_output_->setValue(utils::ValueUnit(heater_state, heater_dpt));
 }
 

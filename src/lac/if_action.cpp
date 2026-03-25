@@ -77,7 +77,7 @@ void IfAction::populateConfig(const JsonObjectConst& json, Config& config,
       actions.pop_back();
       config.action_count--;
     }
-    TRACELN(F("Parsed"));
+    TRACELN("Parsed");
   }
 }
 

@@ -49,7 +49,7 @@ String Relays::checkRelays() {
   }
 
   if (peripheral_id != nullptr) {
-    return String(F("loading relays: ")) + peripheral_id;
+    return String("loading relays: ") + peripheral_id;
   }
   return String();
 }

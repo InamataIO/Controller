@@ -36,7 +36,7 @@ int PersonManager::getCount() const { return people_.size(); }
  *
  * \return A const reference to the list of people
  */
-const std::vector<Person> &PersonManager::getAllPeople() const {
+const std::vector<Person>& PersonManager::getAllPeople() const {
   return people_;
 }
 
@@ -56,7 +56,7 @@ const std::vector<Person> &PersonManager::getAllPeople() const {
  * \return The new size of the `people_` if the contact is successfully
  * added, or -1 if the list is already at the maximum capacity.
  */
-int PersonManager::add(const String &name, const String &phone_number,
+int PersonManager::add(const String& name, const String& phone_number,
                        Person::GroupData group_data) {
   if (people_.size() >= Person::kMaxEntries) {
     return -1;
@@ -81,10 +81,10 @@ int PersonManager::add(const String &name, const String &phone_number,
  * \param new_contact The new phone number for the contact.
  * \param new_group_data The updated group data flags (e.g., maintenance, ...).
  */
-void PersonManager::edit(const String &name, const String &new_name,
-                         const String &new_contact,
+void PersonManager::edit(const String& name, const String& new_name,
+                         const String& new_contact,
                          Person::GroupData new_group_data) {
-  for (auto &person : people_) {
+  for (auto& person : people_) {
     if (person.name.equalsIgnoreCase(name)) {
       person.name = new_name;
       person.phone_number = new_contact;
@@ -108,9 +108,9 @@ void PersonManager::edit(const String &name, const String &new_name,
  * \return The updated size of the list after the contact has been removed.
  *         If no contact is found, the list size remains unchanged.
  */
-int PersonManager::remove(const String &name) {
+int PersonManager::remove(const String& name) {
   people_.erase(std::remove_if(people_.begin(), people_.end(),
-                               [&](Person &person) {
+                               [&](Person& person) {
                                  return strcasecmp(person.name.c_str(),
                                                    name.c_str()) == 0;
                                }),
@@ -138,8 +138,8 @@ void PersonManager::clear() { people_.clear(); }
  * \return A pointer to the `Person` if a matching name is found,
  *         otherwise `nullptr`.
  */
-const Person *PersonManager::search(const String &name) const {
-  for (auto &person : people_) {
+const Person* PersonManager::search(const String& name) const {
+  for (auto& person : people_) {
     if (person.name.equalsIgnoreCase(name)) {
       return &person;
     }
@@ -171,7 +171,7 @@ void PersonManager::parseJson(JsonArrayConst people_json) {
  * The groups are bit ordered as, maintenance, management and statistics.
  */
 void PersonManager::serializeJson(JsonArray people_json) const {
-  for (const Person &person : people_) {
+  for (const Person& person : people_) {
     JsonObject person_json = people_json.add<JsonObject>();
     person_json["name"] = person.name;
     person_json["phone"] = person.phone_number;
@@ -194,9 +194,9 @@ void PersonManager::serializeJson(JsonArray people_json) const {
  * \return `true` if a contact with the new name exists and is not the same
  *         as the old name, otherwise `false`.
  */
-bool PersonManager::isDuplicateEntryExists(const String &old_name,
-                                           const String &new_name) const {
-  for (const auto &person : people_) {
+bool PersonManager::isDuplicateEntryExists(const String& old_name,
+                                           const String& new_name) const {
+  for (const auto& person : people_) {
     if (person.name == new_name && person.name != old_name) {
       return true;
     }
@@ -220,9 +220,9 @@ bool PersonManager::isDuplicateEntryExists(const String &old_name,
  * \return `true` if a contact with the new phone_number number exists and is
  * not the same as the old phone_number number, otherwise `false`.
  */
-bool PersonManager::isNumberExists(const String &old_number,
-                                   const String &new_number) const {
-  for (const auto &person : people_) {
+bool PersonManager::isNumberExists(const String& old_number,
+                                   const String& new_number) const {
+  for (const auto& person : people_) {
     if (person.phone_number == new_number &&
         person.phone_number != old_number) {
       return true;
@@ -242,7 +242,7 @@ bool PersonManager::isNumberExists(const String &old_number,
  * \param print_person_cb The callback used to print a person's details
  */
 void PersonManager::printAll(printPerson print_person_cb) const {
-  for (const auto &person : people_) {
+  for (const auto& person : people_) {
     print_person_cb(person);
   }
 }
@@ -263,7 +263,7 @@ void PersonManager::printAll(printPerson print_person_cb) const {
  * Returns true if the position is valid and the name is assigned, or false if
  * the position is out of bounds.
  */
-bool PersonManager::getNameAtPosition(size_t position, String &name) {
+bool PersonManager::getNameAtPosition(size_t position, String& name) {
   if (position < people_.size()) {
     name = people_[position].name;
     return true;
@@ -284,7 +284,7 @@ bool PersonManager::getNameAtPosition(size_t position, String &name) {
  * \return `true` if the name is valid (contains only allowed characters and is
  * not empty), `false` otherwise.
  */
-bool PersonManager::isValidName(const String &name) {
+bool PersonManager::isValidName(const String& name) {
   for (size_t i = 0; i < name.length(); i++) {
     char c = name[i];
     if (!(isAlpha(c) || c == ' ' || c == '-' || c == '\'')) {
@@ -322,7 +322,7 @@ bool PersonManager::isValidName(const String &name) {
  * \return `true` if the phone number contains only valid characters and has
  * between 7 and 15 digits, `false` otherwise.
  */
-bool PersonManager::isValidPhoneNumber(const String &number) {
+bool PersonManager::isValidPhoneNumber(const String& number) {
   int digit_count = 0;
   for (size_t i = 0; i < number.length(); i++) {
     char c = number[i];

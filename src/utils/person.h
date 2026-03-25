@@ -44,35 +44,35 @@ struct Person {
 class PersonManager {
  public:
   /// Callback type for displaying personal info.
-  using printPerson = void (*)(const Person &info);
+  using printPerson = void (*)(const Person& info);
 
   void initializeList();
   int getCount() const;
-  const std::vector<Person> &getAllPeople() const;
+  const std::vector<Person>& getAllPeople() const;
 
-  int add(const String &name, const String &contact,
+  int add(const String& name, const String& contact,
           Person::GroupData group_data);
-  void edit(const String &name, const String &newName,
-            const String &new_contact, Person::GroupData new_group_data);
-  int remove(const String &name);
+  void edit(const String& name, const String& newName,
+            const String& new_contact, Person::GroupData new_group_data);
+  int remove(const String& name);
   void clear();
 
-  const Person *search(const String &name) const;
+  const Person* search(const String& name) const;
 
   void parseJson(JsonArrayConst people);
   void serializeJson(JsonArray people) const;
 
-  bool isDuplicateEntryExists(const String &old_name,
-                              const String &new_name) const;
-  bool isNumberExists(const String &old_contact,
-                      const String &new_contact) const;
+  bool isDuplicateEntryExists(const String& old_name,
+                              const String& new_name) const;
+  bool isNumberExists(const String& old_contact,
+                      const String& new_contact) const;
 
   void printAll(printPerson print_person_cb) const;
 
-  bool getNameAtPosition(size_t position, String &name);
+  bool getNameAtPosition(size_t position, String& name);
 
-  static bool isValidName(const String &name);
-  static bool isValidPhoneNumber(const String &phone);
+  static bool isValidName(const String& name);
+  static bool isValidPhoneNumber(const String& phone);
 
  private:
   std::vector<Person> people_;

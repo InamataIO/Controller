@@ -51,14 +51,14 @@ class SetRgbLed : public BaseTask {
   std::shared_ptr<peripheral::capabilities::LedStrip> peripheral_;
   utils::UUID peripheral_uuid_;
 
-  static const __FlashStringHelper* rgb_key_;
-  static const __FlashStringHelper* color_key_;
-  static const __FlashStringHelper* brightness_key_;
-  static const __FlashStringHelper* red_key_;
-  static const __FlashStringHelper* green_key_;
-  static const __FlashStringHelper* blue_key_;
-  static const __FlashStringHelper* white_key_;
-  static const __FlashStringHelper* color_error_;
+  static const char* rgb_key_;
+  static const char* color_key_;
+  static const char* brightness_key_;
+  static const char* red_key_;
+  static const char* green_key_;
+  static const char* blue_key_;
+  static const char* white_key_;
+  static const char* color_error_;
 
   utils::Color color_;
 };

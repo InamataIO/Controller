@@ -16,8 +16,8 @@ const String& InvalidPeripheral::type() {
 
 const String& InvalidPeripheral::getType() const { return type(); }
 
-std::shared_ptr<Peripheral> InvalidPeripheral::factory(const ServiceGetters& services,
-                                                       const JsonObjectConst&) {
+std::shared_ptr<Peripheral> InvalidPeripheral::factory(
+    const ServiceGetters& services, const JsonObjectConst&) {
   return std::make_shared<InvalidPeripheral>();
 }
 

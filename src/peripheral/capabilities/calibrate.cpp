@@ -17,9 +17,9 @@ const std::set<String>& Calibrate::getTypes() { return getSupportedTypes(); }
 
 String Calibrate::invalidTypeError(const utils::UUID& uuid,
                                    std::shared_ptr<Peripheral> peripheral) {
-  String error(F("Calibrate capability not supported: "));
+  String error("Calibrate capability not supported: ");
   error += uuid.toString();
-  error += F(" is a ");
+  error += " is a ";
   error += peripheral->getType();
   return error;
 }

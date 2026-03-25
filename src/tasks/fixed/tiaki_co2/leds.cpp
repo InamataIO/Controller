@@ -48,7 +48,7 @@ String Leds::checkLeds() {
   }
 
   if (peripheral_id != nullptr) {
-    return String(F("Loading LEDs: ")) + peripheral_id;
+    return String("Loading LEDs: ") + peripheral_id;
   }
   return String();
 }

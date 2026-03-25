@@ -152,7 +152,7 @@ bool ConfigManager::isValidChar(InputType type, char c) {
  * input dynamically.
  */
 bool ConfigManager::processInputBuffer(InputType type, char in_key,
-                                       String &output) {
+                                       String& output) {
   if (in_key == '\r') {
     output = input_buffer_;
     input_buffer_ = "";
@@ -356,7 +356,7 @@ bool ConfigManager::addContact(char key) {
  * \note This function only affects the visual output on the serial monitor.
  *       It does not modify the actual string content.
  */
-void ConfigManager::clearContactNameInEditMode(String &name) {
+void ConfigManager::clearContactNameInEditMode(String& name) {
   for (size_t i = 0; i < name.length(); i++) {
     Serial.print("\b \b");
   }
@@ -392,7 +392,7 @@ void ConfigManager::clearContactNameInEditMode(String &name) {
  * displaying the new one.
  */
 ConfigManager::SelectionType ConfigManager::nameSelection(char key,
-                                                          String &name) {
+                                                          String& name) {
   if (key == '<' || key == ',') {
     selected_buffer_ = (selected_buffer_ - 1);
     if (selected_buffer_ < 0) {
@@ -488,7 +488,7 @@ bool ConfigManager::editContact(char key) {
             "\r\n\nPress any key to edit the selected field or press Enter or "
             "Esc to skip the field.\r\n");
 
-        const Person *person = person_manager_.search(selected_name_buffer);
+        const Person* person = person_manager_.search(selected_name_buffer);
         if (person == nullptr) {
           Serial.println("Contact details are not found.");
           return false;
@@ -640,7 +640,7 @@ bool ConfigManager::editContact(char key) {
  * \note The function handles input validation and clears the contact's data
  * when transitioning into editing mode.
  */
-bool ConfigManager::editContactField(String &contact_data, InputType type,
+bool ConfigManager::editContactField(String& contact_data, InputType type,
                                      char in_key) {
   if ((edit_mode_ != EditState::kEditing) && (in_key == '\r' || in_key == 27)) {
     Serial.println();
@@ -673,13 +673,13 @@ bool ConfigManager::editContactField(String &contact_data, InputType type,
   return false;
 }
 
-const std::vector<Person> &ConfigManager::getAllContacts() const {
+const std::vector<Person>& ConfigManager::getAllContacts() const {
   return person_manager_.getAllPeople();
 }
 
-const String &ConfigManager::getLocation() const { return location_; }
+const String& ConfigManager::getLocation() const { return location_; }
 
-bool ConfigManager::handleImprovUserData(const JsonObjectConst &data) {
+bool ConfigManager::handleImprovUserData(const JsonObjectConst& data) {
   JsonObjectConst config = data["config"].as<JsonObjectConst>();
   if (config.isNull() || config.size() == 0) {
     TRACELN("No config");
@@ -705,7 +705,7 @@ bool ConfigManager::handleImprovUserData(const JsonObjectConst &data) {
  * as either "YES" or "NO" based on bit flags.
  * - Separates the data with a dashed line for clarity.
  */
-void ConfigManager::printPerson(const Person &person) {
+void ConfigManager::printPerson(const Person& person) {
   Serial.println("Full name: " + person.name);
   Serial.println("Contact: " + person.phone_number);
 
@@ -1203,7 +1203,7 @@ void ConfigManager::saveConfig() {
  * \return `true` if the location name contains only valid characters and is not
  * empty, `false` otherwise.
  */
-bool ConfigManager::isValidLocation(const String &location) {
+bool ConfigManager::isValidLocation(const String& location) {
   for (size_t i = 0; i < location.length(); i++) {
     char c = location[i];
     if (!(isAlpha(c) || c == ' ' || c == '-' || c == '\'' || c == '.')) {

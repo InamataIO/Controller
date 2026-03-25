@@ -31,7 +31,7 @@ String Peripheral::peripheralNotFoundError(const utils::UUID& uuid) {
 }
 
 String Peripheral::notAValidError(const utils::UUID& uuid, const String& type) {
-  return uuid.toString() + F(" is not a valid ") + type;
+  return uuid.toString() + " is not a valid " + type;
 }
 
 void Peripheral::setInvalid() { valid_ = false; }

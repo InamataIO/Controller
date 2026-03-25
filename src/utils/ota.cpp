@@ -5,7 +5,7 @@ void setup_ota(const char* hostname, const char* password = nullptr) {
   if (hostname) {
     ArduinoOTA.setHostname(hostname);
   } else {
-    Serial.println(F("Missing hostname"));
+    Serial.println("Missing hostname");
     return;
   }
 

@@ -7,10 +7,9 @@ namespace peripheral {
 namespace peripherals {
 namespace cse6677 {
 
-
 /**
- * Driver for CSE6677, an electrical energy measurement chip 
- * 
+ * Driver for CSE6677, an electrical energy measurement chip
+ *
  * UART baud rate is 4800 bps with an 8E1 encoding but 8N1 also works. Reads a
  * data frame via the startMeasurement interface and values from the buffered
  * data frame can be read via the getValues interface.
@@ -28,7 +27,7 @@ class CSE6677 : public uart::UARTAbstractPeripheral,
 
   /**
    * Reset state and start reading data frame from CSE6677
-   * 
+   *
    * @param parameters No parameters expected
    * @return Error, wait or ready depending on read frame
    */
@@ -37,7 +36,7 @@ class CSE6677 : public uart::UARTAbstractPeripheral,
 
   /**
    * Reads data frame CSE6677 and handle reset or timeout
-   * 
+   *
    * - Attempt to read full and valid data frame from CSE6677 via UART/serial
    * - Reset state after having read the values and start new timeout
    * - Return timeout error if values not ready or read due to timeout
@@ -49,7 +48,7 @@ class CSE6677 : public uart::UARTAbstractPeripheral,
 
   /**
    * Read values measured by CSE6677 from sent data frame
-   * 
+   *
    * @return Measured volts, amps and watts or error
    */
   capabilities::GetValues::Result getValues() final;
@@ -60,7 +59,7 @@ class CSE6677 : public uart::UARTAbstractPeripheral,
 
   /**
    * Read data frame until valid frame or fault occurs
-   * 
+   *
    * @return Blank on success, wait if fault occurs
    */
   capabilities::StartMeasurement::Result readFrame();
@@ -105,7 +104,7 @@ class CSE6677 : public uart::UARTAbstractPeripheral,
   /// Time to wait after too many read errors or no data available
   static constexpr std::chrono::milliseconds no_data_wait_{500};
 
-  /// Bitmask if power was measured 
+  /// Bitmask if power was measured
   static constexpr uint8_t adj_power_mask = 1 << 4;
   /// Bitmask if current was measured
   static constexpr uint8_t adj_current_mask = 1 << 5;

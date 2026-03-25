@@ -64,7 +64,7 @@ WebSocket::ConnectState WebSocket::connect() {
            secure_url_ ? 443 : 8000, ws_url_path_.c_str(), ws_token_.c_str());
     // WS token has to be set in LittleFS, EEPROM or via captive portal
     if (!isWsTokenSet()) {
-      TRACELN(F("ws_token not set"));
+      TRACELN("ws_token not set");
       return ConnectState::kFailed;
     }
     TRACEF("Connecting: %s, %s, %d, %s\r\n", core_domain_.c_str(),
@@ -99,7 +99,7 @@ WebSocket::ConnectState WebSocket::handle() {
   if (isConnected()) {
     // On reconnect, send register and other messages
     if (send_on_connect_messages_) {
-      TRACELN(F("Reconnected to server"));
+      TRACELN("Reconnected to server");
       send_on_connect_messages_ = false;
       sendRegister();
       sendUpDownTimeData();
@@ -337,7 +337,7 @@ void WebSocket::handleEvent(WStype_t type, uint8_t* payload, size_t length) {
   // Print class type before the printing the message type
   switch (type) {
     case WStype_DISCONNECTED: {
-      TRACELN(F("WS disconnected"));
+      TRACELN("WS disconnected");
     } break;
     case WStype_CONNECTED: {
       TRACEF("Connected to: %s\r\n", reinterpret_cast<char*>(payload));
@@ -347,7 +347,7 @@ void WebSocket::handleEvent(WStype_t type, uint8_t* payload, size_t length) {
       handleData(payload, length);
     } break;
     case WStype_PING:
-      TRACELN(F("Received ping"));
+      TRACELN("Received ping");
       break;
     case WStype_BIN:
     case WStype_ERROR:
@@ -366,7 +366,7 @@ void WebSocket::handleData(const uint8_t* payload, size_t length) {
   JsonDocument doc_in;
   const DeserializationError error = deserializeJson(doc_in, payload, length);
   if (error) {
-    sendError(type(), String(F("Deserialize failed: ")) + error.c_str());
+    sendError(type(), String("Deserialize failed: ") + error.c_str());
     return;
   }
 
@@ -389,7 +389,7 @@ void WebSocket::updateUpDownTime(const bool is_connected) {
     was_connected_ = is_connected;
     const auto now = std::chrono::steady_clock::now();
     if (is_connected) {
-      TRACELN(F("WS connected"));
+      TRACELN("WS connected");
       // Connection went up
       if (last_connect_down_ != std::chrono::steady_clock::time_point::min()) {
         // Only update if last_connect_down_ has been set

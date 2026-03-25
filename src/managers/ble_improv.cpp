@@ -84,7 +84,7 @@ void BleImprov::setState(improv::State state) {
     ble_status_char_->setValue(data);
     if (state != improv::STATE_STOPPED) {
       ble_status_char_->notify();
-      TRACELN(F("Notifying"));
+      TRACELN("Notifying");
     }
   }
 
@@ -139,7 +139,7 @@ void BleImprov::onWrite(NimBLECharacteristic* characteristic,
     }
     rpc_data_.insert(rpc_data_.end(), rpc_data.begin(), rpc_data.end());
   } else {
-    TRACELN(F("On write from unknown char"));
+    TRACELN("On write from unknown char");
   }
 }
 
@@ -179,7 +179,7 @@ void BleImprov::setupService() {
 
 void BleImprov::processRpcData() {
 #ifdef ENABLE_TRACE
-  TRACEF(F("BLE RPC Data: "), "");
+  TRACEF("BLE RPC Data: ", "");
   for (uint8_t i : rpc_data_) {
     Serial.print(i >> 4, HEX);
     Serial.print(i & 0x0F, HEX);
@@ -222,7 +222,7 @@ void BleImprov::processRpcData() {
       wl_status_t wl_status =
           WiFi.begin(wifi_ap_.ssid.c_str(), wifi_ap_.password.c_str());
       if (wl_status == WL_CONNECT_FAILED) {
-        TRACELN(F("Failed starting WiFi setup"));
+        TRACELN("Failed starting WiFi setup");
         setError(improv::ERROR_UNABLE_TO_CONNECT);
         break;
       }
@@ -476,7 +476,6 @@ void BleImprov::handleGetWifiNetworks() {
   ble_rpc_response_char_->notify();
   scan_wifi_aps_ = false;
   WiFi.scanDelete();
-  TRACELN("Sent wifi networks");
 }
 
 void BleImprov::setUserData(const improv::ImprovCommand& command) {

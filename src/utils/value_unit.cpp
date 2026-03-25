@@ -26,9 +26,9 @@ const char* ValueUnit::data_points_key = "data_points";
 
 String ValueUnit::mismatchUnitError(const UUID& expected_data_point_type,
                                     const UUID& received_data_point_type) {
-  String error(F("Mismatching unit. Got: "));
+  String error("Mismatching unit. Got: ");
   error += received_data_point_type.toString();
-  error += F(" instead of ");
+  error += " instead of ";
   error += expected_data_point_type.toString();
   return error;
 }

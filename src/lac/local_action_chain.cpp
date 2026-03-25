@@ -99,7 +99,7 @@ LocalActionChain::LocalActionChain(const ServiceGetters& services,
              action_config["type"].as<const char*>());
       actions_.pop_back();
     }
-    TRACELN(F("Parsed"));
+    TRACELN("Parsed");
   }
   if (actions_.size() == 0) {
     setInvalid("No actions");
@@ -117,7 +117,7 @@ bool LocalActionChain::TaskCallback() {
   TRACEF("Actions: %i\r\n", actions_.size());
   Action* action = getCurrentAction();
   if (!action) {
-    TRACELN(F("Stop LAC nullptr"));
+    TRACELN("Stop LAC nullptr");
     return false;
   }
   TRACEF("Action type %d, # %d\r\n", action->type, current_action_num_);
@@ -146,7 +146,7 @@ bool LocalActionChain::TaskCallback() {
     default:
       break;
   }
-  TRACELN(F("LAC::TC::end"));
+  TRACELN("LAC::TC::end");
   return true;
 }
 
@@ -163,9 +163,8 @@ void LocalActionChain::OnTaskDisable() {
 
 void LocalActionChain::handleAlertSensor(Action& action) {
   // If nullptr, start task
-  TRACELN(F("1"));
   if (!action.input->task_id.isValid()) {
-    TRACELN(F("Starting AS"));
+    TRACELN("Starting AS");
     action.input->task_id = utils::UUID();
     tasks::alert_sensor::AlertSensor::Input* input =
         static_cast<tasks::alert_sensor::AlertSensor::Input*>(
@@ -176,28 +175,28 @@ void LocalActionChain::handleAlertSensor(Action& action) {
       Serial.println(alert_sensor->getError().toString());
       alert_sensor->abort();
       delete alert_sensor;
-      TRACELN(F("Failed AS"));
+      TRACELN("Failed AS");
       return;
     }
     alert_sensor->handle_output_ =
         std::bind(&LocalActionChain::handleAlertSensorOutput, this, _1);
     alert_sensor->on_task_disable_ =
         std::bind(&LocalActionChain::startNextAction, this);
-    TRACELN(F("Created AS"));
+    TRACELN("Created AS");
     // TODO: handle error case
   }
 }
 
 bool LocalActionChain::handleAlertSensorOutput(
     tasks::alert_sensor::AlertSensor::TriggerType trigger_type) {
-  TRACELN(F("ASO"));
+  TRACELN("ASO");
   return true;
 }
 
 void LocalActionChain::handleSetValue(Action& action) {
   // If nullptr, start task
   if (!action.input->task_id.isValid()) {
-    TRACELN(F("Starting SV"));
+    TRACELN("Starting SV");
     action.input->task_id = utils::UUID();
     tasks::set_value::SetValue::Input* input =
         static_cast<tasks::set_value::SetValue::Input*>(action.input.get());
@@ -206,21 +205,21 @@ void LocalActionChain::handleSetValue(Action& action) {
       Serial.println(set_value->getError().toString());
       set_value->abort();
       delete set_value;
-      TRACELN(F("Failed SV"));
+      TRACELN("Failed SV");
       return;
     }
     set_value->handle_output_ =
         std::bind(&LocalActionChain::handleSetValueOutput, this, _1, _2);
     set_value->on_task_disable_ =
         std::bind(&LocalActionChain::startNextAction, this);
-    TRACELN(F("Created SV"));
+    TRACELN("Created SV");
   }
 }
 
 void LocalActionChain::handleSetRgbLed(Action& action) {
   // If nullptr, start task
   if (!action.input->task_id.isValid()) {
-    TRACELN(F("Starting SetRGB"));
+    TRACELN("Starting SetRGB");
     action.input->task_id = utils::UUID();
     tasks::set_rgb_led::SetRgbLed::Input* input =
         static_cast<tasks::set_rgb_led::SetRgbLed::Input*>(action.input.get());
@@ -230,12 +229,12 @@ void LocalActionChain::handleSetRgbLed(Action& action) {
       Serial.println(set_rgb_led->getError().toString());
       set_rgb_led->abort();
       delete set_rgb_led;
-      TRACELN(F("Failed RGB"));
+      TRACELN("Failed RGB");
       return;
     }
     set_rgb_led->on_task_disable_ =
         std::bind(&LocalActionChain::startNextAction, this);
-    TRACELN(F("Created SetRGB"));
+    TRACELN("Created SetRGB");
   }
 }
 
@@ -244,7 +243,7 @@ void LocalActionChain::handleReadButton(Action& action) {}
 void LocalActionChain::handleReadSensor(Action& action) {
   // If nullptr, start task
   if (!action.input->task_id.isValid()) {
-    TRACELN(F("Starting RS"));
+    TRACELN("Starting RS");
     action.input->task_id = utils::UUID();
     tasks::read_sensor::ReadSensor::Input* input =
         static_cast<tasks::read_sensor::ReadSensor::Input*>(action.input.get());
@@ -254,14 +253,14 @@ void LocalActionChain::handleReadSensor(Action& action) {
       Serial.println(read_value->getError().toString());
       read_value->abort();
       delete read_value;
-      TRACELN(F("Failed RS"));
+      TRACELN("Failed RS");
       return;
     }
     read_value->handle_output_ =
         std::bind(&LocalActionChain::handleGetValuesOutput, this, _1, _2);
     read_value->on_task_disable_ =
         std::bind(&LocalActionChain::startNextAction, this);
-    TRACELN(F("Created RS"));
+    TRACELN("Created RS");
   }
 }
 
@@ -396,13 +395,13 @@ void LocalActionChain::handleIf(Action& action) {
     TRACEF("Skipping %d\r\n", if_config->action_count);
     skipActions(if_config->action_count);
   } else {
-    TRACELN(F("Run then actions"));
+    TRACELN("Run then actions");
   }
   startNextAction();
 }
 
 void LocalActionChain::startNextAction() {
-  TRACELN(F("SNA"));
+  TRACELN("SNA");
   // End the LAC if the last action was executed
   if (atRoutineEnd()) {
     disable();

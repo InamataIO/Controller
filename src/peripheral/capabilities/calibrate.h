@@ -22,12 +22,12 @@ class Calibrate {
 
   /**
    * Start a calibration step with the specified parameters
-   * 
+   *
    * A user initiated calibration step. The parameters define which step and
    * any required configurations. The handleCalibration() function will be
    * called according to the returned delay. It will be called at least once
    * even if wait and error equal zero.
-   * 
+   *
    * \param parameters The parameters used to start a calibration step
    * \return Whether the peripheral was configured correctly
    */
@@ -35,17 +35,17 @@ class Calibrate {
 
   /**
    * Continue the calibration step
-   * 
+   *
    * A calibration is broken down into multiple calibration steps. Some require
    * user input which is handled by startCalibration(const JsonObjectConst&)
    * and others can be automatically started when a previous calibration step
    * finished.
-   * 
+   *
    * handleCalibration() is called repeatedly according to the wait times in
    * the returned Result object. If an error occurs, check error for
    * ErrorResult::isError(). If the calibration step completed successfully,
    * no error and zero wait duration are returned.
-   * 
+   *
    * \return The time to wait until calling again and if an error occured
    */
   virtual Result handleCalibration() = 0;

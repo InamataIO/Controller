@@ -23,7 +23,7 @@ void TaskController::handleCallback(const JsonObjectConst& message) {
   if (!task_commands) {
     return;
   }
-  TRACELN(F("Handling task cmd"));
+  TRACELN("Handling task cmd");
 
   // Init the result doc with type and the request ID
   JsonDocument doc_out;
@@ -93,7 +93,7 @@ ErrorResult TaskController::startTask(const ServiceGetters& services,
   BaseTask* base_task = BaseTask::findTask(scheduler_, task_id);
   if (base_task != nullptr) {
     if (base_task->local_task_) {
-      return ErrorResult(type(), F("Can't restart local tasks"));
+      return ErrorResult(type(), "Can't restart local tasks");
     }
     TRACEF("Restarting task: %s\r\n", task_id.toString().c_str());
     base_task->disableWithoutRemoval();
@@ -132,7 +132,7 @@ void TaskController::stopTask(JsonObjectConst parameters,
   BaseTask* base_task = BaseTask::findTask(scheduler_, task_uuid);
   if (base_task) {
     if (base_task->local_task_) {
-      auto error = ErrorResult(type(), F("Can't stop local tasks"));
+      auto error = ErrorResult(type(), "Can't stop local tasks");
       WebSocket::addResultEntry(task_uuid_str, error, stop_results);
       return;
     }

@@ -51,7 +51,7 @@ int I2CAbstractPeripheral::parseI2CAddress(JsonVariantConst i2c_address) {
 }
 
 String I2CAbstractPeripheral::missingI2CDeviceError(int i2c_address) {
-  String error(F("Cannot find device with I2C address: "));
+  String error("Cannot find device with I2C address: ");
   error += i2c_address;
   return error;
 }

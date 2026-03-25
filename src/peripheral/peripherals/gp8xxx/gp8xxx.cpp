@@ -31,27 +31,27 @@ GP8XXX::GP8XXX(const JsonObjectConst& parameters)
   // Get and check the resolution and I2C address depending on the variant
   uint16_t resolution;
   int i2c_address = -1;
-  if (input_type == F("GP8503")) {
+  if (input_type == "GP8503") {
     variant_ = Variant::kGP8503;
     resolution = RESOLUTION_12_BIT;
     i2c_address = DFGP8XXX_I2C_DEVICEADDR;
-  } else if (input_type == F("GP8211S")) {
+  } else if (input_type == "GP8211S") {
     variant_ = Variant::kGP8211S;
     resolution = RESOLUTION_15_BIT;
     i2c_address = DFGP8XXX_I2C_DEVICEADDR;
-  } else if (input_type == F("GP8512")) {
+  } else if (input_type == "GP8512") {
     variant_ = Variant::kGP8512;
     resolution = RESOLUTION_15_BIT;
     i2c_address = DFGP8XXX_I2C_DEVICEADDR;
-  } else if (input_type == F("GP8413")) {
+  } else if (input_type == "GP8413") {
     variant_ = Variant::kGP8413;
     resolution = RESOLUTION_15_BIT;
     i2c_address = parseI2CAddress(parameters[i2c_address_key_]);
-  } else if (input_type == F("GP8302")) {
+  } else if (input_type == "GP8302") {
     variant_ = Variant::kGP8302;
     resolution = RESOLUTION_12_BIT;
     i2c_address = DFGP8XXX_I2C_DEVICEADDR;
-  } else if (input_type == F("GP8403")) {
+  } else if (input_type == "GP8403") {
     variant_ = Variant::kGP8403;
     resolution = RESOLUTION_12_BIT;
     i2c_address = parseI2CAddress(parameters[i2c_address_key_]);
@@ -86,7 +86,7 @@ const String& GP8XXX::type() {
 
 void GP8XXX::setValue(utils::ValueUnit value_unit) {
   if (value_unit.data_point_type != data_point_type_) {
-    TRACELN(F("Mismatched DPT"));
+    TRACELN("Mismatched DPT");
     return;
   }
   value_ = value_unit.value;

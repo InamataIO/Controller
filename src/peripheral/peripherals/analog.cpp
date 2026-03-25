@@ -12,7 +12,7 @@ String Analog::parseParameters(const JsonObjectConst& parameters) {
       utils::UUID(parameters[Analog::percent_data_point_type_key_]);
   bool success = parseConvertToUnit(parameters);
   if (!success) {
-    return F("Failed parsing convert to unit");
+    return "Failed parsing convert to unit";
   }
   if (!voltage_data_point_type_.isValid() &&
       !percent_data_point_type_.isValid() && !unit_data_point_type_.isValid()) {

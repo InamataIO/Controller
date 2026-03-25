@@ -16,18 +16,18 @@ class ConfigManager {
               std::shared_ptr<LoggingManager> log_manager);
   void loop();
 
-  const std::vector<Person> &getAllContacts() const;
-  const String &getLocation() const;
+  const std::vector<Person>& getAllContacts() const;
+  const String& getLocation() const;
 
   /**
    * Handle user data sent during Improv provisioning
    *
    * \return True if handled the data without error
    */
-  bool handleImprovUserData(const JsonObjectConst &data);
+  bool handleImprovUserData(const JsonObjectConst& data);
 
   // Static function to display contact details.
-  static void printPerson(const Person &info);
+  static void printPerson(const Person& info);
 
  private:
   enum class InputType {
@@ -93,13 +93,13 @@ class ConfigManager {
 
   void showAllContacts();
   bool addContact(char key);
-  void clearContactNameInEditMode(String &name);
-  SelectionType nameSelection(char key, String &last_name);
+  void clearContactNameInEditMode(String& name);
+  SelectionType nameSelection(char key, String& last_name);
   bool editContact(char key);
 
-  bool editContactField(String &receipent_data, InputType type, char in_key);
+  bool editContactField(String& receipent_data, InputType type, char in_key);
 
-  bool processInputBuffer(InputType type, char inKey, String &output);
+  bool processInputBuffer(InputType type, char inKey, String& output);
   bool getGroupDataInput(char in_key, uint8_t group);
   bool isValidChar(InputType type, char c);
 
@@ -114,7 +114,7 @@ class ConfigManager {
   void parseConfig(JsonObjectConst config);
   void saveConfig();
 
-  static bool isValidLocation(const String &location);
+  static bool isValidLocation(const String& location);
 
   // configuration manager's serial operations.
   String input_buffer_;         // Buffer to store raw user input.

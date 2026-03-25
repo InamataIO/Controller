@@ -133,9 +133,9 @@ bool OtaUpdater::TaskCallback() {
       int percent = float(Update.progress()) / float(image_size_) * 100;
       if (last_percent_update < 0 || last_percent_update + 10 <= percent) {
         last_percent_update = percent;
-        String detail = F("{\"done\":\"");
+        String detail = "{\"done\":\"";
         detail += last_percent_update;
-        detail += F("%\"}");
+        detail += "%\"}";
         sendResult(status_updating_, detail);
       }
     }

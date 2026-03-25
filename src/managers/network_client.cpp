@@ -19,7 +19,7 @@ int WebSocketsNetworkClient::connect(IPAddress ip, uint16_t port) {
   return 0;
 }
 
-int WebSocketsNetworkClient::connect(const char *host, uint16_t port) {
+int WebSocketsNetworkClient::connect(const char* host, uint16_t port) {
   if (_impl->gsm_client_) {
     return _impl->gsm_client_->connect(host, port);
   } else if (_impl->wifi_client_) {
@@ -28,7 +28,7 @@ int WebSocketsNetworkClient::connect(const char *host, uint16_t port) {
   TRACELN(_impl->no_interface_error_);
   return 0;
 }
-int WebSocketsNetworkClient::connect(const char *host, uint16_t port,
+int WebSocketsNetworkClient::connect(const char* host, uint16_t port,
                                      int32_t timeout_ms) {
   if (_impl->gsm_client_) {
     return _impl->gsm_client_->connect(host, port, timeout_ms);
@@ -49,7 +49,7 @@ size_t WebSocketsNetworkClient::write(uint8_t data) {
   return 0;
 }
 
-size_t WebSocketsNetworkClient::write(const uint8_t *buf, size_t size) {
+size_t WebSocketsNetworkClient::write(const uint8_t* buf, size_t size) {
   Serial.printf("Send_: %zu\r\n", size);
   if (_impl->gsm_client_) {
     return _impl->gsm_client_->write(buf, size);
@@ -60,13 +60,13 @@ size_t WebSocketsNetworkClient::write(const uint8_t *buf, size_t size) {
   return 0;
 }
 
-size_t WebSocketsNetworkClient::write(const char *str) {
+size_t WebSocketsNetworkClient::write(const char* str) {
   const int size = strlen(str);
   Serial.printf("Send: %zu\r\n", size);
   if (_impl->gsm_client_) {
-    return _impl->gsm_client_->write((const uint8_t *)str, size);
+    return _impl->gsm_client_->write((const uint8_t*)str, size);
   } else if (_impl->wifi_client_) {
-    return _impl->wifi_client_->write((const uint8_t *)str, size);
+    return _impl->wifi_client_->write((const uint8_t*)str, size);
   }
   TRACELN(_impl->no_interface_error_);
   return 0;
@@ -92,7 +92,7 @@ int WebSocketsNetworkClient::read() {
   return 0;
 }
 
-int WebSocketsNetworkClient::read(uint8_t *buf, size_t size) {
+int WebSocketsNetworkClient::read(uint8_t* buf, size_t size) {
   if (_impl->gsm_client_) {
     return _impl->gsm_client_->read(buf, size);
   } else if (_impl->wifi_client_) {

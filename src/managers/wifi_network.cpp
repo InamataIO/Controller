@@ -32,7 +32,7 @@ WiFiNetwork::WiFiNetwork(std::vector<WiFiAP>& wifi_aps, String& controller_name)
     : wifi_aps_(std::move(wifi_aps)),
       controller_name_(std::move(controller_name)) {
 #ifdef ENABLE_TRACE
-  TRACELN(F("Searching for APs:"));
+  TRACELN("Searching for APs:");
   for (const WiFiAP& wifi_ap : wifi_aps_) {
     TRACEF("\t%s\r\n", wifi_ap.ssid.c_str());
   }
@@ -104,7 +104,7 @@ bool WiFiNetwork::tryFastConnect() {
   wl_status_t wifi_status = WL_IDLE_STATUS;
   if (connect_start_ == std::chrono::steady_clock::time_point::min()) {
     // If first run of fast connect
-    Serial.println(F("WiFi: FastConnect start"));
+    Serial.println("WiFi: FastConnect start");
     connect_start_ = std::chrono::steady_clock::now();
     if (strlen(WiFi.SSID().c_str())) {
       TRACEF("FastConnect: %s\r\n", WiFi.SSID().c_str());
@@ -112,7 +112,7 @@ bool WiFiNetwork::tryFastConnect() {
       wifi_status = WiFi.begin();
     } else {
       // else start WiFi search and exit fast connect mode
-      TRACELN(F("FastConnect: No saved SSID"));
+      TRACELN("FastConnect: No saved SSID");
       connect_start_ = std::chrono::steady_clock::time_point::min();
       connect_mode_ = ConnectMode::kScanning;
       return false;
@@ -208,7 +208,7 @@ bool WiFiNetwork::tryScanning() {
 }
 
 void WiFiNetwork::startWiFiScan() {
-  TRACELN(F("WiFi: Scan start"));
+  TRACELN("WiFi: Scan start");
   // If first run of WiFi scan
   scan_start_ = std::chrono::steady_clock::now();
   // Clean previous scan
@@ -224,7 +224,7 @@ int16_t WiFiNetwork::getWiFiScanState() {
   std::chrono::steady_clock::duration scan_duration =
       std::chrono::steady_clock::now() - scan_start_;
   if (scan_duration > scan_timeout_) {
-    TRACELN(F("WiFi: Scan timed out"));
+    TRACELN("WiFi: Scan timed out");
     return -3;
   }
   return scan_result;
@@ -242,7 +242,7 @@ bool WiFiNetwork::tryMultiConnect() {
 
   wl_status_t wifi_status = WL_IDLE_STATUS;
   if (connect_start_ == std::chrono::steady_clock::time_point::min()) {
-    Serial.println(F("WiFi: MultiConnect start"));
+    Serial.println("WiFi: MultiConnect start");
     // If the first run of connecting to a network
     connect_start_ = std::chrono::steady_clock::now();
     // Get all the details of the network to connect to
@@ -296,7 +296,7 @@ bool WiFiNetwork::tryHiddenConnect() {
 
   wl_status_t wifi_status = WL_IDLE_STATUS;
   if (connect_start_ == std::chrono::steady_clock::time_point::min()) {
-    Serial.println(F("WiFi: HiddenConnect start"));
+    Serial.println("WiFi: HiddenConnect start");
     // If the first run of connecting to a hidden network
     connect_start_ = std::chrono::steady_clock::now();
     while (current_wifi_ap_ != wifi_aps_.end()) {
@@ -343,7 +343,7 @@ bool WiFiNetwork::tryCyclePower() {
   // If WiFi modem is not powered off, turn it off
   TRACEF("Changing from WiFi mode: %d\r\n", mode);
   if (mode != WIFI_OFF) {
-    Serial.println(F("WiFi: CyclePower start"));
+    Serial.println("WiFi: CyclePower start");
     WiFi.mode(WIFI_OFF);
   } else {
     // In the next cycle, turn it back on and try to fast connect
@@ -361,7 +361,7 @@ void WiFiNetwork::initTimeSync() {
     esp_sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
     esp_sntp_init();
   }
-  TRACELN(F("Start time sync"));
+  TRACELN("Start time sync");
 }
 
 bool WiFiNetwork::populateNetworkInfo(NetworkInfo& network_info) {

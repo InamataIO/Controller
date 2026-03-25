@@ -19,9 +19,9 @@ const std::set<String>& StartMeasurement::getTypes() {
 
 String StartMeasurement::invalidTypeError(
     const utils::UUID& uuid, std::shared_ptr<Peripheral> peripheral) {
-  String error(F("StartMeasurement capability not supported: "));
+  String error("StartMeasurement capability not supported: ");
   error += uuid.toString();
-  error += F(" is a ");
+  error += " is a ";
   error += peripheral->getType();
   return error;
 }

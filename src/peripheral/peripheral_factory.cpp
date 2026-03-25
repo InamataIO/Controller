@@ -51,7 +51,7 @@ PeripheralFactory::getFactories() {
 }
 
 String PeripheralFactory::unknownTypeError(const String& type) {
-  String error(F("Unknown peripheral type: "));
+  String error("Unknown peripheral type: ");
   error += type;
   return error;
 }

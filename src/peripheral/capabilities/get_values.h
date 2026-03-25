@@ -44,7 +44,7 @@ class GetValues {
                                  std::shared_ptr<Peripheral> peripheral);
 
  protected:
-  static const __FlashStringHelper* get_values_error_;
+  static const char* get_values_error_;
 
  private:
   static std::set<String>& getSupportedTypes();

@@ -113,7 +113,7 @@ capabilities::StartMeasurement::Result ModbusClientInput::handleMeasurement() {
 
 capabilities::GetValues::Result ModbusClientInput::getValues() {
   if (!ready_) {
-    return {.values = {}, .error = ErrorResult(type(), F("Not ready"))};
+    return {.values = {}, .error = ErrorResult(type(), "Not ready")};
   }
   Modbus::Error error = response_.getError();
   if (error != Modbus::Error::SUCCESS) {
@@ -132,7 +132,7 @@ capabilities::GetValues::Result ModbusClientInput::getValues() {
     uint16_t raw_value;
     const uint16_t offset = input.offset * sizeof(uint16_t) + header_offset;
     if (offset + sizeof(uint16_t) > response_.size()) {
-      return {.values = {}, .error = ErrorResult(type(), F("Msg OOB"))};
+      return {.values = {}, .error = ErrorResult(type(), "Msg OOB")};
     }
     response_.get(offset, raw_value);
     float value = raw_value * input.m + input.b;

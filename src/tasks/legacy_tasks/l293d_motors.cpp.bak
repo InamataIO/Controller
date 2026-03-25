@@ -87,7 +87,7 @@ void L293dMotors::mqttCallback(char* topic, uint8_t* payload,
   DynamicJsonDocument doc(BB_MQTT_JSON_PAYLOAD_SIZE);
   const DeserializationError error = deserializeJson(doc, payload, length);
   if (error) {
-    mqtt_.sendError(who, String(F("Deserialize failed: ")) + error.c_str());
+    mqtt_.sendError(who, String("Deserialize failed: ") + error.c_str());
     return;
   }
 
@@ -116,7 +116,8 @@ void L293dMotors::mqttCallback(char* topic, uint8_t* payload,
 
   // If no known action is included, send an error
   if (!action_found) {
-    mqtt_.sendError(who, F("No known action found [add, remove, enable, disable]"));
+    mqtt_.sendError(who,
+                    "No known action found [add, remove, enable, disable]");
   }
 }
 
@@ -128,7 +129,8 @@ Result L293dMotors::addRun(int id, std::chrono::milliseconds duration,
   // Check if an existing run is already using the motor
   for (const auto& run : runs_) {
     if (run.l293d_motor_id == id) {
-      mqtt_.sendError(who, String(F("Another run is already using: ")) + io_.getName(id));
+      mqtt_.sendError(
+          who, String("Another run is already using: ") + io_.getName(id));
       return Result::kFailure;
     }
   }
@@ -175,7 +177,7 @@ Result L293dMotors::disableRun(Run& run, bool abort) {
   run.enabled = false;
 
   DynamicJsonDocument doc(BB_MQTT_JSON_PAYLOAD_SIZE);
-  JsonObject result = doc.createNestedObject(F("result"));
+  JsonObject result = doc.createNestedObject("result"));
   std::vector<const char*> result_keys;
   result_keys.reserve(7);  // Approx. # of keys
 
@@ -219,7 +221,7 @@ Result L293dMotors::disableRun(Run& run, bool abort) {
   // Check if all required properties have been defined
   for (const auto& result_key : result_keys) {
     if (!result.containsKey(result_key)) {
-      mqtt_.sendError(who, String(F("Failed serializing: ")) + result_key);
+      mqtt_.sendError(who, String("Failed serializing: ")) + result_key);
       return Result::kFailure;
     }
   }
@@ -240,38 +242,38 @@ Result L293dMotors::addDevice(const JsonObjectConst& doc) {
 
   JsonVariantConst pin_forward = doc[F("pin_forward")];
   if (!pin_forward.is<int>()) {
-    mqtt_.sendError(who, F("Missing property: pin_forward (int)"));
+    mqtt_.sendError(who, "Missing property: pin_forward (int)");
     return Result::kFailure;
   }
   if (pin_forward < 0) {
-    mqtt_.sendError(who, F("pin_forward has to be >= 0"));
+    mqtt_.sendError(who, "pin_forward has to be >= 0");
     return Result::kFailure;
   }
 
   JsonVariantConst pin_reverse = doc[F("pin_reverse")];
   if (!pin_reverse.is<int>()) {
-    mqtt_.sendError(who, F("Missing property: pin_reverse (int)"));
+    mqtt_.sendError(who, "Missing property: pin_reverse (int)");
     return Result::kFailure;
   }
   if (pin_reverse < 0) {
-    mqtt_.sendError(who, F("pin_reverse has to be >= 0"));
+    mqtt_.sendError(who, "pin_reverse has to be >= 0");
     return Result::kFailure;
   }
 
   JsonVariantConst pin_enable = doc[F("pin_enable")];
   if (!pin_enable.is<int>()) {
-    mqtt_.sendError(who, F("Missing property: pin_enable (int)"));
+    mqtt_.sendError(who, "Missing property: pin_enable (int)");
     return Result::kFailure;
   }
   if (pin_enable < 0) {
-    mqtt_.sendError(who, F("pin_enable has to be >= 0"));
+    mqtt_.sendError(who, "pin_enable has to be >= 0");
     return Result::kFailure;
   }
 
   int id;
   Result result = io_.addDevice(name, id);
   if (result != Result::kSuccess) {
-    mqtt_.sendError(who, String(F("Name already exists: ")) + name.as<char*>());
+    mqtt_.sendError(who, String("Name already exists: ")) + name.as<char*>());
     return Result::kFailure;
   }
 
@@ -311,37 +313,37 @@ Result L293dMotors::enableDevice(const JsonObjectConst& doc) {
   // Check if the name matches a registered l293D motor
   JsonVariantConst name = doc[F("name")];
   if (name.isNull() || !name.is<char*>()) {
-    mqtt_.sendError(who, F("Missing property: name (string)"));
+    mqtt_.sendError(who, "Missing property: name (string)");
     return Result::kFailure;
   }
   const int id = io_.getId(name.as<char*>());
   if (id < 0 || io_.l293d_motors_.find(id) == io_.l293d_motors_.end()) {
-    mqtt_.sendError(who, F("L293D motor name not found"));
+    mqtt_.sendError(who, "L293D motor name not found");
     return Result::kFailure;
   }
 
   // Check that the duration in seconds is greater than 0
   JsonVariantConst duration_s = doc[F("duration_s")];
   if (!duration_s.is<int>()) {
-    mqtt_.sendError(who, F("Missing property: duration_s (int)"));
+    mqtt_.sendError(who, "Missing property: duration_s (int)");
     return Result::kFailure;
   }
   const std::chrono::seconds duration(duration_s);
   if (duration <= std::chrono::seconds::zero()) {
     mqtt_.sendError(
-        who, String(F("Duration has to be > 0: ")) + duration_s.as<int>());
+        who, String("Duration has to be > 0: ")) + duration_s.as<int>());
     return Result::kFailure;
   }
 
   // Check that the power percent is between 0 - 100
   JsonVariantConst power_percent = doc[F("power_percent")];
   if (!power_percent.is<int>()) {
-    mqtt_.sendError(who, F("Missing property: power_percent (int)"));
+    mqtt_.sendError(who, "Missing property: power_percent (int)");
     return Result::kFailure;
   }
   if (power_percent < 0 || power_percent > 100) {
     mqtt_.sendError(who,
-                    String(F("Power percent has to be between 0 - 100: ")) +
+                    String("Power percent has to be between 0 - 100: ")) +
                         String(power_percent.as<int>()));
     return Result::kFailure;
   }
@@ -349,7 +351,7 @@ Result L293dMotors::enableDevice(const JsonObjectConst& doc) {
   // Check the direction of the motor
   JsonVariantConst forward = doc[F("forward")];
   if (!forward.is<bool>()) {
-    mqtt_.sendError(who, F("Missing property: power_percent (bool)"));
+    mqtt_.sendError(who, "Missing property: power_percent (bool)");
     return Result::kFailure;
   }
 

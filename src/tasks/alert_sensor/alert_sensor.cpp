@@ -114,7 +114,7 @@ bool AlertSensor::TaskCallback() {
   const auto trigger_value_unit =
       std::find_if(result.values.cbegin(), result.values.cend(), match_unit);
   if (trigger_value_unit == result.values.end()) {
-    setInvalid(String(F("Data point type not found: ")) +
+    setInvalid(String("Data point type not found: ") +
                data_point_type_id_.toString());
     return false;
   }

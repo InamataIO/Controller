@@ -29,11 +29,11 @@ DigitalIn::DigitalIn(const JsonObjectConst& parameters) {
     setInvalid(input_type_key_error_);
     return;
   }
-  if (input_type == F("floating")) {
+  if (input_type == "floating") {
     pinMode(pin_, INPUT);
-  } else if (input_type == F("pullup")) {
+  } else if (input_type == "pullup") {
     pinMode(pin_, INPUT_PULLUP);
-  } else if (input_type == F("pulldown")) {
+  } else if (input_type == "pulldown") {
     pinMode(pin_, INPUT_PULLDOWN);
   } else {
     setInvalid(input_type_key_error_);

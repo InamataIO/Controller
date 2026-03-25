@@ -29,12 +29,12 @@ class LoggingManager {
   static void deleteOldLogs();
 
   LoggingManager();
-  void addLog(const String &event);
+  void addLog(const String& event);
   void showCurrentLog();
   bool toggleRealTimeLogs();
   bool getRealTimeLogsState();
 
-  static const char *root_path_;
+  static const char* root_path_;
 
  private:
   struct LogPath {

@@ -137,14 +137,14 @@ BaseTask* SetRgbLed::factory(const ServiceGetters& services,
   return new SetRgbLed(scheduler, input);
 }
 
-const __FlashStringHelper* SetRgbLed::rgb_key_ = F("rgb");
-const __FlashStringHelper* SetRgbLed::color_key_ = F("color");
-const __FlashStringHelper* SetRgbLed::brightness_key_ = F("brightness");
-const __FlashStringHelper* SetRgbLed::color_error_ = F("Failed parsing color");
-const __FlashStringHelper* SetRgbLed::red_key_ = F("red");
-const __FlashStringHelper* SetRgbLed::green_key_ = F("green");
-const __FlashStringHelper* SetRgbLed::blue_key_ = F("blue");
-const __FlashStringHelper* SetRgbLed::white_key_ = F("white");
+const char* SetRgbLed::rgb_key_ = "rgb";
+const char* SetRgbLed::color_key_ = "color";
+const char* SetRgbLed::brightness_key_ = "brightness";
+const char* SetRgbLed::color_error_ = "Failed parsing color";
+const char* SetRgbLed::red_key_ = "red";
+const char* SetRgbLed::green_key_ = "green";
+const char* SetRgbLed::blue_key_ = "blue";
+const char* SetRgbLed::white_key_ = "white";
 
 }  // namespace set_rgb_led
 }  // namespace tasks

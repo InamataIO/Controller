@@ -46,7 +46,7 @@ DateTime TimeManager::systemTime() { return rtc.now(); }
  *
  * \return The formatted time as a string (in ISO 8601 format).
  */
-String TimeManager::getFormattedTime(const DateTime &date_time) {
+String TimeManager::getFormattedTime(const DateTime& date_time) {
   // Oversize to have buffer for max integer sizes (uint8_t -> 3 chars)
   char buffer[28];
 
@@ -66,7 +66,7 @@ String TimeManager::getFormattedTime() {
  *
  * \param date_time The DateTime object with a specified date and time
  */
-void TimeManager::setSystemTime(const DateTime &date_time) {
+void TimeManager::setSystemTime(const DateTime& date_time) {
   rtc.adjust(date_time);
 }
 
@@ -99,7 +99,7 @@ bool TimeManager::lostPower() { return rtc.lostPower(); }
  * \param date_time Datetime to be printed
  * \return The current date as a string (in "YYYYMMDD" format).
  */
-String TimeManager::getCurrentDate(const DateTime &date_time) {
+String TimeManager::getCurrentDate(const DateTime& date_time) {
   // Oversize to have buffer for max integer sizes (uint8_t -> 3 chars)
   char buffer[11];
 
@@ -157,7 +157,7 @@ String TimeManager::getCurrentDate() { return getCurrentDate(systemTime()); }
  *
  * \return True on success
  */
-bool TimeManager::handleImprovUserData(const JsonObjectConst &data) {
+bool TimeManager::handleImprovUserData(const JsonObjectConst& data) {
   JsonObjectConst time = data["time"].as<JsonObjectConst>();
   if (time.isNull() || time.size() == 0) {
     TRACELN("No time");
@@ -165,24 +165,24 @@ bool TimeManager::handleImprovUserData(const JsonObjectConst &data) {
   }
 
   JsonVariantConst now = time["now"];
-  if (!now.is<const char *>()) {
+  if (!now.is<const char*>()) {
     TRACELN("No now");
     return false;
   }
-  DateTime date_time(now.as<const char *>());
+  DateTime date_time(now.as<const char*>());
   if (!date_time.isValid()) {
     TRACELN("Parsing failed");
     return false;
   }
 
   JsonVariantConst utc_offset = time["utc_offset"];
-  if (utc_offset.is<const char *>()) {
+  if (utc_offset.is<const char*>()) {
     int offset_hour, offset_minute;
     char sign = '+';
-    int result = sscanf(utc_offset.as<const char *>(), "%c%d:%d", &sign,
+    int result = sscanf(utc_offset.as<const char*>(), "%c%d:%d", &sign,
                         &offset_hour, &offset_minute);
     if (result != 3 || !(sign == '-' || sign == '+')) {
-      result = sscanf(utc_offset.as<const char *>(), "%d:%d", &offset_hour,
+      result = sscanf(utc_offset.as<const char*>(), "%d:%d", &offset_hour,
                       &offset_minute);
       sign = '+';
     }

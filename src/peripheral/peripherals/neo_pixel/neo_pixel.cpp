@@ -86,7 +86,7 @@ void NeoPixel::setOutput() {
 }
 
 String NeoPixel::invalidColorEncodingError(const String& color_encoding) {
-  String error(F("Invalid color encoding value: "));
+  String error("Invalid color encoding value: ");
   error += color_encoding;
   return error;
 }

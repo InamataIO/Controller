@@ -61,7 +61,7 @@ capabilities::StartMeasurement::Result CSE7766::handleMeasurement() {
   if (std::chrono::steady_clock::now() - measurement_start_ >
       measurement_timeout_) {
     return capabilities::StartMeasurement::Result{
-        .error = ErrorResult(type(), F("Timeout"))};
+        .error = ErrorResult(type(), "Timeout")};
   }
   return readFrame();
 }
@@ -69,7 +69,7 @@ capabilities::StartMeasurement::Result CSE7766::handleMeasurement() {
 capabilities::GetValues::Result CSE7766::getValues() {
   if (in_data_[0] == 0xAA) {
     return capabilities::GetValues::Result{
-        .error = ErrorResult(type(), F("Not calibrated"))};
+        .error = ErrorResult(type(), "Not calibrated")};
   }
 
   capabilities::GetValues::Result result;

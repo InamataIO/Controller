@@ -62,7 +62,7 @@ void LightSensors::mqttCallback(char* topic, uint8_t* payload,
   DynamicJsonDocument doc(BB_JSON_PAYLOAD_SIZE);
   const DeserializationError error = deserializeJson(doc, payload, length);
   if (error) {
-    mqtt_.sendError(who, String(F("Deserialize failed: ")) + error.c_str());
+    mqtt_.sendError(who, String("Deserialize failed: ") + error.c_str());
     return;
   }
 
@@ -89,7 +89,7 @@ Result LightSensors::findSensors(const JsonObjectConst& doc) {
   const char* who = __PRETTY_FUNCTION__;
 
   DynamicJsonDocument sensors_doc(BB_JSON_PAYLOAD_SIZE);
-  const JsonArray& sensors = sensors_doc.createNestedArray(F("result"));
+  const JsonArray& sensors = sensors_doc.createNestedArray("result");
 
   // Check all I2C interfaces if a device
   auto checkSensor = [](Io& io, const JsonArray& sensors, uint8_t address,
@@ -113,13 +113,13 @@ Result LightSensors::findSensors(const JsonObjectConst& doc) {
   }
 
   std::array<const __FlashStringHelper*, 3> keys{
-      {F("i2c_interface"), F("type"), F("address")}};
+      {"i2c_interface", "type", "address"}};
 
   // Check if all required properties have been defined
   for (const auto& sensor : sensors) {
     for (const auto& key : keys) {
       if (!sensor.containsKey(key)) {
-        mqtt_.sendError(who, String(F("Failed serializing: ")) + key);
+        mqtt_.sendError(who, String("Failed serializing: ") + key);
         return Result::kFailure;
       }
     }
@@ -135,50 +135,50 @@ Result LightSensors::addSensor(const JsonObjectConst& doc) {
   // Check that the keys are present
   JsonVariantConst name = doc[F("name")];
   if (name.isNull() || !name.is<char*>()) {
-    mqtt_.sendError(who, F("Missing property: name (string)"));
+    mqtt_.sendError(who, "Missing property: name (string)");
     return Result::kFailure;
   }
 
   JsonVariantConst i2c_interface_name = doc[F("i2c_interface")];
   if (i2c_interface_name.isNull() || !i2c_interface_name.is<char*>()) {
-    mqtt_.sendError(who, F("Missing property: i2c_interface (string)"));
+    mqtt_.sendError(who, "Missing property: i2c_interface (string)");
     return Result::kFailure;
   }
   const int i2c_interface_id = io_.getId(i2c_interface_name);
   if (i2c_interface_id < 0) {
-    mqtt_.sendError(who, F("I2C interface name not found"));
+    mqtt_.sendError(who, "I2C interface name not found");
     return Result::kFailure;
   }
   auto i2cs = io_.getI2cInterfaces();
   auto i2c_it = i2cs.find(i2c_interface_id);
   if (i2c_it == i2cs.end()) {
-    mqtt_.sendError(who, F("I2C interface not found"));
+    mqtt_.sendError(who, "I2C interface not found");
   }
 
   JsonVariantConst type = doc[F("type")];
   if (type.isNull() || !type.is<char*>()) {
-    mqtt_.sendError(who, F("Missing property: type (string)"));
+    mqtt_.sendError(who, "Missing property: type (string)");
     return Result::kFailure;
   }
   if (type != sensor_types_.bh1750 || type != sensor_types_.max44009) {
-    mqtt_.sendError(who, String(F("Invalid type: ")) + type.as<String>() +
-                             String(F(" [")) + sensor_types_.bh1750 +
-                             String(F(", ")) + sensor_types_.max44009 +
-                             String(F("]")));
+    mqtt_.sendError(who, String("Invalid type: ") + type.as<String>() +
+                             String(" [") + sensor_types_.bh1750 +
+                             String(", ") + sensor_types_.max44009 +
+                             String("]"));
     return Result::kFailure;
   }
 
   JsonVariantConst address = doc[F("address")];
   if (!address.is<int>()) {
-    mqtt_.sendError(who, F("Missing property: address (int)"));
+    mqtt_.sendError(who, "Missing property: address (int)");
     return Result::kFailure;
   }
 
   // Check if the device exists
   Result result = io_.checkI2cAddress(i2c_interface_id, address);
   if (result != Result::kSuccess) {
-    mqtt_.sendError(who, String(F("Device not foung on I2C interface: ")) +
-                             String(address.as<int>(), HEX) + F(" : ") +
+    mqtt_.sendError(who, String("Device not foung on I2C interface: ") +
+                             String(address.as<int>(), HEX) + " : " +
                              i2c_interface_name.as<String>());
     return Result::kFailure;
   }
@@ -186,7 +186,7 @@ Result LightSensors::addSensor(const JsonObjectConst& doc) {
   int id;
   result = io_.addDevice(name, id);
   if (result != Result::kSuccess) {
-    mqtt_.sendError(who, String(F("Name already exists: ")) + name.as<char*>());
+    mqtt_.sendError(who, String("Name already exists: ") + name.as<char*>());
     return Result::kFailure;
   }
 
@@ -200,7 +200,7 @@ Result LightSensors::addSensor(const JsonObjectConst& doc) {
       io_.bh1750s_[id].interface.begin(BH1750::CONTINUOUS_HIGH_RES_MODE,
                                        address, &i2c_it->second);
     } else {
-      mqtt_.sendError(who, F("Cannot find "));
+      mqtt_.sendError(who, "Cannot find ");
     }
   }
 

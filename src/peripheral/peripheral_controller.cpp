@@ -27,7 +27,7 @@ void PeripheralController::handleCallback(const JsonObjectConst& message) {
   if (!peripheral_commands) {
     return;
   }
-  TRACELN(F("Handling peripheral cmd"));
+  TRACELN("Handling peripheral cmd");
 
   // Replace stored peripherals with sync config
   JsonArrayConst sync_commands =
@@ -118,7 +118,7 @@ ErrorResult PeripheralController::add(const JsonObjectConst& config) {
                    });
   if (iterator != peripherals_.end()) {
     if (iterator->use_count() > 1) {
-      return ErrorResult(type(), String(F("Peripheral still in use")));
+      return ErrorResult(type(), String("Peripheral still in use"));
     }
     peripherals_.erase(iterator);
   }
@@ -131,7 +131,7 @@ ErrorResult PeripheralController::add(const JsonObjectConst& config) {
       return peripheral->getError();
     }
   } else {
-    return ErrorResult(type(), F("Error calling peripheral factory"));
+    return ErrorResult(type(), "Error calling peripheral factory");
   }
 
   peripherals_.emplace_back(peripheral);
@@ -177,7 +177,7 @@ ErrorResult PeripheralController::remove(const JsonObjectConst& doc) {
                    });
   if (iterator != peripherals_.end()) {
     if (iterator->use_count() > 1) {
-      return ErrorResult(type(), String(F("Peripheral still in use")));
+      return ErrorResult(type(), String("Peripheral still in use"));
     }
     peripherals_.erase(iterator);
   }

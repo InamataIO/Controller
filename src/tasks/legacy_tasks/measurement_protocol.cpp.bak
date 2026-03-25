@@ -25,12 +25,11 @@ MeasurementProtocol::~MeasurementProtocol() {}
 bool MeasurementProtocol::OnEnable() {
   const char* who = __PRETTY_FUNCTION__;
   if (!acidity_sensor_task_.isReady()) {
-    mqtt_.sendError(who, String(F("Acidity sensor task is not ready")));
+    mqtt_.sendError(who, String("Acidity sensor task is not ready"));
     return false;
   }
   if (!dissolved_oxygen_sensor_task_.isReady()) {
-    mqtt_.sendError(who,
-                    String(F("Dissolved oxygen sensor task is not ready")));
+    mqtt_.sendError(who, String("Dissolved oxygen sensor task is not ready"));
     return false;
   }
 

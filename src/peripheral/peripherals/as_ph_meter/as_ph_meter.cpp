@@ -96,11 +96,11 @@ capabilities::StartMeasurement::Result AsPhMeterI2C::handleMeasurement() {
     // Be conservative. Wait another complete reading cycle
     return {.wait = reading_duration_};
   } else if (error == Ezo_board::errors::NO_DATA) {
-    return {.wait = {}, .error = ErrorResult(type(), F("No data"))};
+    return {.wait = {}, .error = ErrorResult(type(), "No data")};
   } else if (error == Ezo_board::errors::NOT_READ_CMD) {
-    return {.wait = {}, .error = ErrorResult(type(), F("Not started"))};
+    return {.wait = {}, .error = ErrorResult(type(), "Not started")};
   } else {
-    return {.wait = {}, .error = ErrorResult(type(), F("Unknown error"))};
+    return {.wait = {}, .error = ErrorResult(type(), "Unknown error")};
   }
 }
 

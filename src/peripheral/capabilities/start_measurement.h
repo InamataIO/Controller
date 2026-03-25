@@ -39,7 +39,7 @@ class StartMeasurement {
    * If it is not ready, Result::wait specefies the expected time to be ready.
    * If an error occured, Result::error will return true on isError(). If it
    * is ready, wait will be zero and error will return false on isError().
-   * 
+   *
    * \see capabilities::GetValues
    *
    * \return State of the current measurement

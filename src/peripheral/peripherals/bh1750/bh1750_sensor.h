@@ -12,7 +12,7 @@ class Bh1750Sensor : public light_sensor::I2CLightSensor {
   virtual ~Bh1750Sensor() = default;
 };
 
-}
+}  // namespace bh1750
 }  // namespace peripherals
 }  // namespace peripheral
 }  // namespace inamata

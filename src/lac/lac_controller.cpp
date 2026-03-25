@@ -22,7 +22,7 @@ void LacController::handleCallback(const JsonObjectConst& message) {
   if (!lac_commands) {
     return;
   }
-  TRACELN(F("Handling lac cmd"));
+  TRACELN("Handling lac cmd");
 
   // Init the result doc with type and the request ID
   JsonDocument doc_out;
@@ -66,7 +66,7 @@ LacErrorResult LacController::startLac(const ServiceGetters& services,
   tasks::BaseTask* base_task = tasks::BaseTask::findTask(scheduler_, lac_id);
   if (base_task != nullptr) {
     if (!base_task->local_task_) {
-      return LacErrorResult(type(), F("Task not a LAC"));
+      return LacErrorResult(type(), "Task not a LAC");
     }
     base_task->disableWithoutRemoval();
     delete base_task;

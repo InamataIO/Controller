@@ -37,7 +37,7 @@ I2CAdapter::I2CAdapter(const ServiceGetters& services,
     taken_variable = &wire1_taken;
     wire_ = &Wire1;
   } else {
-    web_socket_->sendError(type(), F("Both wires already taken"));
+    web_socket_->sendError(type(), "Both wires already taken");
     setInvalid();
     return;
   }

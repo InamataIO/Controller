@@ -8,7 +8,7 @@ void BleServer::enable() {
   if (state_ == State::kENABLED) {
     return;
   }
-  TRACELN(F("Enabling BleServer"));
+  TRACELN("Enabling BleServer");
   setup();
   state_ = State::kENABLED;
 }
@@ -17,7 +17,7 @@ void BleServer::disable() {
   if (state_ == State::kDISABLED) {
     return;
   }
-  TRACELN(F("Disabling BleServer"));
+  TRACELN("Disabling BleServer");
   NimBLEDevice::deinit(true);
   state_ = State::kDISABLED;
 }

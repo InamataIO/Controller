@@ -48,7 +48,7 @@ std::map<String, TaskFactory::Factory>& TaskFactory::getFactories() {
 }
 
 String TaskFactory::invalidFactoryTypeError(const String& type) {
-  String error(F("Could not find the factory type: "));
+  String error("Could not find the factory type: ");
   error += type;
   return error;
 }

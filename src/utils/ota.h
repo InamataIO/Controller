@@ -1,8 +1,8 @@
 #pragma once
 
+#include <ArduinoOTA.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
-#include <ArduinoOTA.h>
 
 namespace inamata {
 
