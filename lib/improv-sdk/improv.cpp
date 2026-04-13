@@ -56,7 +56,7 @@ ImprovCommand parse_improv_data(const uint8_t *data, size_t length, bool check_c
     size_t pass_start = ssid_end + 1;
     size_t pass_end = pass_start + pass_length;
     // +2 skips command byte [0] and data_length byte [1]
-    if (pass_end != 2 + data_length || pass_end > length) {
+    if (pass_end != 2u + data_length || pass_end > length) {
       improv_command.command = UNKNOWN;
       return improv_command;
     }

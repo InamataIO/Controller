@@ -30,7 +30,7 @@ extern const char* GSM_APN;
 // Connection Timeouts
 static const std::chrono::seconds wifi_connect_timeout(30);
 static const std::chrono::seconds web_socket_connect_timeout(30);
-static const std::chrono::minutes provision_timeout(5);
+static const std::chrono::minutes provision_timeout(10);
 
 #if defined(DEVICE_TYPE_VOC_SENSOR_MK1) ||    \
     defined(DEVICE_TYPE_TIAKI_CO2_MONITOR) || \

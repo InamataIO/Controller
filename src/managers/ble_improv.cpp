@@ -168,8 +168,6 @@ void BleImprov::setupService() {
   capabilities |= improv::CAPABILITY_IDENTIFY;
   ble_capabilities_char_->setValue(capabilities);
 
-  ble_improv_service_->start();
-
   NimBLEAdvertising* ble_advertising = NimBLEDevice::getAdvertising();
   ble_advertising->setName(Storage::device_type_name_);
   ble_advertising->enableScanResponse(true);
@@ -380,6 +378,11 @@ void BleImprov::sendDeviceInfoResponse() {
   device_info.emplace_back(board_name);
   device_info.emplace_back(Storage::device_type_name_);
   device_info.emplace_back(services_.getWifiNetwork()->controller_name_);
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+  const char* net_state =
+      services_.getGsmNetwork()->isEnabled() ? "net:gsm" : "net:wifi";
+  device_info.emplace_back(net_state);
+#endif
   for (const String& str : device_info) {
     TRACELN(str);
   }

@@ -45,15 +45,14 @@ bool SystemMonitor::TaskCallback() {
   // Get the total available memory and largest continguous memory block.
   // This allows us to calculate the fragmentation index =
   //     (total free - largest free block) / total free * 100
-  size_t stack_hwm = 0;
-  size_t free_bytes = 0;
-  size_t max_malloc_bytes = 0;
-  size_t least_free_bytes = 0;
+  const size_t stack_hwm = uxTaskGetStackHighWaterMark(NULL) * 4;
+  const size_t free_bytes = heap_caps_get_free_size(MALLOC_CAP_8BIT);
+  const size_t max_malloc_bytes =
+      heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+  const size_t least_free_bytes =
+      heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT);
+  const size_t heap_size = heap_caps_get_total_size(MALLOC_CAP_8BIT);
   uint8_t heap_fragmentation = 0;
-  stack_hwm = uxTaskGetStackHighWaterMark(NULL) * 4;
-  free_bytes = heap_caps_get_free_size(MALLOC_CAP_8BIT);
-  max_malloc_bytes = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
-  least_free_bytes = heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT);
 
   JsonDocument doc_out;
   if (stack_hwm) {
@@ -62,16 +61,18 @@ bool SystemMonitor::TaskCallback() {
   if (free_bytes) {
     doc_out["free_memory_bytes"] = free_bytes;
   }
-  if (!heap_fragmentation && free_bytes && max_malloc_bytes) {
+  if (free_bytes && max_malloc_bytes) {
     heap_fragmentation = (float(free_bytes) - float(max_malloc_bytes)) /
                          float(free_bytes) * 100.0f;
   }
   if (heap_fragmentation) {
     doc_out["heap_fragmentation_percent"] = heap_fragmentation;
   }
-  // Only on ESP32
   if (least_free_bytes) {
     doc_out["least_free_bytes"] = least_free_bytes;
+  }
+  if (heap_size) {
+    doc_out["heap_size"] = heap_size;
   }
 
   float cpuTotal = scheduler_.getCpuLoadTotal();
