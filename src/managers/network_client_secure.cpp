@@ -156,7 +156,7 @@ WebSocketsNetworkClientSecure::operator bool() {
 
 void WebSocketsNetworkClientSecure::setCACert(const char* rootCA) {
   if (_impl->gsm_client_secure_) {
-    return _impl->gsm_client_secure_->setCertificate(rootCA);
+    return _impl->gsm_client_secure_->setCACert(rootCA);
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->setCACert(rootCA);
   }
@@ -170,6 +170,23 @@ void WebSocketsNetworkClientSecure::setCACertBundle(const uint8_t* bundle_start,
   } else if (_impl->wifi_client_secure_) {
     return _impl->wifi_client_secure_->setCACertBundle(bundle_start,
                                                        bundle_size);
+  }
+  TRACELN(_impl->no_interface_error_);
+}
+
+void WebSocketsNetworkClientSecure::setCertificate(const char* client_ca) {
+  if (_impl->gsm_client_secure_) {
+    return _impl->gsm_client_secure_->setCertificate(client_ca);
+  } else if (_impl->wifi_client_secure_) {
+    return _impl->wifi_client_secure_->setCertificate(client_ca);
+  }
+  TRACELN(_impl->no_interface_error_);
+}
+void WebSocketsNetworkClientSecure::setPrivateKey(const char* private_key) {
+  if (_impl->gsm_client_secure_) {
+    return _impl->gsm_client_secure_->setPrivateKey(private_key);
+  } else if (_impl->wifi_client_secure_) {
+    return _impl->wifi_client_secure_->setPrivateKey(private_key);
   }
   TRACELN(_impl->no_interface_error_);
 }

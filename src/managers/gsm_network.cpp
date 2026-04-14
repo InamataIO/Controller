@@ -160,14 +160,14 @@ void GsmNetwork::handleConnection() {
       signal_quality_ = 0;
       current_mno_ = "";
     }
-    TRACEF("Network: %d GPRS: %d CSQ: %d, MNO: %s\r\n", network_connected_,
-           gprs_connected_, signal_quality_, current_mno_.c_str());
+    TRACEF("Network: %d GPRS: %d CSQ: %d, MNO: %s State: %d\r\n",
+           network_connected_, gprs_connected_, signal_quality_,
+           current_mno_.c_str(), connection_state_);
 
     if (network_connected_ && !gprs_connected_) {
       if (modem_.isGprsConnected()) {
         TRACELN("GRPS already connected");
         if (connection_state_ == ConnectionState::kTryingCandidate) {
-          connection_state_ = ConnectionState::kConnected;
           saveLastConnectedMno(connect_to_mno_);
         }
         gprs_connected_ = true;
@@ -175,6 +175,10 @@ void GsmNetwork::handleConnection() {
         TRACELN("GRPS connecting");
         gprs_connected_ = modem_.gprsConnect(GSM_APN);
       }
+    }
+    if (gprs_connected_ && connection_state_ != ConnectionState::kConnected) {
+      saveLastConnectedMno(connect_to_mno_);
+      connection_state_ = ConnectionState::kConnected;
     }
 
     // If idle or trying connect and timed out, iterate to next MNO

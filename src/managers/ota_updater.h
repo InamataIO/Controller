@@ -5,6 +5,13 @@
 #include <WiFiClientSecure.h>
 #include <esp_https_ota.h>
 
+#include "managers/ble_server.h"
+
+// Include ble_server.h first to avoid LOG_LEVEL redefinitions
+
+#ifdef GSM_NETWORK
+#include "managers/gsm_https_client.h"
+#endif
 #include "managers/service_getters.h"
 #include "tasks/base_task.h"
 #include "utils/error_store.h"
@@ -16,6 +23,8 @@ namespace inamata {
  */
 class OtaUpdater : public tasks::BaseTask {
  public:
+  enum class Network { kWifi, kGsm };
+
   OtaUpdater(Scheduler& scheduler);
   virtual ~OtaUpdater() = default;
 
@@ -23,6 +32,8 @@ class OtaUpdater : public tasks::BaseTask {
   static const String& type();
 
   void setServices(ServiceGetters services);
+
+  void useNetwork(Network network);
 
   /**
    * Handle the command to update the firmware
@@ -49,11 +60,16 @@ class OtaUpdater : public tasks::BaseTask {
   void OnTaskDisable();
 
  private:
-  void sendResult(const __FlashStringHelper* status, const String& error = "",
+  void sendResult(const char* status, const String& error = "",
                   const char* request_id = nullptr);
+
+  void clearClients();
 
   /// The server to which to reply to
   ServiceGetters services_;
+
+  /// Which network to use (WiFi / GSM)
+  Network network_ = Network::kWifi;
 
   /// The request ID used by the update command
   String request_id_;
@@ -71,29 +87,36 @@ class OtaUpdater : public tasks::BaseTask {
   int32_t image_size_ = 0;
   std::vector<uint8_t> buffer_;
 
-  WiFiClientSecure wifi_client_;
-  HTTPClient client_;
+  std::unique_ptr<WiFiClientSecure> wifi_client_;
+  std::unique_ptr<HTTPClient> wifi_http_client_;
+#ifdef GSM_NETWORK
+  std::unique_ptr<GsmHttpsClient> gsm_https_client_;
+#endif
 
   esp_http_client_config_t ota_http_config_;
   esp_https_ota_config_t ota_config_;
   esp_https_ota_handle_t ota_handle_;
 
-  static const __FlashStringHelper* update_command_key_;
-  static const __FlashStringHelper* url_key_;
-  static const __FlashStringHelper* image_size_key_;
-  static const __FlashStringHelper* md5_hash_key_;
-  static const __FlashStringHelper* restart_key_;
+  static constexpr std::chrono::milliseconds default_interval_{50};
 
-  static const __FlashStringHelper* status_key_;
-  static const __FlashStringHelper* status_start_;
-  static const __FlashStringHelper* status_updating_;
-  static const __FlashStringHelper* status_finish_;
-  static const __FlashStringHelper* status_fail_;
-  static const __FlashStringHelper* detail_key_;
-  static const __FlashStringHelper* failed_to_connect_error_;
-  static const __FlashStringHelper* connection_lost_error_;
-  static const __FlashStringHelper* update_in_progress_error_;
-  static const __FlashStringHelper* http_code_error_;
+  static const char* update_command_key_;
+  static const char* url_key_;
+  static const char* image_size_key_;
+  static const char* md5_hash_key_;
+  static const char* restart_key_;
+
+  static const char* status_key_;
+  static const char* status_start_;
+  static const char* status_updating_;
+  static const char* status_finish_;
+  static const char* status_fail_;
+  static const char* detail_key_;
+  static const char* failed_to_connect_error_;
+  static const char* connection_lost_error_;
+  static const char* update_in_progress_error_;
+  static const char* http_code_error_;
+  static const char* http_connect_error_;
+  static const char* size_mismatch_;
 };
 
 }  // namespace inamata

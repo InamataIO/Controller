@@ -201,12 +201,14 @@ void CheckConnectivity::enterConnectMode() {
       WebSocketsNetworkClient::Impl::disableGsm();
       gsm_network_->disable();
       WebSocketsNetworkClient::Impl::enableWifi();
+      Services::getOtaUpdater().useNetwork(OtaUpdater::Network::kWifi);
       setMode(Mode::ConnectWiFi);
       break;
     case UseNetwork::kGsm:
       WebSocketsNetworkClient::Impl::disableWifi();
       gsm_network_->enable();
       WebSocketsNetworkClient::Impl::enableGsm(&gsm_network_->modem_);
+      Services::getOtaUpdater().useNetwork(OtaUpdater::Network::kGsm);
       setMode(Mode::ConnectGsm);
       break;
     case UseNetwork::kNone:

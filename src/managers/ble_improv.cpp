@@ -293,7 +293,7 @@ void BleImprov::setServerAuth(const improv::ImprovCommand& command) {
     struct yuarel url;
     // Copy URL to non-const char array as yuarel_parse sets NULL in src str
     std::vector<char> url_data(command.ssid.size() + 1, '\0');
-    strcpy(url_data.data(), command.ssid.data());
+    strlcpy(url_data.data(), command.ssid.data(), url_data.size());
     if (yuarel_parse(&url, &url_data[0]) == -1) {
       TRACELN("Invalid URL");
       setError(improv::ERROR_INVALID_RPC);
