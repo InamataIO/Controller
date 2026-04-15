@@ -213,7 +213,6 @@ void BleImprov::processRpcData() {
       if (command.ssid.length() == 0) {
         TRACELN("Empty WiFi SSID, assuming GSM connection");
         setState(improv::STATE_PROVISIONED);
-        Services::getActionController().identify();
         break;
       }
       wifi_ap_ = {command.ssid.c_str(), command.password.c_str(), -1, false};
@@ -228,7 +227,6 @@ void BleImprov::processRpcData() {
              command.password.c_str());
       wifi_connect_start_ = std::chrono::steady_clock::now();
       setState(improv::STATE_PROVISIONING);
-      Services::getActionController().identify();
     } break;
     case improv::IDENTIFY: {
       std::vector<uint8_t> data =
@@ -255,6 +253,11 @@ void BleImprov::processRpcData() {
     } break;
     case improv::X_SET_USER_DATA: {
       setUserData(command);
+      break;
+    }
+    case improv::X_START_PROVISIONING: {
+      setState(improv::STATE_PROVISIONING);
+      Services::getActionController().identify();
       break;
     }
 #ifdef GSM_NETWORK

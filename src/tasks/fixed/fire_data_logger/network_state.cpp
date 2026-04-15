@@ -33,8 +33,15 @@ NetworkState::NetworkState(const ServiceGetters& services, Scheduler& scheduler,
     return;
   }
 
+  Services::getActionController().setIdentifyCallback(
+      std::bind(&NetworkState::identify, this));
+
   setIterations(TASK_FOREVER);
   enable();
+}
+
+NetworkState::~NetworkState() {
+  Services::getActionController().clearIdentifyCallback();
 }
 
 const String& NetworkState::getType() const { return type(); }
@@ -47,13 +54,18 @@ const String& NetworkState::type() {
 bool NetworkState::TaskCallback() {
   Task::delay(std::chrono::milliseconds(default_interval_).count());
 
-  if (ble_server_->isActive()) {
-    mode_ = Mode::kDisplayProvisioning;
-  } else {
-    if (mode_ != Mode::kDisplaySignalStrength) {
-      signal_strength_blinks_ = 127;
+  // As default display signal strength. If identify_step_ is non-zero, run
+  // identify blink sequence. Else if BleServer is active, device can be
+  // provisioned so display that color state.
+  if (!identify_step_) {
+    if (ble_server_->isActive()) {
+      mode_ = Mode::kDisplayProvisioning;
+    } else {
+      if (mode_ != Mode::kDisplaySignalStrength) {
+        signal_strength_blinks_ = 127;
+      }
+      mode_ = Mode::kDisplaySignalStrength;
     }
-    mode_ = Mode::kDisplaySignalStrength;
   }
 
   switch (mode_) {
@@ -62,6 +74,9 @@ bool NetworkState::TaskCallback() {
       break;
     case Mode::kDisplayProvisioning:
       handleDisplayProvisioning();
+      break;
+    case Mode::kIdentify:
+      handleIdentify();
       break;
   }
 
@@ -176,6 +191,32 @@ void NetworkState::handleDisplayProvisioning() {
   Task::delay(1000);
 }
 
+void NetworkState::handleIdentify() {
+  const uint8_t steps = identify_pattern_.size();
+
+  if (identify_pattern_.test(steps - identify_step_)) {
+    status_led_->turnOn(utils::Color::fromRgbw(255, 255, 255, 255));
+  } else {
+    status_led_->turnOff();
+  }
+
+  ++identify_step_;
+  if (identify_step_ >= steps) {
+    // Deactivates identify mode
+    identify_step_ = 0;
+  }
+
+  Task::delay(std::chrono::milliseconds(identify_step_duration_).count());
+}
+
+void NetworkState::identify() {
+  identify_step_ = 1;
+  mode_ = Mode::kIdentify;
+  Task::forceNextIteration();
+}
+
+const std::bitset<18> NetworkState::identify_pattern_{0b101010100010100000};
+const std::chrono::milliseconds NetworkState::identify_step_duration_{150};
 const std::chrono::seconds NetworkState::default_interval_{2};
 
 }  // namespace fixed
