@@ -46,6 +46,8 @@ class GsmNetwork {
   GsmNetwork(std::shared_ptr<Storage> storage);
   ~GsmNetwork() = default;
 
+  static const char* type_;
+
   /**
    * Blocking call to enable GSM modem
    */
@@ -105,7 +107,7 @@ class GsmNetwork {
    * \param mnos List of MCC/MNC mobile network operator codes
    * \return Details if an error occured
    */
-  ErrorResult setAllowedMobileOperators(std::vector<String>& mnos);
+  ErrorResult setAllowedMobileOperators(const std::vector<String>& mnos);
 
   std::unique_ptr<AtJob> cops_scan_;
   String cops_result_;
@@ -150,7 +152,7 @@ class GsmNetwork {
    *
    * \param mno MCC/MVC tuple of the operator
    */
-  void connectToMno(String& mno);
+  void connectToMno(const String& mno);
 
   /**
    * Disconnects the modem
@@ -164,7 +166,9 @@ class GsmNetwork {
    */
   String iterateNextAllowedMno();
 
-  void saveLastConnectedMno(String& mno);
+  ErrorResult validateAllowedMobileOperators(const std::vector<String>& mnos);
+
+  void saveLastConnectedMno(const String& mno);
 
   std::shared_ptr<Storage> storage_;
 
@@ -173,8 +177,8 @@ class GsmNetwork {
   ConnectionState connection_state_ = ConnectionState::kIdle;
   /// List of Mobile Network Operators it's allowed to connect to (MCC/MNC)
   std::vector<String> allowed_mnos_;
-  /// Index of the allowed_mnos_ that were attempted to connect to
-  size_t last_mno_idx_ = 0;
+  /// Index of the allowed_mnos_ that will be used on next connect attempt
+  size_t next_mno_idx_ = 0;
   /// Target MNO code to connect to
   String connect_to_mno_;
   /// When the last attempt to connect to a network was started

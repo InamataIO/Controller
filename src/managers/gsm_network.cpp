@@ -38,10 +38,16 @@ GsmNetwork::GsmNetwork(std::shared_ptr<Storage> storage)
   }
   JsonObject mobile_config = mobile_config_doc.as<JsonObject>();
   JsonArray allowed_mnos = mobile_config[allowed_mnos_key_].as<JsonArray>();
+  const char* last_connected_mno =
+      mobile_config[last_connected_mno_key_].as<const char*>();
+
+  // Restore allowed MNOs. Connect to last connected MNO if in allow list
   for (JsonVariantConst mno : allowed_mnos) {
     allowed_mnos_.push_back(mno);
+    if (mno == last_connected_mno) {
+      connect_to_mno_ = last_connected_mno;
+    }
   }
-  connect_to_mno_ = mobile_config[last_connected_mno_key_].as<const char*>();
 }
 
 void GsmNetwork::enable() {
@@ -167,31 +173,31 @@ void GsmNetwork::handleConnection() {
     if (network_connected_ && !gprs_connected_) {
       if (modem_.isGprsConnected()) {
         TRACELN("GRPS already connected");
-        if (connection_state_ == ConnectionState::kTryingCandidate) {
-          saveLastConnectedMno(connect_to_mno_);
-        }
         gprs_connected_ = true;
       } else {
         TRACELN("GRPS connecting");
         gprs_connected_ = modem_.gprsConnect(GSM_APN);
       }
     }
-    if (gprs_connected_ && connection_state_ != ConnectionState::kConnected) {
+    // After successfully connecting to a selected candidate MNO, save it.
+    if (gprs_connected_ &&
+        connection_state_ == ConnectionState::kTryingCandidate) {
       saveLastConnectedMno(connect_to_mno_);
       connection_state_ = ConnectionState::kConnected;
     }
 
-    // If idle or trying connect and timed out, iterate to next MNO
-    if (connection_state_ == ConnectionState::kIdle ||
-        (connection_state_ == ConnectionState::kTryingCandidate &&
-         utils::chrono_abs(now - connection_attempt_start_) >
-             max_connection_period_)) {
-      String mno = iterateNextAllowedMno();
-      if (!mno.length()) {
-        disconnectModem();
-      } else {
-        connectToMno(mno);
+    // If idle connect to last connected MNO (loaded from LittleFS), else
+    // if trying connect and timed out, iterate to next MNO
+    if (connection_state_ == ConnectionState::kIdle) {
+      if (!connect_to_mno_.length()) {
+        connect_to_mno_ = iterateNextAllowedMno();
       }
+      connectToMno(connect_to_mno_);
+    } else if (connection_state_ == ConnectionState::kTryingCandidate &&
+               utils::chrono_abs(now - connection_attempt_start_) >
+                   max_connection_period_) {
+      connect_to_mno_ = iterateNextAllowedMno();
+      connectToMno(connect_to_mno_);
     }
   }
 }
@@ -315,9 +321,16 @@ void GsmNetwork::clearCopsScan() {
   cops_result_ = "";
 }
 
-ErrorResult GsmNetwork::setAllowedMobileOperators(std::vector<String>& mnos) {
+ErrorResult GsmNetwork::setAllowedMobileOperators(
+    const std::vector<String>& mnos) {
+  ErrorResult result = validateAllowedMobileOperators(mnos);
+  if (result.isError()) {
+    return result;
+  }
+
+  // Save the MNOs to LittleFS and the GsmNetwork object
   JsonDocument mobile_config_doc;
-  ErrorResult result = storage_->loadMobileConfig(mobile_config_doc);
+  result = storage_->loadMobileConfig(mobile_config_doc);
   if (result.isError()) {
     return result;
   }
@@ -326,14 +339,28 @@ ErrorResult GsmNetwork::setAllowedMobileOperators(std::vector<String>& mnos) {
                                  ? mobile_config_doc.to<JsonObject>()
                                  : mobile_config_doc.as<JsonObject>();
 
+  // .to() creates new or clears existing array
   JsonArray allowed_mnos = mobile_config[allowed_mnos_key_].to<JsonArray>();
   allowed_mnos_.clear();
   for (const String& mno : mnos) {
     allowed_mnos.add(mno);
     allowed_mnos_.push_back(mno);
   }
+  next_mno_idx_ = 0;
 
-  return storage_->storeMobileConfig(mobile_config);
+  result = storage_->storeMobileConfig(mobile_config);
+  if (result.isError()) {
+    return result;
+  }
+
+  // Apply new allowlist by triggering a fresh candidate selection cycle.
+  connect_to_mno_ = "";
+  if (is_enabled_) {
+    connection_state_ = ConnectionState::kIdle;
+    connection_attempt_start_ = std::chrono::steady_clock::time_point::min();
+  }
+
+  return ErrorResult();
 }
 
 void GsmNetwork::enterModemScanMode(CopsScanType scan_type) {
@@ -377,27 +404,30 @@ void GsmNetwork::enterModemConnectMode() {
   // 3. Set disconnected mode if no valid options available
   if (!connect_to_mno_.length()) {
     connect_to_mno_ = iterateNextAllowedMno();
-    if (!connect_to_mno_.length()) {
-      return disconnectModem();
-    }
   }
   connectToMno(connect_to_mno_);
 }
 
-void GsmNetwork::connectToMno(String& mno) {
+void GsmNetwork::connectToMno(const String& mno) {
   if (!mno.length()) {
-    TRACELN("Empty MNO");
-    return;
+    return disconnectModem();
   }
   if (connection_state_ == ConnectionState::kDisconnected) {
     modem_.init();
     connection_state_ = ConnectionState::kIdle;
   }
-  modem_.sendAT("+COPS=1,2,\"" + mno + "\"");
-  modem_.waitResponse();
+  if (mno == "*") {
+    // Allow all MNOs. Allow modem to select best connection
+    modem_.sendAT("+COPS=0");
+    modem_.waitResponse();
+  } else {
+    // Only connect to specified modem
+    modem_.sendAT("+COPS=1,2,\"" + mno + "\"");
+    modem_.waitResponse();
+  }
   connection_state_ = ConnectionState::kTryingCandidate;
   connection_attempt_start_ = std::chrono::steady_clock::now();
-  TRACEF("Trying to connect to: %s\r\n", connect_to_mno_.c_str());
+  TRACEF("Trying to connect to: %s\r\n", mno.c_str());
 }
 
 void GsmNetwork::disconnectModem() {
@@ -412,14 +442,49 @@ String GsmNetwork::iterateNextAllowedMno() {
   if (!allowed_mnos_.size()) {
     return String();
   }
-  last_mno_idx_++;
-  if (last_mno_idx_ >= allowed_mnos_.size()) {
-    last_mno_idx_ = 0;
+
+  if (next_mno_idx_ >= allowed_mnos_.size()) {
+    next_mno_idx_ = 0;
   }
-  return allowed_mnos_[last_mno_idx_];
+
+  const String& mno = allowed_mnos_[next_mno_idx_];
+  next_mno_idx_++;
+  if (next_mno_idx_ >= allowed_mnos_.size()) {
+    next_mno_idx_ = 0;
+  }
+
+  return mno;
 }
 
-void GsmNetwork::saveLastConnectedMno(String& mno) {
+ErrorResult GsmNetwork::validateAllowedMobileOperators(
+    const std::vector<String>& mnos) {
+  const char* error = "Invalid allowed MNO format";
+  bool has_wildcard = false;
+  for (const String& mno : mnos) {
+    if (mno == "*") {
+      has_wildcard = true;
+      continue;
+    }
+
+    if (mno.length() != 5 && mno.length() != 6) {
+      return ErrorResult(type_, error);
+    }
+
+    for (size_t i = 0; i < mno.length(); ++i) {
+      if (!isDigit(mno[i])) {
+        return ErrorResult(type_, error);
+      }
+    }
+  }
+
+  // "*" must be exclusive.
+  if (has_wildcard && mnos.size() != 1) {
+    return ErrorResult(type_, error);
+  }
+  return ErrorResult();
+}
+
+void GsmNetwork::saveLastConnectedMno(const String& mno) {
   JsonDocument mobile_config_doc;
   ErrorResult result = storage_->loadMobileConfig(mobile_config_doc);
   if (result.isError()) {
@@ -435,6 +500,7 @@ void GsmNetwork::saveLastConnectedMno(String& mno) {
   }
 }
 
+const char* GsmNetwork::type_ = "GsmNetwork";
 const char* GsmNetwork::allowed_mnos_key_ = "allowed_mnos";
 const char* GsmNetwork::last_connected_mno_key_ = "last_connected_mno";
 

@@ -583,6 +583,7 @@ const char* WebSocket::result_type_ = "result";
 const char* WebSocket::telemetry_type_ = "tel";
 
 const char* WebSocket::action_key_ = "action";
+const char* WebSocket::actions_key_ = "actions";
 const char* WebSocket::behavior_key_ = "behav";
 const char* WebSocket::task_key_ = "task";
 const char* WebSocket::system_type_ = "sys";

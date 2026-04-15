@@ -187,6 +187,7 @@ class WebSocket {
 
   /// Controller action object in command messages
   static const char* action_key_;
+  static const char* actions_key_;
   static const char* behavior_key_;
   static const char* task_key_;
   static const char* system_type_;

@@ -17,6 +17,9 @@ class ActionController {
    * \param message Command with the controller action
    */
   void handleCallback(const JsonObjectConst& message);
+#ifdef GSM_NETWORK
+  void handleSetAllowedMnos(JsonObjectConst actions);
+#endif
 
   void identify();
   void setIdentifyCallback(std::function<void()> callback);
@@ -31,6 +34,7 @@ class ActionController {
   static const char* action_clear_stored_resources_;
   static const char* action_factory_reset_;
   static const char* action_identify_;
+  static const char* set_allowed_mnos_key_;
 };
 
 }  // namespace inamata

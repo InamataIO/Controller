@@ -32,10 +32,29 @@
     set: { bid: "", update: int, ... },
     clear: { uuid: "" }
   }
+  action: ""
+  actions: {
+    setAllowedMnos: {mnos: ["", ...]}
+  }
 }
 ```
 
 The server translates `run_until` parameters for task start commands to `duration_ms` parameters. This is due to lacking datetime arithmetic on the controllers and the need to be able to restart tasks on errors. Therefore, sending the server `duration_ms` will result in an error.
+
+#### Actions
+
+Miscellaneous actions to be performed by the controller. For the `action` key, these include the commands:
+
+- `rst` Restart the controller
+- `clrStrdRes` Clear stored resources which deletes locally stored peripherals and then restarts
+- `factoryReset` Performs a factory reset by deleting all files in LittleFS
+- `ident` Asks the controller to identify itself, usually by blinking its lights
+
+For actions that require parameters, the `actions` key is an object with the following parameters:
+
+- `setAllowedMnos` For mobile network enabled devices allows setting the mobile network operators that the device is allowed to connect to. A blank list allows connections to all operators.
+
+
 
 ### Telemetry
 

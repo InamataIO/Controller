@@ -653,35 +653,17 @@ void BleImprov::setAllowedMobileOperators(
   std::vector<String> operators;
   String current_operator;
   // Empty payload clears the allowlist.
-  // Otherwise parse comma-separated MCC/MNC codes from the SSID field.
+  // Otherwise parse comma-separated operator entries from the SSID field.
   if (command.ssid.length() != 0) {
-    // Set an error on invalid payload.
-    for (uint i = 0; i <= command.ssid.length(); i++) {
-      // Add synthetic comma at end to handle last item
-      const char c = (i == command.ssid.length()) ? ',' : command.ssid[i];
-
+    for (const char c : command.ssid) {
       if (c == ',') {
-        if (current_operator.length() < 5 || current_operator.length() > 6) {
-          setError(improv::ERROR_INVALID_RPC);
-          return;
-        }
         operators.emplace_back(current_operator);
         current_operator = "";
-        continue;
-      }
-
-      if (c < '0' || c > '9') {
-        setError(improv::ERROR_INVALID_RPC);
-        return;
-      }
-
-      current_operator += c;
-
-      if (current_operator.length() > 6) {
-        setError(improv::ERROR_INVALID_RPC);
-        return;
+      } else {
+        current_operator += c;
       }
     }
+    operators.emplace_back(current_operator);
   }
 
   // Set and replace parsed MCC/MNC codes to storage
@@ -689,7 +671,7 @@ void BleImprov::setAllowedMobileOperators(
       services_.getGsmNetwork()->setAllowedMobileOperators(operators);
   if (result.isError()) {
     TRACEF("Failed saving allowed MNOs: %s\r\n", result.toString().c_str());
-    setError(improv::ERROR_UNKNOWN);
+    setError(improv::ERROR_INVALID_RPC);
     return;
   }
 
@@ -697,9 +679,6 @@ void BleImprov::setAllowedMobileOperators(
       improv::X_SET_ALLOWED_MOBILE_OPERATORS, std::vector<String>());
   ble_rpc_response_char_->setValue(rpc_response);
   ble_rpc_response_char_->notify();
-
-  setState(improv::STATE_PROVISIONING);
-  Services::getActionController().identify();
 }
 #endif
 
