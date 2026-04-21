@@ -91,7 +91,9 @@ void OtaUpdater::handleCallback(const JsonObjectConst& message) {
   }
   const bool secure = (strcasecmp(url_parts.scheme, "https") == 0) &&
                       (network_ == Network::kWifi);
+#ifdef GSM_NETWORK
   const uint16_t port = secure ? 443 : 80;
+#endif
 
   // Create WiFi or GSM client
   if (network_ == Network::kWifi) {

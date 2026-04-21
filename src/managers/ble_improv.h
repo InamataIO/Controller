@@ -24,8 +24,11 @@ class BleImprov : public NimBLECharacteristicCallbacks {
 
   /**
    * Periodically called to handle setup, incoming data and state changes
+   *
+   * Params:
+   *    reset_timeout: Reset provision timeout on every BLE command received
    */
-  void handle();
+  void handle(bool& reset_timeout);
 
   /**
    * Shutdown the BLE improv service. Can delete object afterwards.
@@ -74,7 +77,7 @@ class BleImprov : public NimBLECharacteristicCallbacks {
   /**
    * Check if connecting to WiFi AP for provisioning has timed out
    */
-  void handleWiFiConnectTimeout();
+  void handleNetworkConnectTimeout();
 
   /**
    * Send response to BLE client to finish provisioning
@@ -174,9 +177,9 @@ class BleImprov : public NimBLECharacteristicCallbacks {
 
   /// Verify WIFI_SETTINGS command and save AP details on success
   WiFiAP wifi_ap_;
-  std::chrono::steady_clock::time_point wifi_connect_start_ =
+  std::chrono::steady_clock::time_point network_connect_start_ =
       std::chrono::steady_clock::time_point::min();
-  std::chrono::milliseconds wifi_connect_timeout_ = std::chrono::seconds(30);
+  std::chrono::milliseconds network_connect_timeout_ = kWifiConnectTimeout;
 
   improv::State state_ = improv::STATE_STOPPED;
   improv::Error error_ = improv::ERROR_NONE;

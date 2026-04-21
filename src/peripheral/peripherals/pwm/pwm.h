@@ -4,7 +4,6 @@
 
 #include <bitset>
 #include <memory>
-#include <safe/safe.hpp>
 
 #include "managers/service_getters.h"
 #include "peripheral/capabilities/set_value.h"

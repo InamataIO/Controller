@@ -2,11 +2,13 @@
 
 #include <yuarel.h>
 
+#include "utils/chrono.h"
+
 namespace inamata {
 
 BleImprov::BleImprov(ServiceGetters services) : services_(services) {}
 
-void BleImprov::handle() {
+void BleImprov::handle(bool& reset_timeout) {
   // If the BLE server is not running disable improv
   if (!services_.getBleServer()->isActive()) {
     state_ = improv::STATE_STOPPED;
@@ -20,20 +22,20 @@ void BleImprov::handle() {
   }
 
   // Handle active commands
-  handleWiFiConnectTimeout();
+  handleNetworkConnectTimeout();
   handleGetWifiNetworks();
 #ifdef GSM_NETWORK
   handleGetMobileOperators();
 #endif
 
-  // Handle incoming RPC data
+  // Handle incoming RPC data and reset provision timeout
   if (!rpc_data_.empty()) {
     processRpcData();
+    reset_timeout = true;
   }
 
   switch (state_) {
     case improv::STATE_STOPPED:
-      // TODO: Set indicator false
       setState(improv::STATE_AWAITING_AUTHORIZATION);
       setError(improv::ERROR_NONE);
       break;
@@ -50,12 +52,13 @@ void BleImprov::handle() {
         services_.getWifiNetwork()->wifi_aps_.push_back(wifi_ap_);
         services_.getStorage()->saveWiFiAP(wifi_ap_);
         wifi_ap_ = {};
-        wifi_connect_start_ = std::chrono::steady_clock::time_point::min();
+        network_connect_start_ = std::chrono::steady_clock::time_point::min();
         setState(improv::STATE_PROVISIONED);
         sendProvisionedResponse();
       }
 #ifdef GSM_NETWORK
       if (services_.getGsmNetwork()->gprs_connected_) {
+        network_connect_start_ = std::chrono::steady_clock::time_point::min();
         setState(improv::STATE_PROVISIONED);
         sendProvisionedResponse();
       }
@@ -78,13 +81,20 @@ void BleImprov::stop() {
 void BleImprov::setState(improv::State state) {
   TRACEF("Setting state: %d\r\n", state);
 
+  // Used by connection state LED
+  auto ble_server = services_.getBleServer();
+  if (state == improv::State::STATE_PROVISIONING) {
+    ble_server->is_provisioning_ = true;
+  } else {
+    ble_server->is_provisioning_ = false;
+  }
+
   // Update the status BLE characteristic data
   if (state_ != state) {
     std::array<uint8_t, 1> data{state};
     ble_status_char_->setValue(data);
     if (state != improv::STATE_STOPPED) {
       ble_status_char_->notify();
-      TRACELN("Notifying");
     }
   }
 
@@ -225,7 +235,9 @@ void BleImprov::processRpcData() {
       }
       TRACEF("Connecting to: %s - %s\r\n", command.ssid.c_str(),
              command.password.c_str());
-      wifi_connect_start_ = std::chrono::steady_clock::now();
+      network_connect_timeout_ = kWifiConnectTimeout;
+      network_connect_start_ = std::chrono::steady_clock::now();
+      Services::getActionController().identify();
       setState(improv::STATE_PROVISIONING);
     } break;
     case improv::IDENTIFY: {
@@ -256,8 +268,18 @@ void BleImprov::processRpcData() {
       break;
     }
     case improv::X_START_PROVISIONING: {
+#ifdef GSM_NETWORK
+      const auto gsm_network = services_.getGsmNetwork();
+      if (gsm_network->cops_scan_ && gsm_network->cops_scan_->active) {
+        setError(improv::Error::X_ERROR_ALREADY_SCANNING);
+        return;
+      }
+      gsm_network->enable();
+      network_connect_timeout_ = kGsmConnectTimeout;
+      network_connect_start_ = std::chrono::steady_clock::now();
       setState(improv::STATE_PROVISIONING);
       Services::getActionController().identify();
+#endif
       break;
     }
 #ifdef GSM_NETWORK
@@ -328,20 +350,21 @@ void BleImprov::setServerAuth(const improv::ImprovCommand& command) {
   ble_rpc_response_char_->notify();
 }
 
-void BleImprov::handleWiFiConnectTimeout() {
+void BleImprov::handleNetworkConnectTimeout() {
   // Return if connect timeout not active
-  if (wifi_connect_start_ == std::chrono::steady_clock::time_point::min()) {
+  if (network_connect_start_ == std::chrono::steady_clock::time_point::min()) {
     return;
   }
   // Return if timeout has not timed out
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-  if (now < wifi_connect_start_ + wifi_connect_timeout_) {
+  if (utils::chrono_abs(now - network_connect_start_) <
+      network_connect_timeout_) {
     return;
   }
   // Publish error, revert state and reset connect timeout
   setError(improv::ERROR_UNABLE_TO_CONNECT);
   setState(improv::STATE_AUTHORIZED);
-  wifi_connect_start_ = std::chrono::steady_clock::time_point::min();
+  network_connect_start_ = std::chrono::steady_clock::time_point::min();
 }
 
 void BleImprov::sendProvisionedResponse() {
@@ -566,7 +589,7 @@ void BleImprov::startGetMobileNetworks(const improv::ImprovCommand& command) {
       scan_type = GsmNetwork::CopsScanType::kLte;
     }
   }
-  TRACELN("Starting mobile scan");
+  TRACEF("Starting mobile scan: %d\r\n", scan_type);
   gsm_network->startCopsScan(scan_type);
   scan_mobile_operators_ = true;
 }
@@ -650,6 +673,12 @@ void BleImprov::handleGetMobileOperators() {
 
 void BleImprov::setAllowedMobileOperators(
     const improv::ImprovCommand& command) {
+  const auto gsm_network = services_.getGsmNetwork();
+  if (gsm_network->cops_scan_ && gsm_network->cops_scan_->active) {
+    setError(improv::Error::X_ERROR_ALREADY_SCANNING);
+    return;
+  }
+
   std::vector<String> operators;
   String current_operator;
   // Empty payload clears the allowlist.

@@ -20,27 +20,28 @@ size_t rootca_crt_bundle_len();
 namespace inamata {
 
 // Connectivity - WiFi
-extern const __FlashStringHelper* wifi_portal_ssid;
-extern const __FlashStringHelper* wifi_portal_password;
-static const std::chrono::milliseconds check_connectivity_period(100);
+extern const __FlashStringHelper* kWifiPortalSsid;
+extern const __FlashStringHelper* kWifiPortalPassword;
+static const std::chrono::milliseconds kCheckConnectivityPeriod(100);
 
 // Conectivity - GSM
-extern const char* GSM_APN;
+extern const char* kGsmApn;
 
 // Connection Timeouts
-static const std::chrono::seconds wifi_connect_timeout(30);
-static const std::chrono::seconds web_socket_connect_timeout(30);
-static const std::chrono::minutes provision_timeout(10);
+static const std::chrono::seconds kWifiConnectTimeout(30);
+static const std::chrono::seconds kGsmConnectTimeout(180);
+static const std::chrono::seconds kWebSocketConnectTimeout(30);
+static const std::chrono::minutes kProvisionTimeout(10);
 
 #if defined(DEVICE_TYPE_VOC_SENSOR_MK1) ||    \
     defined(DEVICE_TYPE_TIAKI_CO2_MONITOR) || \
     defined(DEVICE_TYPE_FIRE_DATA_LOGGER)
 #define BEHAVIOR_BASED
-const bool behavior_based = true;
+const bool kBehaviorBased = true;
 #endif
 
 #ifndef BEHAVIOR_BASED
-const bool behavior_based = false;
+const bool kBehaviorBased = false;
 #endif
 
 }  // namespace inamata

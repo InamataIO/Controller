@@ -187,8 +187,18 @@ void NetworkState::handleDisplaySignalStrength() {
 }
 
 void NetworkState::handleDisplayProvisioning() {
-  status_led_->turnOn(utils::Color::fromRgbw(0, 55, 0, 0));
-  Task::delay(1000);
+  const auto color = utils::Color::fromRgbw(0, 55, 0, 0);
+  if (ble_server_->is_provisioning_) {
+    if (provision_blink_state_) {
+      status_led_->turnOn(color);
+    } else {
+      status_led_->turnOff();
+    }
+    provision_blink_state_ = !provision_blink_state_;
+  } else {
+    status_led_->turnOn(color);
+  }
+  Task::delay(300);
 }
 
 void NetworkState::handleIdentify() {

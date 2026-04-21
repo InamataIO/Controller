@@ -289,7 +289,8 @@ ErrorResult Storage::loadJsonFile(JsonDocument& config, const char* path) {
   fs::File file = LittleFS.open(path, "r+");
   if (file) {
     DeserializationError error = deserializeJson(config, file);
-    TRACEKJSON(path, config);
+    String prefix = String("Read ") + path + ": ";
+    TRACEKJSON(prefix, config);
     file.close();
     if (error) {
       return ErrorResult(type_, String("Failed loading ") + path);
@@ -305,7 +306,8 @@ ErrorResult Storage::storeJsonFile(const JsonVariantConst& config,
     return ErrorResult(type_, String("Failed opening ") + path);
   }
   size_t bytes_written = serializeJson(config, file);
-  TRACEKJSON(path, config);
+  String prefix = String("Write ") + path + ": ";
+  TRACEKJSON(prefix, config);
   file.close();
   if (bytes_written == 0 && !config.isNull()) {
     return ErrorResult(type_, String("Failed to write ") + path);

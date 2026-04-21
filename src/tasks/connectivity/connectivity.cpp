@@ -84,9 +84,9 @@ bool CheckConnectivity::TaskCallback() {
   }
 #ifdef GSM_NETWORK
   else if (mode_ == Mode::ConnectGsm) {
-    if (!web_socket_->isWsTokenSet()) {
-      setMode(Mode::ProvisionDevice);
-    } else {
+    // Try connecting if WS token and allowed MNOs are set
+    if (canGsmConnect()) {
+      // Try connecting
       gsm_network_->handleConnection();
       if (gsm_network_->isGprsConnected()) {
         handleClockSync(now);
@@ -94,16 +94,36 @@ bool CheckConnectivity::TaskCallback() {
           handleWebSocket();
         }
       }
+      // Switch to provision mode if not connected
+      if (!web_socket_connected_since_boot_) {
+        if (utils::chrono_abs(now - mode_start_) > kGsmConnectTimeout) {
+          TRACELN("GSM connect timed out");
+          setMode(Mode::ProvisionDevice);
+        }
+      }
+    } else {
+      setMode(Mode::ProvisionDevice);
     }
   }
 #endif
   else {
-    if (now - mode_start_ > provision_timeout) {
+    if (now - mode_start_ > kProvisionTimeout) {
       TRACELN("Improv setup timed out");
-      setMode(Mode::ConnectWiFi);
+#ifdef GSM_NETWORK
+      if (use_network_ == UseNetwork::kGsm) {
+        setMode(Mode::ConnectGsm);
+      } else
+#endif
+      {
+        setMode(Mode::ConnectWiFi);
+      }
     } else {
       handleBleServer();
-      handleImprov();
+      bool reset_timeout = false;
+      handleImprov(reset_timeout);
+      if (reset_timeout) {
+        mode_start_ = now;
+      }
 
 #ifdef GSM_NETWORK
       if (improv_ && improv_->getState() == improv::STATE_PROVISIONING &&
@@ -123,9 +143,16 @@ bool CheckConnectivity::TaskCallback() {
   }
 
   // Delay at end to ensure delay even if processing takes longer
-  Task::delay(std::chrono::milliseconds(check_connectivity_period).count());
+  Task::delay(std::chrono::milliseconds(kCheckConnectivityPeriod).count());
   return true;
 }
+
+#ifdef GSM_NETWORK
+const bool CheckConnectivity::canGsmConnect() const {
+  return web_socket_->isWsTokenSet() &&
+         gsm_network_->hasAllowedMobileOperators();
+}
+#endif
 
 void CheckConnectivity::handleClockSync(
     const std::chrono::steady_clock::time_point now) {
@@ -269,14 +296,14 @@ void CheckConnectivity::setMode(Mode mode) {
 
 void CheckConnectivity::handleBleServer() { ble_server_->enable(); }
 
-void CheckConnectivity::handleImprov() {
+void CheckConnectivity::handleImprov(bool& reset_timeout) {
   if (!ble_server_->isActive()) {
     return;
   }
   if (!improv_) {
     improv_ = std::unique_ptr<BleImprov>(new BleImprov(services_));
   }
-  improv_->handle();
+  improv_->handle(reset_timeout);
 }
 
 }  // namespace connectivity

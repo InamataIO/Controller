@@ -28,6 +28,8 @@ class BleServer {
 
   std::vector<UserDataHandler> user_data_handlers_;
 
+  bool is_provisioning_ = false;
+
  private:
   bool setup();
 

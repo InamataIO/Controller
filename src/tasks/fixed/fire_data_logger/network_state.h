@@ -59,6 +59,8 @@ class NetworkState : public BaseTask {
   Mode mode_ = Mode::kDisplaySignalStrength;
   int8_t signal_strength_blinks_ = 127;
 
+  bool provision_blink_state_ = false;
+
   /// The identify blink steps. 0 = inactive, 1 = first step
   uint8_t identify_step_ = 0;
   static const std::chrono::milliseconds identify_step_duration_;

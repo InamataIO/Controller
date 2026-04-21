@@ -88,7 +88,7 @@ WebSocket::ConnectState WebSocket::connect() {
 
   // If timed out, say failed, else attempt to connect
   if (std::chrono::steady_clock::now() - last_connect_start_ >
-      web_socket_connect_timeout) {
+      kWebSocketConnectTimeout) {
     return ConnectState::kFailed;
   }
   websocket_client.loop();
@@ -196,7 +196,7 @@ void WebSocket::sendRegister() {
   }
 
   // Collect all added peripheral ids and write them to a JSON doc
-  if (behavior_based) {
+  if (kBehaviorBased) {
     set_behavior_register_data_(register_obj);
   } else {
     std::vector<utils::VersionedID> pvids = get_peripheral_ids_();

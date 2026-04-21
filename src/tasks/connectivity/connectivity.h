@@ -45,8 +45,14 @@ class CheckConnectivity : public BaseTask {
   static const String& type();
 
  private:
+  enum class WiFiScanMode { kNone, kScanning, kFinished };
+
   bool OnTaskEnable() final;
   bool TaskCallback() final;
+
+#ifdef GSM_NETWORK
+  const bool canGsmConnect() const;
+#endif
 
   /**
    * Change connectivity mode
@@ -82,10 +88,8 @@ class CheckConnectivity : public BaseTask {
    */
   void enterConnectMode();
 
-  enum class WiFiScanMode { kNone, kScanning, kFinished };
-
   void handleBleServer();
-  void handleImprov();
+  void handleImprov(bool& reset_timeout);
 
   std::unique_ptr<BleImprov> improv_;
 

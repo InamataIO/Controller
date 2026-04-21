@@ -108,6 +108,7 @@ class GsmNetwork {
    * \return Details if an error occured
    */
   ErrorResult setAllowedMobileOperators(const std::vector<String>& mnos);
+  const bool hasAllowedMobileOperators() const;
 
   std::unique_ptr<AtJob> cops_scan_;
   String cops_result_;

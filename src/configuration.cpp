@@ -12,9 +12,9 @@ size_t rootca_crt_bundle_len() {
 
 namespace inamata {
 
-const __FlashStringHelper* wifi_portal_ssid = FPSTR("InamataSetup");
-const __FlashStringHelper* wifi_portal_password = FPSTR("12345678");
+const __FlashStringHelper* kWifiPortalSsid = FPSTR("InamataSetup");
+const __FlashStringHelper* kWifiPortalPassword = FPSTR("12345678");
 
-const char* GSM_APN = "wsim";
+const char* kGsmApn = "wsim";
 
 }  // namespace inamata
