@@ -484,6 +484,11 @@ void BleImprov::handleGetWifiNetworks() {
               return a.rssi > b.rssi;
             });
 
+  // send only first 10
+  if (scanned_wifi_aps.size() > 10) {
+    scanned_wifi_aps.resize(10);
+  }
+
   // Send found WiFi APs as BLE RPC response
   for (const WiFiScanAP& ap : scanned_wifi_aps) {
     std::vector<String> wifi_info;
@@ -496,6 +501,7 @@ void BleImprov::handleGetWifiNetworks() {
     ble_rpc_response_char_->notify();
     data[data.size() - 1] = '\0';
     Serial.println((char*)data.data());
+    delay(40);
   }
 
   // Send RPC response without WiFi AP, reset state and delete scan details
