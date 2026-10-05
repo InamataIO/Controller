@@ -79,19 +79,16 @@ void GetValuesTask::sendTelemetry(
   web_socket_->sendTelemetry(result_object, &getTaskID());
 }
 
-const __FlashStringHelper* GetValuesTask::threshold_key_ = FPSTR("threshold");
-const __FlashStringHelper* GetValuesTask::threshold_key_error_ =
-    FPSTR("Missing property: threshold (float)");
-const __FlashStringHelper* GetValuesTask::trigger_type_key_ =
-    FPSTR("trigger_type");
-const __FlashStringHelper* GetValuesTask::trigger_type_key_error_ =
-    FPSTR("Missing property: trigger_type (string)");
-const __FlashStringHelper* GetValuesTask::interval_ms_key_ =
-    FPSTR("interval_ms");
-const __FlashStringHelper* GetValuesTask::interval_ms_key_error_ =
-    FPSTR("Missing property: interval_ms (unsigned int)");
-const __FlashStringHelper* GetValuesTask::duration_ms_key_ =
-    FPSTR("duration_ms");
+const char GetValuesTask::threshold_key_[] = "threshold";
+const char GetValuesTask::threshold_key_error_[] =
+    "Missing property: threshold (float)";
+const char GetValuesTask::trigger_type_key_[] = "trigger_type";
+const char GetValuesTask::trigger_type_key_error_[] =
+    "Missing property: trigger_type (string)";
+const char GetValuesTask::interval_ms_key_[] = "interval_ms";
+const char GetValuesTask::interval_ms_key_error_[] =
+    "Missing property: interval_ms (unsigned int)";
+const char GetValuesTask::duration_ms_key_[] = "duration_ms";
 
 }  // namespace get_values_task
 }  // namespace tasks

@@ -1,7 +1,9 @@
 #include "setup_node.h"
 
 #include "managers/action_controller.h"
+#include "managers/storage.h"
 #include "managers/time_manager.h"
+#include "managers/uart_manager.h"
 #include "managers/web_socket.h"
 #include "peripheral/fixed.h"
 #include "tasks/configman/configman_task.h"
@@ -28,8 +30,10 @@ bool loadNetwork(Services& services, JsonObjectConst secrets) {
   services.setWifiNetwork(
       std::make_shared<WiFiNetwork>(wifi_aps, controller_name));
 
-#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
-  services.setGsmNetwork(std::make_shared<GsmNetwork>(services.getStorage()));
+#if defined(DEVICE_TYPE_FIRE_DATA_LOGGER) || \
+    defined(DEVICE_TYPE_MULTI_AIR_SENSOR)
+  services.setGsmNetwork(std::make_shared<GsmNetwork>(
+      UartManager::getUartInterface(), services.getStorage()));
 #endif
   return true;
 }
@@ -49,7 +53,9 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
   peripheral::PeripheralController& peripheral_controller =
       services.getPeripheralController();
   tasks::TaskController& task_controller = services.getTaskController();
+#ifdef LAC_ENABLED
   lac::LacController& lac_controller = services.getLacController();
+#endif
   OtaUpdater& ota_updater = services.getOtaUpdater();
 
   // Create a websocket instance as the server interface
@@ -70,8 +76,10 @@ bool loadWebsocket(Services& services, JsonObjectConst secrets) {
           std::bind(&tasks::TaskController::getTaskIDs, &task_controller),
       .task_controller_callback = std::bind(
           &tasks::TaskController::handleCallback, &task_controller, _1),
+#ifdef LAC_ENABLED
       .lac_controller_callback =
           std::bind(&lac::LacController::handleCallback, &lac_controller, _1),
+#endif
       .ota_update_callback =
           std::bind(&OtaUpdater::handleCallback, &ota_updater, _1),
       .core_domain = core_domain.as<const char*>(),
@@ -143,22 +151,40 @@ bool loadLocalPeripherals(Services& services) {
 }
 
 bool loadFixedPeripherals(Services& services) {
-  JsonDocument peripherals_doc;
-  for (auto config : peripheral::fixed::configs) {
-    if (!config) {
-      continue;
-    }
-    DeserializationError error = deserializeJson(peripherals_doc, config);
-    if (error) {
-      TRACEF("Fixed peri JSON fail: %s\r\n", error.c_str());
+  if (peripheral::fixed::config_path != nullptr) {
+    JsonDocument fixed_config_doc;
+    ErrorResult error = Storage::loadFixedConfig(fixed_config_doc);
+    if (error.isError()) {
+      TRACEF("Load peri JSON fail: %s\r\n", error.toString().c_str());
       return false;
     }
-    for (auto peripheral : peripherals_doc.as<JsonArray>()) {
+    for (JsonObjectConst peripheral :
+         fixed_config_doc["peripherals"].as<JsonArray>()) {
       ErrorResult error = services.getPeripheralController().add(peripheral);
       if (error.isError()) {
         TRACEF("Init fixed peri fail: %s\r\n", error.toString().c_str());
         TRACEJSON(peripheral);
         return false;
+      }
+    }
+  } else {
+    JsonDocument peripherals_doc;
+    for (auto config : peripheral::fixed::configs) {
+      if (!config) {
+        continue;
+      }
+      DeserializationError error = deserializeJson(peripherals_doc, config);
+      if (error) {
+        TRACEF("Fixed peri JSON fail: %s\r\n", error.c_str());
+        return false;
+      }
+      for (auto peripheral : peripherals_doc.as<JsonArray>()) {
+        ErrorResult error = services.getPeripheralController().add(peripheral);
+        if (error.isError()) {
+          TRACEF("Init fixed peri fail: %s\r\n", error.toString().c_str());
+          TRACEJSON(peripheral);
+          return false;
+        }
       }
     }
   }
@@ -194,7 +220,8 @@ bool setupNode(Services& services) {
 
   // Create the BLE server
   services.setBleServer(std::make_shared<BleServer>());
-  if (peripheral::fixed::configs[0] != nullptr) {
+  if (peripheral::fixed::configs[0] != nullptr ||
+      peripheral::fixed::config_path != nullptr) {
     success = loadFixedPeripherals(services);
   } else {
     success = loadLocalPeripherals(services);
@@ -221,7 +248,8 @@ bool setupNode(Services& services) {
   }
 #endif
 
-  if (peripheral::fixed::configs[0] != nullptr) {
+  if (peripheral::fixed::configs[0] != nullptr ||
+      peripheral::fixed::config_path != nullptr) {
     JsonDocument behavior_doc;
     services.getStorage()->loadBehavior(behavior_doc);
     JsonObjectConst behavior_config = behavior_doc.as<JsonObjectConst>();

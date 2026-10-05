@@ -12,7 +12,9 @@ Services::Services() {
   peripheral_controller_.setServices(getters);
   task_controller_.setServices(getters);
   task_removal_task_.setServices(getters);
+#ifdef LAC_ENABLED
   lac_controller_.setServices(getters);
+#endif
   ota_updater_.setServices(getters);
 }
 
@@ -78,7 +80,9 @@ tasks::TaskController& Services::getTaskController() {
   return task_controller_;
 }
 
+#ifdef LAC_ENABLED
 lac::LacController& Services::getLacController() { return lac_controller_; }
+#endif
 
 OtaUpdater& Services::getOtaUpdater() { return ota_updater_; }
 
@@ -116,7 +120,9 @@ tasks::TaskController Services::task_controller_{scheduler_, task_factory_};
 
 tasks::TaskRemovalTask Services::task_removal_task_{scheduler_};
 
+#ifdef LAC_ENABLED
 lac::LacController Services::lac_controller_{scheduler_};
+#endif
 
 OtaUpdater Services::ota_updater_{scheduler_};
 

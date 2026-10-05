@@ -7,7 +7,7 @@ namespace peripheral {
 namespace peripherals {
 namespace util {
 
-bool I2CAdapter::wire_taken = false;
+bool I2CAdapter::wire0_taken = false;
 bool I2CAdapter::wire1_taken = false;
 
 I2CAdapter::I2CAdapter(const ServiceGetters& services,
@@ -30,11 +30,11 @@ I2CAdapter::I2CAdapter(const ServiceGetters& services,
     return;
   }
 
-  if (!wire_taken) {
-    taken_variable = &wire_taken;
+  if (!wire0_taken) {
+    taken_wire = &wire0_taken;
     wire_ = &Wire;
   } else if (!wire1_taken) {
-    taken_variable = &wire1_taken;
+    taken_wire = &wire1_taken;
     wire_ = &Wire1;
   } else {
     web_socket_->sendError(type(), "Both wires already taken");
@@ -42,13 +42,13 @@ I2CAdapter::I2CAdapter(const ServiceGetters& services,
     return;
   }
 
-  *taken_variable = true;
+  *taken_wire = true;
   wire_->begin(data_pin, clock_pin, 0);
 }
 
 I2CAdapter::~I2CAdapter() {
-  if (taken_variable) {
-    *taken_variable = false;
+  if (taken_wire) {
+    *taken_wire = false;
   }
 }
 
@@ -60,6 +60,14 @@ const String& I2CAdapter::type() {
 }
 
 TwoWire* I2CAdapter::getWire() { return wire_; }
+
+uint8_t I2CAdapter::getWireIndex() {
+  if (taken_wire == &wire0_taken) {
+    return 0;
+  } else {
+    return 1;
+  }
+}
 
 std::shared_ptr<Peripheral> I2CAdapter::factory(
     const ServiceGetters& services, const JsonObjectConst& parameter) {

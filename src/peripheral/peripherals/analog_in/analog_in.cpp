@@ -17,21 +17,6 @@ AnalogIn::AnalogIn(const JsonObjectConst& parameters) {
   }
   pin_ = pin;
 
-  // Check if the pin supports analog input (ADC)
-  if (valid_pins_.size()) {
-    // Skip valid pins check if first value is -1
-    if (valid_pins_[0] != -1) {
-      if (std::find(valid_pins_.begin(), valid_pins_.end(), pin_) ==
-          valid_pins_.end()) {
-        setInvalid(invalid_pin_error_);
-        return;
-      }
-    }
-  } else {
-    setInvalid(invalid_pin_error_);
-    return;
-  }
-
   String error = parseParameters(parameters);
   if (!error.isEmpty()) {
     setInvalid(error);
@@ -83,12 +68,6 @@ bool AnalogIn::registered_ =
 
 bool AnalogIn::capability_get_values_ =
     capabilities::GetValues::registerType(type());
-
-const std::array<uint8_t, 8> AnalogIn::valid_pins_ = {
-    32, 33, 34, 35, 36, 37, 38, 39,
-};
-const __FlashStringHelper* AnalogIn::invalid_pin_error_ =
-    FPSTR("Pin # not valid (only ADC1: 32 - 39)");
 
 }  // namespace analog_in
 }  // namespace peripherals

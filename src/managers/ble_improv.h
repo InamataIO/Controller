@@ -65,6 +65,11 @@ class BleImprov : public NimBLECharacteristicCallbacks {
   void setupService();
 
   /**
+   * Rebuild the Improv advertising payload for the current state.
+   */
+  void refreshAdvertisingData(improv::State state);
+
+  /**
    * Handle received RPC data (set WiFi AP, identify, ...)
    */
   void processRpcData();
@@ -107,6 +112,11 @@ class BleImprov : public NimBLECharacteristicCallbacks {
   void setUserData(const improv::ImprovCommand& command);
 
 #ifdef GSM_NETWORK
+  /**
+   * Allows setting network mode (wifi, mobile)
+   */
+  void setNetworkMode(const improv::ImprovCommand& command);
+
   /**
    * Handles returning the device's state incl. ICCID and IMEI
    */

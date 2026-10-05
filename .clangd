@@ -1,0 +1,14 @@
+CompileFlags:
+  BuiltinHeaders: QueryDriver
+  Remove: [-fno-tree-switch-conversion, -fno-shrink-wrap, -mdisable-hardware-atomics, -mtext-section-literals, -mlongcalls, -fstrict-volatile-bitfields]
+Diagnostics:
+  Suppress: [pp_expects_filename, unused-includes]
+---
+If:
+  PathMatch: .*\.ino
+CompileFlags:
+  Add:
+    - "-x"
+    - "c++"
+    - "-include"
+    - "Arduino.h"

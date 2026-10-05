@@ -1,0 +1,105 @@
+{
+    "peripherals": [
+        {
+            "type": "I2CAdapter",
+            "uuid": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "scl": 9,
+            "sda": 8
+        },
+        {
+            "type": "U8G2",
+            "uuid": "23191478-74c8-489b-887c-0478dd1c81f6",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "display": "SH1106"
+        },
+        {
+            "type": "LMP91000",
+            "uuid": "49295e76-a9a0-4696-a6c0-925a9e682f9a",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "data_point_type": "1ff2c799-8014-4ca2-bb3c-1fadb458887b",
+            "vzero_V": 1.54,
+            "input_pin": 11,
+            "config_enable_pin": 4,
+            "r_tia_ohm": 35000,
+            "conversion_factor": 1.282,
+            "gain": 5,
+            "r_load": 0,
+            "int_z": 1,
+            "bias": 0,
+            "aging_hours": 48,
+            "register": true,
+            "limits": [
+                "no2_limit_1",
+                "no2_limit_2"
+            ]
+        },
+        {
+            "type": "LMP91000",
+            "uuid": "8b220b88-241e-4a56-8ddf-27c7f2ea5fe6",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "data_point_type": "a587122d-a83d-461e-b01a-d9267d86edb7",
+            "vzero_V": 1.54,
+            "input_pin": 12,
+            "config_enable_pin": 5,
+            "r_tia_ohm": 35000,
+            "conversion_factor": 0.01333,
+            "gain": 5,
+            "r_load": 0,
+            "int_z": 1,
+            "bias": 0,
+            "aging_hours": 48,
+            "register": true,
+            "limits": [
+                "nh3_limit_1",
+                "nh3_limit_2"
+            ]
+        },
+        {
+            "type": "LMP91000",
+            "uuid": "484ea1b3-e72e-4e11-bbcc-af91834eb896",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "data_point_type": "72ba3a2a-508e-4dff-91cd-c5172718076b",
+            "vzero_V": 1.54,
+            "input_pin": 13,
+            "config_enable_pin": 6,
+            "r_tia_ohm": 35000,
+            "conversion_factor": 1.25,
+            "gain": 5,
+            "r_load": 0,
+            "int_z": 1,
+            "bias": 0,
+            "aging_hours": 48,
+            "register": true,
+            "limits": [
+                "so2_limit_1",
+                "so2_limit_2"
+            ]
+        }
+    ],
+    "tasks": [
+        {
+            "type": "UpdateDisplay",
+            "sensors": [
+                {
+                    "uuid": "49295e76-a9a0-4696-a6c0-925a9e682f9a",
+                    "name": "NO2",
+                    "unit": "ppm",
+                    "decimals": 2
+                },
+                {
+                    "uuid": "8b220b88-241e-4a56-8ddf-27c7f2ea5fe6",
+                    "name": "NH3",
+                    "unit": "ppm",
+                    "decimals": 2
+                },
+                {
+                    "uuid": "484ea1b3-e72e-4e11-bbcc-af91834eb896",
+                    "name": "SO2",
+                    "unit": "ppm",
+                    "decimals": 2
+                }
+            ],
+            "display": "23191478-74c8-489b-887c-0478dd1c81f6"
+        }
+    ]
+}

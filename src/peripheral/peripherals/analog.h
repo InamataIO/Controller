@@ -11,17 +11,17 @@ namespace peripherals {
 
 class Analog {
  public:
-  static const __FlashStringHelper* min_v_key_;
-  static const __FlashStringHelper* max_v_key_;
-  static const __FlashStringHelper* min_unit_key_;
-  static const __FlashStringHelper* max_unit_key_;
-  static const __FlashStringHelper* limit_unit_key_;
+  static const char min_v_key_[];
+  static const char max_v_key_[];
+  static const char min_unit_key_[];
+  static const char max_unit_key_[];
+  static const char limit_unit_key_[];
 
-  static const __FlashStringHelper* voltage_data_point_type_key_;
-  static const __FlashStringHelper* unit_data_point_type_key_;
-  static const __FlashStringHelper* percent_data_point_type_key_;
+  static const char voltage_data_point_type_key_[];
+  static const char unit_data_point_type_key_[];
+  static const char percent_data_point_type_key_[];
   /// Error if neither unit nor voltage data point types are set
-  static const __FlashStringHelper* no_data_point_type_key_error_;
+  static const char no_data_point_type_key_error_[];
 
  protected:
   String parseParameters(const JsonObjectConst& parameters);

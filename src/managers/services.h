@@ -59,7 +59,9 @@ class Services {
   static BehaviorController& getBehaviorController();
   static peripheral::PeripheralController& getPeripheralController();
   static tasks::TaskController& getTaskController();
+#ifdef LAC_ENABLED
   static lac::LacController& getLacController();
+#endif
   static OtaUpdater& getOtaUpdater();
 
   static Scheduler& getScheduler();
@@ -106,10 +108,10 @@ class Services {
   static tasks::TaskController task_controller_;
   /// Singleton to delete stopped tasks and inform the server
   static tasks::TaskRemovalTask task_removal_task_;
+#ifdef LAC_ENABLED
   /// Manages local action chains
   static lac::LacController lac_controller_;
-  // /// Manages UI (buttons and LEDs)
-  // static UiController ui_controller_;
+#endif
   /// Singleton to perform OTA updates
   static OtaUpdater ota_updater_;
 };

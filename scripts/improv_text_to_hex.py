@@ -27,6 +27,8 @@ COMMANDS = [
     CommandSpec("IDENTIFY", 0x02, 0),
     CommandSpec("GET_DEVICE_INFO", 0x03, 0),
     CommandSpec("GET_WIFI_NETWORKS", 0x04, 0),
+    CommandSpec("X_SET_NETWORK_MODE", 0xF7, 1),
+    CommandSpec("X_START_PROVISIONING", 0xF8, 0),
     CommandSpec("X_SET_ALLOWED_MOBILE_OPERATORS", 0xF9, 1),
     CommandSpec("X_GET_MOBILE_OPERATORS", 0xFA, 1, True),
     CommandSpec("X_GET_MOBILE_STATE", 0xFB, 0),

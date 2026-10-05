@@ -1,3 +1,5 @@
+#ifdef LAC_ENABLED
+
 #include "math_action.h"
 
 namespace inamata {
@@ -18,3 +20,5 @@ void MathAction::populateConfig(const JsonObjectConst& parameters,
 
 }  // namespace lac
 }  // namespace inamata
+
+#endif

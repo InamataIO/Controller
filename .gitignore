@@ -1,3 +1,4 @@
+.cache
 .pioenvs
 .piolibdeps
 .vscode
@@ -6,3 +7,4 @@
 /latex
 /doc/html
 /data/secrets.json
+compile_commands.json

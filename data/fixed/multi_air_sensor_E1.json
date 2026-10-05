@@ -1,0 +1,42 @@
+{
+    "peripherals": [
+        {
+            "type": "I2CAdapter",
+            "uuid": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "scl": 9,
+            "sda": 8
+        },
+        {
+            "type": "U8G2",
+            "uuid": "23191478-74c8-489b-887c-0478dd1c81f6",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "display": "SH1106"
+        },
+        {
+            "type": "ZE14_O3",
+            "uuid": "92f52b04-e0a7-4218-b296-d614f301214b",
+            "data_point_type": "25e76766-abab-4d46-8755-91e649039d96",
+            "tx": 5,
+            "rx": 4,
+            "register": true,
+            "limits": [
+                "o3_limit_1",
+                "o3_limit_2"
+            ]
+        }
+    ],
+    "tasks": [
+        {
+            "type": "UpdateDisplay",
+            "sensors": [
+                {
+                    "uuid": "92f52b04-e0a7-4218-b296-d614f301214b",
+                    "name": "O3",
+                    "unit": "ppb",
+                    "decimals": 0
+                }
+            ],
+            "display": "23191478-74c8-489b-887c-0478dd1c81f6"
+        }
+    ]
+}

@@ -7,11 +7,6 @@
 
 #include "managers/storage.h"
 
-// Set serial for debug console (to the Serial Monitor, default speed 115200)
-#define SerialMon Serial
-// Set serial for AT commands (to the module)
-#define SerialAT Serial1
-
 // Increase RX buffer to capture the entire response
 // Chips without internal buffering (A6/A7, ESP8266, M590)
 // need enough space in the buffer for the entire response
@@ -24,9 +19,6 @@
 #ifdef DUMP_AT_COMMANDS
 #include <StreamDebugger.h>
 #endif
-
-// Define the serial console for debug prints, if needed
-#define TINY_GSM_DEBUG SerialMon
 
 #include <TinyGsmClient.h>
 
@@ -43,7 +35,7 @@ class GsmNetwork {
 
   enum class CopsScanType { kDefault, kAuto, kGsm, kLte };
 
-  GsmNetwork(std::shared_ptr<Storage> storage);
+  GsmNetwork(HardwareSerial* serial, std::shared_ptr<Storage> storage);
   ~GsmNetwork() = default;
 
   static const char* type_;
@@ -84,6 +76,8 @@ class GsmNetwork {
    * True if registered with the network (SMS / calls)
    */
   bool isNetworkConnected();
+
+  const char* getNetworkSystemModeName() const;
 
   /**
    * Encode string into SMS GSM-7 encoding

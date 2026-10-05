@@ -5,15 +5,16 @@ namespace peripheral {
 namespace capabilities {
 
 bool Calibrate::registerType(const String& type) {
-  return getSupportedTypes().insert(type).second;
+  getSupportedTypes().push_back(type);
+  return true;
 }
 
 bool Calibrate::isSupported(const String& type) {
-  const std::set<String>& types = getSupportedTypes();
-  return std::binary_search(types.begin(), types.end(), type);
+  const std::vector<String>& types = getSupportedTypes();
+  return std::find(types.begin(), types.end(), type) != types.end();
 }
 
-const std::set<String>& Calibrate::getTypes() { return getSupportedTypes(); }
+const std::vector<String>& Calibrate::getTypes() { return getSupportedTypes(); }
 
 String Calibrate::invalidTypeError(const utils::UUID& uuid,
                                    std::shared_ptr<Peripheral> peripheral) {
@@ -24,8 +25,8 @@ String Calibrate::invalidTypeError(const utils::UUID& uuid,
   return error;
 }
 
-std::set<String>& Calibrate::getSupportedTypes() {
-  static std::set<String> supported_types;
+std::vector<String>& Calibrate::getSupportedTypes() {
+  static std::vector<String> supported_types;
   return supported_types;
 }
 

@@ -1,3 +1,5 @@
+#ifdef LAC_ENABLED
+
 #pragma once
 
 #include <Arduino.h>
@@ -65,3 +67,5 @@ struct Variable {
 
 }  // namespace lac
 }  // namespace inamata
+
+#endif

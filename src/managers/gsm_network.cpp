@@ -14,20 +14,22 @@
 
 namespace inamata {
 
-GsmNetwork::GsmNetwork(std::shared_ptr<Storage> storage)
+GsmNetwork::GsmNetwork(HardwareSerial* serial, std::shared_ptr<Storage> storage)
     :
 #ifdef DUMP_AT_COMMANDS
-      debugger_(SerialAT, SerialMon),
+      debugger_(*serial, Serial),
       modem_(debugger_),
 #else
-      modem_(SerialAT),
+      modem_(*serial),
 #endif
       client_(modem_),
       storage_(storage) {
-  pinMode(peripheral::fixed::gsm_enable_pin, OUTPUT);
+  if (peripheral::fixed::gsm_enable_pin) {
+    pinMode(peripheral::fixed::gsm_enable_pin, OUTPUT);
+  }
   pinMode(peripheral::fixed::gsm_reset_pin, OUTPUT);
-  SerialAT.begin(115200, SERIAL_8N1, peripheral::fixed::gsm_rx_pin,
-                 peripheral::fixed::gsm_tx_pin);
+  serial->begin(115200, SERIAL_8N1, peripheral::fixed::gsm_rx_pin,
+                peripheral::fixed::gsm_tx_pin);
 
   // Load config from file. Get allowed MNOs and set last connected as default
   JsonDocument mobile_config_doc;
@@ -53,8 +55,10 @@ GsmNetwork::GsmNetwork(std::shared_ptr<Storage> storage)
 }
 
 void GsmNetwork::enable() {
-  digitalWrite(peripheral::fixed::gsm_enable_pin, HIGH);
-  delay(200);
+  if (peripheral::fixed::gsm_enable_pin) {
+    digitalWrite(peripheral::fixed::gsm_enable_pin, HIGH);
+    delay(200);
+  }
   digitalWrite(peripheral::fixed::gsm_reset_pin, LOW);
   delay(200);
   digitalWrite(peripheral::fixed::gsm_reset_pin, HIGH);
@@ -67,7 +71,9 @@ void GsmNetwork::enable() {
 }
 
 void GsmNetwork::disable() {
-  digitalWrite(peripheral::fixed::gsm_enable_pin, LOW);
+  if (peripheral::fixed::gsm_enable_pin) {
+    digitalWrite(peripheral::fixed::gsm_enable_pin, LOW);
+  }
 
   disconnectModem();
   is_enabled_ = false;
@@ -166,7 +172,7 @@ void GsmNetwork::handleConnection() {
       if (gprs_connected_) {
         connection_state_ = ConnectionState::kConnected;
       } else {
-        gprs_connected_ = modem_.gprsConnect(kGsmApn);
+        gprs_connected_ = modem_.gprsConnect(kMobileApn);
       }
     } else {
       gprs_connected_ = false;
@@ -193,9 +199,41 @@ void GsmNetwork::handleConnection() {
   }
 }
 
+bool GsmNetwork::isGprsConnected() { return gprs_connected_; }
+
 bool GsmNetwork::isNetworkConnected() { return network_connected_; }
 
-bool GsmNetwork::isGprsConnected() { return gprs_connected_; }
+const char* GsmNetwork::getNetworkSystemModeName() const {
+  switch (network_system_mode_) {
+    case 1:
+      return "GSM";
+      break;
+    case 2:
+      return "GPRS";
+      break;
+    case 3:
+      return "EDGE";
+      break;
+    case 4:
+      return "WCDMA";
+      break;
+    case 5:
+      return "HSDPA-only";
+      break;
+    case 6:
+      return "HSUPA-only";
+      break;
+    case 7:
+      return "HSPA";
+      break;
+    case 8:
+      return "LTE";
+      break;
+    case 0:
+    default:
+      return "UNKNOWN";
+  }
+}
 
 String GsmNetwork::encodeSms(const char* text) {
   const size_t text_length = strlen(text);
@@ -326,9 +364,10 @@ ErrorResult GsmNetwork::setAllowedMobileOperators(
     return result;
   }
 
-  JsonObject mobile_config = mobile_config_doc.isNull()
-                                 ? mobile_config_doc.to<JsonObject>()
-                                 : mobile_config_doc.as<JsonObject>();
+  JsonObject mobile_config = mobile_config_doc.as<JsonObject>();
+  if (mobile_config.isNull()) {
+    mobile_config = mobile_config_doc.to<JsonObject>();
+  }
 
   // .to() creates new or clears existing array
   JsonArray allowed_mnos = mobile_config[allowed_mnos_key_].to<JsonArray>();

@@ -45,13 +45,13 @@ class GetValuesTask : public BaseTask {
    */
   void sendTelemetry(peripheral::capabilities::GetValues::Result& result);
 
-  static const __FlashStringHelper* threshold_key_;
-  static const __FlashStringHelper* threshold_key_error_;
-  static const __FlashStringHelper* trigger_type_key_;
-  static const __FlashStringHelper* trigger_type_key_error_;
-  static const __FlashStringHelper* interval_ms_key_;
-  static const __FlashStringHelper* interval_ms_key_error_;
-  static const __FlashStringHelper* duration_ms_key_;
+  static const char threshold_key_[];
+  static const char threshold_key_error_[];
+  static const char trigger_type_key_[];
+  static const char trigger_type_key_error_[];
+  static const char interval_ms_key_[];
+  static const char interval_ms_key_error_[];
+  static const char duration_ms_key_[];
 
  protected:
   std::shared_ptr<peripheral::capabilities::GetValues> peripheral_;

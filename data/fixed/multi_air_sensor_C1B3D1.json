@@ -1,0 +1,122 @@
+{
+    "peripherals": [
+        {
+            "type": "I2CAdapter",
+            "uuid": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "scl": 9,
+            "sda": 8
+        },
+        {
+            "type": "U8G2",
+            "uuid": "23191478-74c8-489b-887c-0478dd1c81f6",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "display": "SH1106"
+        },
+        {
+            "type": "LMP91000",
+            "uuid": "5f9ebdd2-d2d1-481a-8fc7-30b07a943670",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "data_point_type": "869e0c4d-c70b-4bb8-88de-885a93c8e327",
+            "vzero_V": 1.54,
+            "input_pin": 12,
+            "config_enable_pin": 5,
+            "r_tia_ohm": 35000,
+            "conversion_factor": 12.5,
+            "gain": 5,
+            "r_load": 0,
+            "int_z": 1,
+            "bias": 0,
+            "aging_hours": 48,
+            "register": true,
+            "limits": [
+                "co_limit_1",
+                "co_limit_2"
+            ]
+        },
+        {
+            "type": "SCD4X",
+            "uuid": "fd3662e9-6717-4036-8cb6-7d07ad7166b9",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "i2c_address": 98,
+            "co2_data_point_type": "7f5db806-c165-48d9-b55b-176149db95d6",
+            "temperature_data_point_type": "2c87f3d4-9150-4582-a14e-4630b0779f5d",
+            "humidity_data_point_type": "8843470c-79aa-4db9-944c-d02b3b6f8c35",
+            "register": true,
+            "co2_limits": [
+                "co2_limit_1",
+                "co2_limit_2"
+            ],
+            "temperature_limits": [
+                "temperature_limit_1",
+                "temperature_limit_2"
+            ],
+            "humidity_limits": [
+                "humidity_limit_1",
+                "humidity_limit_2"
+            ]
+        },
+        {
+            "type": "LMP91000",
+            "uuid": "0727a0f8-06fc-47e3-898a-2fc055161208",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "data_point_type": "22461e45-9b2f-4acb-ab6e-4fdf0ce73f45",
+            "vzero_V": 1.54,
+            "input_pin": 11,
+            "config_enable_pin": 4,
+            "r_tia_ohm": 14000,
+            "conversion_factor": 0.32,
+            "gain": 4,
+            "r_load": 2,
+            "int_z": 1,
+            "bias": 0,
+            "aging_hours": 48,
+            "o2_calibration": true,
+            "register": true,
+            "limits": [
+                "o2_limit_1",
+                "o2_limit_2"
+            ]
+        }
+    ],
+    "tasks": [
+        {
+            "type": "UpdateDisplay",
+            "sensors": [
+                {
+                    "uuid": "5f9ebdd2-d2d1-481a-8fc7-30b07a943670",
+                    "name": "CO",
+                    "unit": "ppm",
+                    "decimals": 2
+                },
+                {
+                    "uuid": "fd3662e9-6717-4036-8cb6-7d07ad7166b9",
+                    "dpt": "7f5db806-c165-48d9-b55b-176149db95d6",
+                    "name": "CO2",
+                    "unit": "ppm",
+                    "decimals": 0
+                },
+                {
+                    "uuid": "0727a0f8-06fc-47e3-898a-2fc055161208",
+                    "name": "O2",
+                    "unit": "%",
+                    "decimals": 2
+                },
+                {
+                    "uuid": "fd3662e9-6717-4036-8cb6-7d07ad7166b9",
+                    "dpt": "2c87f3d4-9150-4582-a14e-4630b0779f5d",
+                    "name": "Temp.",
+                    "unit": "°C",
+                    "decimals": 0
+                },
+                {
+                    "uuid": "fd3662e9-6717-4036-8cb6-7d07ad7166b9",
+                    "dpt": "8843470c-79aa-4db9-944c-d02b3b6f8c35",
+                    "name": "Humidity",
+                    "unit": "%RH",
+                    "decimals": 0
+                }
+            ],
+            "display": "23191478-74c8-489b-887c-0478dd1c81f6"
+        }
+    ]
+}

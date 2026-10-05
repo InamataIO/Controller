@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #include <memory>
-#include <set>
+#include <vector>
 
 #include "peripheral/peripheral.h"
 #include "utils/uuid.h"
@@ -28,13 +28,13 @@ class SetValue {
   // Type checking
   static bool registerType(const String& type);
   static bool isSupported(const String& type);
-  static const std::set<String>& getTypes();
+  static const std::vector<String>& getTypes();
 
   static String invalidTypeError(const utils::UUID& uuid,
                                  std::shared_ptr<Peripheral> peripheral);
 
  private:
-  static std::set<String>& getSupportedTypes();
+  static std::vector<String>& getSupportedTypes();
 };
 
 }  // namespace capabilities

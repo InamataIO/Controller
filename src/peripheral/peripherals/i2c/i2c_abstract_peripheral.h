@@ -22,6 +22,7 @@ class I2CAbstractPeripheral : public Peripheral {
 
  protected:
   TwoWire* getWire();
+  uint8_t getWireIndex();
   bool isDeviceConnected(uint16_t i2c_address);
   int parseI2CAddress(JsonVariantConst i2c_address);
 

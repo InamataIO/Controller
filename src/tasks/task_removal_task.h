@@ -1,7 +1,5 @@
 #pragma once
 
-#include <set>
-
 #include "managers/service_getters.h"
 #include "tasks/base_task.h"
 
@@ -43,7 +41,7 @@ class TaskRemovalTask : public Task {
   ServiceGetters services_;
 
   /// Queued tasks to be removed
-  std::set<Task*> tasks_;
+  std::vector<Task*> tasks_;
 };
 
 }  // namespace tasks

@@ -5,15 +5,16 @@ namespace peripheral {
 namespace capabilities {
 
 bool StartMeasurement::registerType(const String& type) {
-  return getSupportedTypes().insert(type).second;
+  getSupportedTypes().push_back(type);
+  return true;
 }
 
 bool StartMeasurement::isSupported(const String& type) {
-  const std::set<String>& types = getSupportedTypes();
-  return std::binary_search(types.begin(), types.end(), type);
+  const std::vector<String>& types = getSupportedTypes();
+  return std::find(types.begin(), types.end(), type) != types.end();
 }
 
-const std::set<String>& StartMeasurement::getTypes() {
+const std::vector<String>& StartMeasurement::getTypes() {
   return getSupportedTypes();
 }
 
@@ -26,8 +27,8 @@ String StartMeasurement::invalidTypeError(
   return error;
 }
 
-std::set<String>& StartMeasurement::getSupportedTypes() {
-  static std::set<String> supported_types;
+std::vector<String>& StartMeasurement::getSupportedTypes() {
+  static std::vector<String> supported_types;
   return supported_types;
 }
 

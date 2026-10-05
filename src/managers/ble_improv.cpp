@@ -2,9 +2,19 @@
 
 #include <yuarel.h>
 
+#include "tasks/connectivity/connectivity.h"
 #include "utils/chrono.h"
 
 namespace inamata {
+
+namespace {
+
+constexpr uint16_t kImprovServiceDataUuid = 0x4677;
+constexpr size_t kMaxImprovAdvertisedShortName = 16;
+
+void logImprovAdvertisingError() { TRACELN("Improv advertising setup failed"); }
+
+}  // namespace
 
 BleImprov::BleImprov(ServiceGetters services) : services_(services) {}
 
@@ -98,26 +108,7 @@ void BleImprov::setState(improv::State state) {
     }
   }
 
-  // Advertise the service's state change
-  std::string service_data{6, 0x00};
-  service_data[0] = static_cast<uint8_t>(state);
-
-  uint8_t capabilities = 0x00;
-  capabilities |= improv::CAPABILITY_IDENTIFY;
-
-  service_data[1] = capabilities;
-  service_data[2] = 0x00;  // Reserved
-  service_data[3] = 0x00;  // Reserved
-  service_data[4] = 0x00;  // Reserved
-  service_data[5] = 0x00;  // Reserved
-
-  NimBLEAdvertising* ble_advertising =
-      ble_improv_service_->getServer()->getAdvertising();
-  ble_advertising->stop();
-  ble_advertising->setName(Storage::device_type_name_);
-  ble_advertising->setServiceData(ble_improv_service_->getUUID(), service_data);
-  ble_advertising->enableScanResponse(true);
-  ble_advertising->start();
+  refreshAdvertisingData(state);
 
   // Save new state
   state_ = state;
@@ -178,11 +169,67 @@ void BleImprov::setupService() {
   capabilities |= improv::CAPABILITY_IDENTIFY;
   ble_capabilities_char_->setValue(capabilities);
 
+  refreshAdvertisingData(state_);
+}
+
+void BleImprov::refreshAdvertisingData(improv::State state) {
+  std::string service_data{6, 0x00};
+  const std::string full_name = Storage::device_type_name_;
+  const std::string short_name =
+      full_name.size() > kMaxImprovAdvertisedShortName
+          ? full_name.substr(0, kMaxImprovAdvertisedShortName)
+          : full_name;
+  service_data[0] = static_cast<uint8_t>(state);
+
+  uint8_t capabilities = 0x00;
+  capabilities |= improv::CAPABILITY_IDENTIFY;
+
+  service_data[1] = capabilities;
+  service_data[2] = 0x00;  // Reserved
+  service_data[3] = 0x00;  // Reserved
+  service_data[4] = 0x00;  // Reserved
+  service_data[5] = 0x00;  // Reserved
+
+  NimBLEAdvertisementData advertisement_data;
+  NimBLEAdvertisementData scan_response_data;
+
+  if (!advertisement_data.setFlags(BLE_HS_ADV_F_DISC_GEN)) {
+    logImprovAdvertisingError();
+    return;
+  }
+  if (!advertisement_data.setServiceData(NimBLEUUID(kImprovServiceDataUuid),
+                                         service_data)) {
+    logImprovAdvertisingError();
+    return;
+  }
+  if (!advertisement_data.setShortName(short_name)) {
+    logImprovAdvertisingError();
+    return;
+  }
+  if (!scan_response_data.setName(full_name)) {
+    logImprovAdvertisingError();
+    return;
+  }
   NimBLEAdvertising* ble_advertising = NimBLEDevice::getAdvertising();
-  ble_advertising->setName(Storage::device_type_name_);
+  if (!ble_advertising->stop()) {
+    logImprovAdvertisingError();
+    return;
+  }
+
+  ble_advertising->clearData();
   ble_advertising->enableScanResponse(true);
-  ble_advertising->addServiceUUID(ble_improv_service_->getUUID());
-  ble_advertising->start();
+
+  if (!ble_advertising->setAdvertisementData(advertisement_data)) {
+    logImprovAdvertisingError();
+    return;
+  }
+  if (!ble_advertising->setScanResponseData(scan_response_data)) {
+    logImprovAdvertisingError();
+    return;
+  }
+  if (!ble_advertising->start()) {
+    logImprovAdvertisingError();
+  }
 }
 
 void BleImprov::processRpcData() {
@@ -275,7 +322,7 @@ void BleImprov::processRpcData() {
         return;
       }
       gsm_network->enable();
-      network_connect_timeout_ = kGsmConnectTimeout;
+      network_connect_timeout_ = kMobileConnectTimeout;
       network_connect_start_ = std::chrono::steady_clock::now();
       setState(improv::STATE_PROVISIONING);
       Services::getActionController().identify();
@@ -283,6 +330,10 @@ void BleImprov::processRpcData() {
       break;
     }
 #ifdef GSM_NETWORK
+    case improv::X_SET_NETWORK_MODE: {
+      setNetworkMode(command);
+      break;
+    }
     case improv::X_GET_MOBILE_STATE: {
       sendMobileStateResponse();
       break;
@@ -404,10 +455,12 @@ void BleImprov::sendDeviceInfoResponse() {
   device_info.emplace_back(board_name);
   device_info.emplace_back(Storage::device_type_name_);
   device_info.emplace_back(services_.getWifiNetwork()->controller_name_);
-#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+#ifdef GSM_NETWORK
   const char* net_state =
       services_.getGsmNetwork()->isEnabled() ? "net:gsm" : "net:wifi";
   device_info.emplace_back(net_state);
+#else
+  device_info.emplace_back("net:wifi");
 #endif
   for (const String& str : device_info) {
     TRACELN(str);
@@ -712,6 +765,30 @@ void BleImprov::setAllowedMobileOperators(
 
   std::vector<uint8_t> rpc_response = improv::build_rpc_response(
       improv::X_SET_ALLOWED_MOBILE_OPERATORS, std::vector<String>());
+  ble_rpc_response_char_->setValue(rpc_response);
+  ble_rpc_response_char_->notify();
+}
+
+void BleImprov::setNetworkMode(const improv::ImprovCommand& command) {
+  // Ignore empty commands
+  if (command.ssid.length() == 0) {
+    setError(improv::ERROR_INVALID_RPC);
+    return;
+  }
+
+  if (command.ssid == "wifi") {
+    tasks::connectivity::CheckConnectivity::setUseNetworkRequest(
+        tasks::connectivity::CheckConnectivity::UseNetwork::kWifi);
+  } else if (command.ssid == "mobile") {
+    tasks::connectivity::CheckConnectivity::setUseNetworkRequest(
+        tasks::connectivity::CheckConnectivity::UseNetwork::kMobile);
+  } else {
+    setError(improv::ERROR_INVALID_RPC);
+    return;
+  }
+
+  std::vector<uint8_t> rpc_response = improv::build_rpc_response(
+      improv::X_SET_NETWORK_MODE, std::vector<String>());
   ble_rpc_response_char_->setValue(rpc_response);
   ble_rpc_response_char_->notify();
 }

@@ -1,3 +1,5 @@
+#ifdef LAC_ENABLED
+
 #include "local_action_chain.h"
 
 #include <tinyexpr.h>
@@ -498,3 +500,5 @@ const __FlashStringHelper* LocalActionChain::id_key_error_ =
 
 }  // namespace lac
 }  // namespace inamata
+
+#endif

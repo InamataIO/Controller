@@ -1,3 +1,5 @@
+#ifdef CONFIGURATION_MANAGER
+
 #pragma once
 
 #include <TaskSchedulerDeclarations.h>
@@ -34,3 +36,5 @@ class ConfigurationManagementTask : public BaseTask {
 }  // namespace config_man
 }  // namespace tasks
 }  // namespace inamata
+
+#endif

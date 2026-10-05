@@ -1,7 +1,7 @@
 #include "connectivity.h"
 
 #include "configuration.h"
-#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+#ifdef GSM_NETWORK
 #include "managers/network_client_impl.h"
 #include "peripheral/fixed.h"
 #include "utils/error_store.h"
@@ -53,6 +53,35 @@ const String& CheckConnectivity::type() {
   return name;
 }
 
+CheckConnectivity::UseNetwork CheckConnectivity::use_network_request_ =
+    UseNetwork::kNone;
+
+CheckConnectivity::Mode CheckConnectivity::getMode() { return mode_; }
+
+void CheckConnectivity::setUseNetworkRequest(UseNetwork use_network) {
+  use_network_request_ = use_network;
+
+  // Load config, set use network and save
+  JsonDocument doc;
+  Storage::loadCustomConfig(doc);
+  JsonObject custom_config = doc.as<JsonObject>();
+  if (custom_config.isNull()) {
+    custom_config = doc.to<JsonObject>();
+  }
+
+  JsonObject network_config = custom_config["network"].as<JsonObject>();
+  if (network_config.isNull()) {
+    network_config = custom_config["network"].to<JsonObject>();
+  }
+  if (use_network == UseNetwork::kWifi) {
+    network_config["use"] = "wifi";
+  } else if (use_network == UseNetwork::kMobile) {
+    network_config["use"] = "mobile";
+  }
+
+  Storage::storeCustomConfig(custom_config);
+}
+
 bool CheckConnectivity::OnTaskEnable() {
   // If the WebSocket token has not been set, jump directly to provisioning
   handleGsmWifiSwitch(std::chrono::steady_clock::now(), true);
@@ -96,7 +125,7 @@ bool CheckConnectivity::TaskCallback() {
       }
       // Switch to provision mode if not connected
       if (!web_socket_connected_since_boot_) {
-        if (utils::chrono_abs(now - mode_start_) > kGsmConnectTimeout) {
+        if (utils::chrono_abs(now - mode_start_) > kMobileConnectTimeout) {
           TRACELN("GSM connect timed out");
           setMode(Mode::ProvisionDevice);
         }
@@ -110,7 +139,7 @@ bool CheckConnectivity::TaskCallback() {
     if (now - mode_start_ > kProvisionTimeout) {
       TRACELN("Improv setup timed out");
 #ifdef GSM_NETWORK
-      if (use_network_ == UseNetwork::kGsm) {
+      if (use_network_ == UseNetwork::kMobile) {
         setMode(Mode::ConnectGsm);
       } else
 #endif
@@ -127,7 +156,7 @@ bool CheckConnectivity::TaskCallback() {
 
 #ifdef GSM_NETWORK
       if (improv_ && improv_->getState() == improv::STATE_PROVISIONING &&
-          use_network_ == UseNetwork::kGsm) {
+          use_network_ == UseNetwork::kMobile) {
         gsm_network_->handleConnection();
       }
 #endif
@@ -194,12 +223,30 @@ bool CheckConnectivity::initGsmWifiSwitch() {
     return false;
   }
 #endif
+#ifdef DEVICE_TYPE_MULTI_AIR_SENSOR
+  JsonDocument doc;
+  Storage::loadCustomConfig(doc);
+  JsonObject custom_config = doc.as<JsonObject>();
+  if (custom_config.isNull()) {
+    custom_config = doc.to<JsonObject>();
+  }
+  JsonObject network_config = custom_config["network"];
+  const char* use_network = network_config["use"];
+  if (use_network != nullptr) {
+    if (strcmp(use_network, "wifi") == 0) {
+      use_network_request_ = UseNetwork::kWifi;
+    } else if (strcmp(use_network, "mobile") == 0) {
+      use_network_request_ = UseNetwork::kMobile;
+    } else {
+      TRACELN("Use network not set");
+    }
+  }
+#endif
   return true;
 }
 
 void CheckConnectivity::handleGsmWifiSwitch(
     const std::chrono::steady_clock::time_point now, bool force) {
-#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
   if (force) {
     use_network_ = UseNetwork::kNone;
     last_gsm_wifi_switch_check_ = std::chrono::steady_clock::time_point::min();
@@ -207,22 +254,25 @@ void CheckConnectivity::handleGsmWifiSwitch(
   if (utils::chrono_abs(now - last_gsm_wifi_switch_check_) >
       gsm_wifi_switch_check_period_) {
     last_gsm_wifi_switch_check_ = now;
+#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
     const bool use_gsm = gsm_wifi_toggle_->readState();
+#else
+    const bool use_gsm = use_network_request_ == UseNetwork::kMobile;
+#endif
     if (!use_gsm && use_network_ != UseNetwork::kWifi) {
       TRACELN("Switch to WiFi");
       use_network_ = UseNetwork::kWifi;
       enterConnectMode();
-    } else if (use_gsm && use_network_ != UseNetwork::kGsm) {
+    } else if (use_gsm && use_network_ != UseNetwork::kMobile) {
       TRACELN("Switch to GSM");
-      use_network_ = UseNetwork::kGsm;
+      use_network_ = UseNetwork::kMobile;
       enterConnectMode();
     }
   }
-#endif
 }
 
 void CheckConnectivity::enterConnectMode() {
-#ifdef DEVICE_TYPE_FIRE_DATA_LOGGER
+#ifdef GSM_NETWORK
   switch (use_network_) {
     case UseNetwork::kWifi:
       WebSocketsNetworkClient::Impl::disableGsm();
@@ -231,7 +281,7 @@ void CheckConnectivity::enterConnectMode() {
       Services::getOtaUpdater().useNetwork(OtaUpdater::Network::kWifi);
       setMode(Mode::ConnectWiFi);
       break;
-    case UseNetwork::kGsm:
+    case UseNetwork::kMobile:
       WebSocketsNetworkClient::Impl::disableWifi();
       gsm_network_->enable();
       WebSocketsNetworkClient::Impl::enableGsm(&gsm_network_->modem_);
@@ -305,6 +355,9 @@ void CheckConnectivity::handleImprov(bool& reset_timeout) {
   }
   improv_->handle(reset_timeout);
 }
+
+CheckConnectivity::Mode CheckConnectivity::mode_ =
+    CheckConnectivity::Mode::ConnectWiFi;
 
 }  // namespace connectivity
 }  // namespace tasks

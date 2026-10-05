@@ -281,7 +281,9 @@ class WebSocket {
   Callback peripheral_controller_callback_;
   std::function<std::vector<utils::UUID>()> get_task_ids_;
   Callback task_controller_callback_;
+#ifdef LAC_ENABLED
   Callback lac_controller_callback_;
+#endif
   Callback ota_update_callback_;
 
   std::function<void()> sent_message_callback_;

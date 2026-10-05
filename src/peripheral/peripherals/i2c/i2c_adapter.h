@@ -22,6 +22,7 @@ class I2CAdapter : public Peripheral {
   static const String& type();
 
   TwoWire* getWire();
+  uint8_t getWireIndex();
 
  private:
   static std::shared_ptr<Peripheral> factory(const ServiceGetters& services,
@@ -29,12 +30,12 @@ class I2CAdapter : public Peripheral {
 
   static bool registered_;
 
-  static bool wire_taken;
+  static bool wire0_taken;
   static bool wire1_taken;
 
   std::shared_ptr<WebSocket> web_socket_;
 
-  bool* taken_variable;
+  bool* taken_wire;
   TwoWire* wire_;
 
   static const __FlashStringHelper* scl_key_;

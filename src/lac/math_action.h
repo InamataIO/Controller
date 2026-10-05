@@ -1,3 +1,5 @@
+#ifdef LAC_ENABLED
+
 #pragma once
 
 #include <ArduinoJson.h>
@@ -21,3 +23,5 @@ class MathAction {
 
 }  // namespace lac
 }  // namespace inamata
+
+#endif

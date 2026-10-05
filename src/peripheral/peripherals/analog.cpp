@@ -65,20 +65,16 @@ bool Analog::parseConvertToUnit(const JsonObjectConst& parameters) {
   return true;
 }
 
-const __FlashStringHelper* Analog::min_v_key_ = FPSTR("min_v");
-const __FlashStringHelper* Analog::max_v_key_ = FPSTR("max_v");
-const __FlashStringHelper* Analog::min_unit_key_ = FPSTR("min_unit");
-const __FlashStringHelper* Analog::max_unit_key_ = FPSTR("max_unit");
-const __FlashStringHelper* Analog::limit_unit_key_ = FPSTR("limit_unit");
+const char Analog::min_v_key_[] = "min_v";
+const char Analog::max_v_key_[] = "max_v";
+const char Analog::min_unit_key_[] = "min_unit";
+const char Analog::max_unit_key_[] = "max_unit";
+const char Analog::limit_unit_key_[] = "limit_unit";
 
-const __FlashStringHelper* Analog::voltage_data_point_type_key_ =
-    FPSTR("voltage_data_point_type");
-const __FlashStringHelper* Analog::unit_data_point_type_key_ =
-    FPSTR("unit_data_point_type");
-const __FlashStringHelper* Analog::percent_data_point_type_key_ =
-    FPSTR("percent_data_point_type");
-const __FlashStringHelper* Analog::no_data_point_type_key_error_ =
-    FPSTR("No data point type set");
+const char Analog::voltage_data_point_type_key_[] = "voltage_data_point_type";
+const char Analog::unit_data_point_type_key_[] = "unit_data_point_type";
+const char Analog::percent_data_point_type_key_[] = "percent_data_point_type";
+const char Analog::no_data_point_type_key_error_[] = "No data point type set";
 
 }  // namespace peripherals
 }  // namespace peripheral

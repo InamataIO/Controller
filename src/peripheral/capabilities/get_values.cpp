@@ -5,15 +5,16 @@ namespace peripheral {
 namespace capabilities {
 
 bool GetValues::registerType(const String& type) {
-  return getSupportedTypes().insert(type).second;
+  getSupportedTypes().push_back(type);
+  return true;
 }
 
 bool GetValues::isSupported(const String& type) {
-  const std::set<String>& types = getSupportedTypes();
+  const std::vector<String>& types = getSupportedTypes();
   return std::binary_search(types.begin(), types.end(), type);
 }
 
-const std::set<String>& GetValues::getTypes() { return getSupportedTypes(); }
+const std::vector<String>& GetValues::getTypes() { return getSupportedTypes(); }
 
 String GetValues::invalidTypeError(const utils::UUID& uuid,
                                    std::shared_ptr<Peripheral> peripheral) {
@@ -26,8 +27,8 @@ String GetValues::invalidTypeError(const utils::UUID& uuid,
 
 const char* GetValues::get_values_error_ = "GetValues error";
 
-std::set<String>& GetValues::getSupportedTypes() {
-  static std::set<String> supported_types;
+std::vector<String>& GetValues::getSupportedTypes() {
+  static std::vector<String> supported_types;
   return supported_types;
 }
 

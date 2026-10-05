@@ -92,37 +92,7 @@ bool SystemMonitor::TaskCallback() {
     doc_out[network_mode_key] = "mobile";
     doc_out["mobile_operator"] = gsm_network->current_mno_.c_str();
     doc_out["mobile_rssi"] = gsm_network->signal_quality_;
-    const char* mobile_nsm;
-    switch (gsm_network->network_system_mode_) {
-      case 1:
-        mobile_nsm = "GSM";
-        break;
-      case 2:
-        mobile_nsm = "GPRS";
-        break;
-      case 3:
-        mobile_nsm = "EDGE";
-        break;
-      case 4:
-        mobile_nsm = "WCDMA";
-        break;
-      case 5:
-        mobile_nsm = "HSDPA-only";
-        break;
-      case 6:
-        mobile_nsm = "HSUPA-only";
-        break;
-      case 7:
-        mobile_nsm = "HSPA";
-        break;
-      case 8:
-        mobile_nsm = "LTE";
-        break;
-      case 0:
-      default:
-        mobile_nsm = "UNKNOWN";
-    }
-    doc_out["mobile_nsm"] = mobile_nsm;
+    doc_out["mobile_nsm"] = gsm_network->getNetworkSystemModeName();
   }
 #endif
 

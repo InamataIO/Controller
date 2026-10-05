@@ -26,13 +26,15 @@ void TaskRemovalTask::setServices(ServiceGetters services) {
 }
 
 void TaskRemovalTask::add(Task& pt) {
-  tasks_.insert(&pt);
+  if (std::find(tasks_.begin(), tasks_.end(), &pt) == tasks_.end()) {
+    tasks_.push_back(&pt);
+  }
   setIterations(1);
   enableIfNot();
 }
 
 bool TaskRemovalTask::Callback() {
-  if (tasks_.empty()) {
+  if (!tasks_.size()) {
     return true;
   }
 

@@ -3,7 +3,6 @@
 #include <Arduino.h>
 
 #include <memory>
-#include <set>
 #include <vector>
 
 #include "peripheral/peripheral.h"
@@ -31,7 +30,7 @@ class GetValues {
   // Type checking
   static bool registerType(const String& type);
   static bool isSupported(const String& type);
-  static const std::set<String>& getTypes();
+  static const std::vector<String>& getTypes();
 
   /**
    * Error when a peripheral can't be casted to the specific capability.
@@ -47,7 +46,7 @@ class GetValues {
   static const char* get_values_error_;
 
  private:
-  static std::set<String>& getSupportedTypes();
+  static std::vector<String>& getSupportedTypes();
 };
 
 }  // namespace capabilities

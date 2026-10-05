@@ -1,5 +1,10 @@
 #include "fixed.h"
 
+#include "ArduinoJson/Array/JsonArray.hpp"
+#include "ArduinoJson/Document/JsonDocument.hpp"
+#include "ArduinoJson/Object/JsonObjectConst.hpp"
+#include "managers/storage.h"
+
 namespace inamata {
 namespace peripheral {
 namespace fixed {
@@ -16,6 +21,15 @@ const char* dpt_led_id = "33cc94d0-5f0b-4846-921a-0d3f0280bc85";
 const char* dpt_relay_id = "68d4ce65-7c21-4ff3-be5e-160e7943573a";
 const char* dpt_temperature_c_id = "2c87f3d4-9150-4582-a14e-4630b0779f5d";
 const char* dpt_voc_index_id = "e22b2ea8-dd1c-4830-a6bd-b8dcfa1ba2cf";
+const char* dpt_voc_ppm_id = "a960eb24-5cef-4b41-a312-5c9f3b66538b";
+const char* dpt_formaldehyde_id = "790ff4f8-3420-47e1-8ac9-243d2cef0245";
+const char* dpt_no2_id = "1ff2c799-8014-4ca2-bb3c-1fadb458887b";
+const char* dpt_nh3_id = "a587122d-a83d-461e-b01a-d9267d86edb7";
+const char* dpt_so2_id = "72ba3a2a-508e-4dff-91cd-c5172718076b";
+const char* dpt_pm2_5_id = "d922287a-f2a6-48f2-8962-a524043494f6";
+const char* dpt_co_id = "869e0c4d-c70b-4bb8-88de-885a93c8e327";
+const char* dpt_o2_id = "22461e45-9b2f-4acb-ab6e-4fdf0ce73f45";
+const char* dpt_o3_id = "25e76766-abab-4d46-8755-91e649039d96";
 
 #endif
 
@@ -35,6 +49,7 @@ const char* config =
 ])";
 
 std::array<const char*, 2> configs{config, nullptr};
+const char* config_path = nullptr;
 
 void setRegisterFixedPeripherals(JsonObject msg) {
   JsonArray fps = msg["fps"].to<JsonArray>();
@@ -118,6 +133,7 @@ const char* config_2 =
 ])";
 
 std::array<const char*, 2> configs{config_1, config_2};
+const char* config_path = nullptr;
 
 void addDptToJson(const char* dpt, const char* prefix, JsonArray fdpts) {
   JsonObject fdpt = fdpts.add<JsonObject>();
@@ -320,6 +336,7 @@ const char* config_2 = R"([
 ])";
 
 std::array<const char*, 2> configs{config_1, config_2};
+const char* config_path = nullptr;
 
 void addDptToJson(const String& dpt, const char* prefix, JsonArray fdpts) {
   JsonObject fdpt = fdpts.add<JsonObject>();
@@ -423,9 +440,67 @@ void setRegisterFixedPeripherals(JsonObject msg) {
   addDptToJson(dpt_maintenance_mode_id.toString(), nullptr, fdpts);
 }
 
+#elif defined(DEVICE_TYPE_MULTI_AIR_SENSOR)
+
+const uint8_t gsm_enable_pin = 0;
+const uint8_t gsm_reset_pin = 10;
+const uint8_t gsm_tx_pin = 17;
+const uint8_t gsm_rx_pin = 18;
+
+std::array<const char*, 2> configs{nullptr, nullptr};
+const char* config_path = "/fixed/multi_air_sensor.json";
+
+/**
+ * Send all tagged fixed peripherals from the fixed config
+ *
+ * Iterate through all peripherals and check if they have "register" set. If
+ * true, register either its single "data_point_type" or every prefixed
+ * "*_data_point_type" field.
+ *
+ * \param msg JSON with exposed fixed peripherals
+ */
+void setRegisterFixedPeripherals(JsonObject msg) {
+  JsonDocument fixed_config_doc;
+  Storage::loadFixedConfig(fixed_config_doc);
+
+  JsonArray fps = msg["fps"].to<JsonArray>();
+  for (JsonObjectConst peripheral :
+       fixed_config_doc["peripherals"].as<JsonArray>()) {
+    if (!peripheral["register"].as<bool>()) {
+      continue;
+    }
+
+    JsonObject fp = fps.add<JsonObject>();
+    fp["fid"] = peripheral["uuid"];
+    JsonArray fdpts = fp["fdpts"].to<JsonArray>();
+
+    JsonVariantConst data_point_type = peripheral["data_point_type"];
+    if (!data_point_type.isNull()) {
+      JsonObject fdpt = fdpts.add<JsonObject>();
+      fdpt["fid"] = data_point_type;
+      continue;
+    }
+
+    static constexpr char suffix[] = "_data_point_type";
+    static constexpr size_t suffix_length = sizeof(suffix) - 1;
+    for (JsonPairConst field : peripheral) {
+      const JsonString key = field.key();
+      if (key.size() <= suffix_length ||
+          strcmp(key.c_str() + key.size() - suffix_length, suffix) != 0) {
+        continue;
+      }
+
+      JsonObject fdpt = fdpts.add<JsonObject>();
+      fdpt["fid"] = field.value();
+      fdpt["prefix"] = String(key.c_str(), key.size() - suffix_length);
+    }
+  }
+}
+
 #else
 
 std::array<const char*, 2> configs{nullptr, nullptr};
+const char* config_path = nullptr;
 void setRegisterFixedPeripherals(JsonObject msg) {}
 
 #endif

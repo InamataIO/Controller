@@ -1,0 +1,45 @@
+{
+    "peripherals": [
+        {
+            "type": "I2CAdapter",
+            "uuid": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "scl": 9,
+            "sda": 8
+        },
+        {
+            "type": "U8G2",
+            "uuid": "23191478-74c8-489b-887c-0478dd1c81f6",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "display": "SH1106"
+        },
+        {
+            "type": "AnalogIn",
+            "uuid": "22131da3-4921-405e-b679-c49165b9eb73",
+            "unit_data_point_type": "33f21fbb-3b5f-46a4-8deb-0bc7d08e6c95",
+            "pin": 6,
+            "min_v": 0,
+            "max_v": 3.3,
+            "min_unit": 0,
+            "max_unit": 500,
+            "register": true,
+            "unit_limits": [
+                "voc_limit_1",
+                "voc_limit_2"
+            ]
+        }
+    ],
+    "tasks": [
+        {
+            "type": "UpdateDisplay",
+            "sensors": [
+                {
+                    "uuid": "22131da3-4921-405e-b679-c49165b9eb73",
+                    "name": "VOC",
+                    "unit": "ppm",
+                    "decimals": 0
+                }
+            ],
+            "display": "23191478-74c8-489b-887c-0478dd1c81f6"
+        }
+    ]
+}

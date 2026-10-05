@@ -1,3 +1,5 @@
+#ifdef LAC_ENABLED
+
 #include "lac/action.h"
 
 namespace inamata {
@@ -41,3 +43,5 @@ const __FlashStringHelper* Action::query_key_ = FPSTR("query");
 
 }  // namespace lac
 }  // namespace inamata
+
+#endif

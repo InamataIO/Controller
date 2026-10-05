@@ -9,6 +9,7 @@ namespace peripheral {
 namespace fixed {
 
 extern std::array<const char*, 2> configs;
+extern const char* config_path;
 void setRegisterFixedPeripherals(JsonObject msg);
 
 // Common data point type IDs
@@ -34,6 +35,26 @@ extern const char* dpt_relay_id;
 extern const char* dpt_temperature_c_id;
 /// Air VOC quality in index (0-500, 100=baseline)
 extern const char* dpt_voc_index_id;
+/// Air TVOC concentration in PPM
+extern const char* dpt_voc_ppm_id;
+/// Air formaldehyde (HCHO) concentration in ug/m3
+extern const char* dpt_formaldehyde_id;
+/// Air NO2 concentration in ppm
+extern const char* dpt_no2_id;
+/// Air NH3 concentration in ppm
+extern const char* dpt_nh3_id;
+/// Air SO2 concentration in ppm
+extern const char* dpt_so2_id;
+/// Air PM2.5 concentration in ppm
+extern const char* dpt_pm2_5_id;
+/// Air CO concentration in ppm
+extern const char* dpt_co_id;
+/// Air Carbon Dioxide / CO2 concentration in ppm
+extern const char* dpt_co2_id;
+/// Air Oxygen / O2 concentration in ppm
+extern const char* dpt_o2_id;
+/// Air Ozone / O3 concentration in ppm
+extern const char* dpt_o3_id;
 
 #endif
 
@@ -147,6 +168,13 @@ extern const utils::UUID dpt_maintenance_input_id;
 
 extern const utils::UUID dpt_gsm_wifi_toggle_id;
 extern const utils::UUID dpt_maintenance_mode_id;
+
+extern const uint8_t gsm_enable_pin;
+extern const uint8_t gsm_reset_pin;
+extern const uint8_t gsm_tx_pin;
+extern const uint8_t gsm_rx_pin;
+
+#elif defined(DEVICE_TYPE_MULTI_AIR_SENSOR)
 
 extern const uint8_t gsm_enable_pin;
 extern const uint8_t gsm_reset_pin;

@@ -67,7 +67,7 @@ ImprovCommand parse_improv_data(const uint8_t *data, size_t length, bool check_c
   }
 
   if (command == X_SET_USER_DATA || command == X_SET_ALLOWED_MOBILE_OPERATORS ||
-      command == X_GET_MOBILE_OPERATORS) {
+      command == X_GET_MOBILE_OPERATORS || command == X_SET_NETWORK_MODE) {
     // X_GET_MOBILE_OPERATORS accepts omitted payload and falls back to default scan mode.
     if (command == X_GET_MOBILE_OPERATORS && data_length == 0) {
       return {.command = command};

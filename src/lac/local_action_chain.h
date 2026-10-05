@@ -1,3 +1,5 @@
+#ifdef LAC_ENABLED
+
 #pragma once
 
 #include <Arduino.h>
@@ -120,3 +122,5 @@ class LocalActionChain : public tasks::BaseTask {
 
 }  // namespace lac
 }  // namespace inamata
+
+#endif

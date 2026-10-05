@@ -22,7 +22,9 @@ WebSocket::WebSocket(const WebSocket::Config& config)
       peripheral_controller_callback_(config.peripheral_controller_callback),
       get_task_ids_(config.get_task_ids),
       task_controller_callback_(config.task_controller_callback),
+#ifdef LAC_ENABLED
       lac_controller_callback_(config.lac_controller_callback),
+#endif
       ota_update_callback_(config.ota_update_callback) {
   if (core_domain_.isEmpty()) {
     core_domain_ = default_core_domain_;
@@ -378,7 +380,9 @@ void WebSocket::handleData(const uint8_t* payload, size_t length) {
   }
   peripheral_controller_callback_(message);
   task_controller_callback_(message);
+#ifdef LAC_ENABLED
   lac_controller_callback_(message);
+#endif
   if (ota_update_callback_) {
     ota_update_callback_(message);
   }

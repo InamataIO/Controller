@@ -33,9 +33,14 @@ I2CAbstractPeripheral::I2CAbstractPeripheral(const JsonObjectConst& parameter) {
 
 TwoWire* I2CAbstractPeripheral::getWire() { return i2c_adapter_->getWire(); }
 
+uint8_t I2CAbstractPeripheral::getWireIndex() {
+  return i2c_adapter_->getWireIndex();
+}
+
 bool I2CAbstractPeripheral::isDeviceConnected(uint16_t i2c_address) {
-  getWire()->beginTransmission(i2c_address);
-  byte error = Wire.endTransmission();
+  TwoWire* wire = getWire();
+  wire->beginTransmission(i2c_address);
+  byte error = wire->endTransmission();
   return error == 0;
 }
 

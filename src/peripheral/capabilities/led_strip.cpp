@@ -5,15 +5,16 @@ namespace peripheral {
 namespace capabilities {
 
 bool LedStrip::registerType(const String& type) {
-  return getSupportedTypes().insert(type).second;
+  getSupportedTypes().push_back(type);
+  return true;
 }
 
 bool LedStrip::isSupported(const String& type) {
-  const std::set<String>& types = getSupportedTypes();
+  const std::vector<String>& types = getSupportedTypes();
   return std::binary_search(types.begin(), types.end(), type);
 }
 
-const std::set<String>& LedStrip::getTypes() { return getSupportedTypes(); }
+const std::vector<String>& LedStrip::getTypes() { return getSupportedTypes(); }
 
 String LedStrip::invalidTypeError(const utils::UUID& uuid,
                                   std::shared_ptr<Peripheral> peripheral) {
@@ -24,8 +25,8 @@ String LedStrip::invalidTypeError(const utils::UUID& uuid,
   return error;
 }
 
-std::set<String>& LedStrip::getSupportedTypes() {
-  static std::set<String> supported_types;
+std::vector<String>& LedStrip::getSupportedTypes() {
+  static std::vector<String> supported_types;
   return supported_types;
 }
 

@@ -1,8 +1,13 @@
 #include "storage.h"
 
+#include "peripheral/fixed.h"
 #include "peripheral/peripheral.h"
 
 namespace inamata {
+
+namespace {
+const char* nullptr_path_error = "Nullptr path";
+}
 
 #if defined(ENABLE_TRACE)
 void listDir(fs::FS& fs, const char* dirname, uint8_t levels) {
@@ -88,6 +93,10 @@ void Storage::recursiveRm(const char* path) {
         continue;
       }
       if (file.isDirectory()) {
+        // Ensure /fixed/multi_air_sensor.json is not deleted
+        if (endsWith(file.path(), "/fixed")) {
+          continue;
+        }
         recursiveRm(file.path());
       } else {
         String file_path = file.path();
@@ -275,6 +284,16 @@ ErrorResult Storage::storeCustomConfig(const JsonObjectConst& config) {
 
 void Storage::deleteCustomConfig() { LittleFS.remove(custom_config_path_); }
 
+ErrorResult Storage::loadCalibration(JsonDocument& config_doc) {
+  return loadJsonFile(config_doc, calibration_path_);
+}
+
+ErrorResult Storage::storeCalibration(const JsonObjectConst& config) {
+  return storeJsonFile(config, calibration_path_);
+}
+
+void Storage::deleteCalibration() { LittleFS.remove(calibration_path_); }
+
 ErrorResult Storage::loadMobileConfig(JsonDocument& config_doc) {
   return loadJsonFile(config_doc, mobile_config_path_);
 }
@@ -285,7 +304,14 @@ ErrorResult Storage::storeMobileConfig(const JsonObjectConst& config) {
 
 void Storage::deleteMobileConfig() { LittleFS.remove(mobile_config_path_); }
 
+ErrorResult Storage::loadFixedConfig(JsonDocument& config_doc) {
+  return loadJsonFile(config_doc, peripheral::fixed::config_path);
+}
+
 ErrorResult Storage::loadJsonFile(JsonDocument& config, const char* path) {
+  if (!path) {
+    return ErrorResult(type_, nullptr_path_error);
+  }
   fs::File file = LittleFS.open(path, "r+");
   if (file) {
     DeserializationError error = deserializeJson(config, file);
@@ -301,6 +327,9 @@ ErrorResult Storage::loadJsonFile(JsonDocument& config, const char* path) {
 
 ErrorResult Storage::storeJsonFile(const JsonVariantConst& config,
                                    const char* path) {
+  if (!path) {
+    return ErrorResult(type_, nullptr_path_error);
+  }
   fs::File file = LittleFS.open(path, "w+");
   if (!file) {
     return ErrorResult(type_, String("Failed opening ") + path);
@@ -313,6 +342,17 @@ ErrorResult Storage::storeJsonFile(const JsonVariantConst& config,
     return ErrorResult(type_, String("Failed to write ") + path);
   }
   return ErrorResult();
+}
+
+bool Storage::endsWith(const char* str, const char* suffix) {
+  size_t str_len = strlen(str);
+  size_t suffix_len = strlen(suffix);
+
+  if (suffix_len > str_len) {
+    return false;
+  }
+
+  return strcmp(str + str_len - suffix_len, suffix) == 0;
 }
 
 const char* Storage::arduino_board_ = ARDUINO_BOARD;
@@ -332,6 +372,7 @@ const char* Storage::secrets_path_ = "/secrets.json";
 const char* Storage::peripherals_path_ = "/peripherals.json";
 const char* Storage::behavior_path_ = "/behavior.json";
 const char* Storage::custom_config_path_ = "/custom_config.json";
+const char* Storage::calibration_path_ = "/calibration.json";
 const char* Storage::mobile_config_path_ = "/mobile_config.json";
 const char* Storage::type_ = "storage";
 

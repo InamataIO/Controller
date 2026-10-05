@@ -1,3 +1,5 @@
+#ifdef LAC_ENABLED
+
 #include "lac/lac_controller.h"
 
 #include "tasks/base_task.h"
@@ -91,3 +93,5 @@ const __FlashStringHelper* LacController::lac_command_key_ = FPSTR("lac");
 
 }  // namespace lac
 }  // namespace inamata
+
+#endif

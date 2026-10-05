@@ -1,0 +1,51 @@
+{
+    "peripherals": [
+        {
+            "type": "I2CAdapter",
+            "uuid": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "scl": 9,
+            "sda": 8
+        },
+        {
+            "type": "U8G2",
+            "uuid": "23191478-74c8-489b-887c-0478dd1c81f6",
+            "i2c_adapter": "2f99965f-ce6d-44dc-81cb-75f9e6afaf3c",
+            "display": "SH1106"
+        },
+        {
+            "type": "GP2Y",
+            "uuid": "8390f142-45ee-48de-8db1-f2e936d392b8",
+            "data_point_type": "d922287a-f2a6-48f2-8962-a524043494f6",
+            "led_pin": 5,
+            "pin": 4,
+            "register": true,
+            "limits": [
+                "pm25_limit_1",
+                "pm25_limit_2"
+            ]
+        }
+    ],
+    "tasks": [
+        {
+            "type": "UpdateDisplay",
+            "sensors": [
+                {
+                    "uuid": "8390f142-45ee-48de-8db1-f2e936d392b8",
+                    "name": "PM2.5",
+                    "unit": "ug/m3",
+                    "decimals": 0
+                }
+            ],
+            "display": "23191478-74c8-489b-887c-0478dd1c81f6"
+        },
+        {
+            "type": "AutoCalibrate",
+            "check_interval_s": 300,
+            "peripherals": [
+                {
+                    "uuid": "8390f142-45ee-48de-8db1-f2e936d392b8"
+                }
+            ]
+        }
+    ]
+}

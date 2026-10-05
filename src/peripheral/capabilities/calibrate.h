@@ -4,7 +4,7 @@
 
 #include <chrono>
 #include <memory>
-#include <set>
+#include <vector>
 
 #include "peripheral/peripheral.h"
 #include "utils/uuid.h"
@@ -53,7 +53,7 @@ class Calibrate {
   // Type checking
   static bool registerType(const String& type);
   static bool isSupported(const String& type);
-  static const std::set<String>& getTypes();
+  static const std::vector<String>& getTypes();
 
   /**
    * Error when a peripheral can't be casted to the specific capability.
@@ -66,7 +66,7 @@ class Calibrate {
                                  std::shared_ptr<Peripheral> peripheral);
 
  private:
-  static std::set<String>& getSupportedTypes();
+  static std::vector<String>& getSupportedTypes();
 };
 
 }  // namespace capabilities

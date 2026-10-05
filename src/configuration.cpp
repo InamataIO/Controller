@@ -15,6 +15,6 @@ namespace inamata {
 const __FlashStringHelper* kWifiPortalSsid = FPSTR("InamataSetup");
 const __FlashStringHelper* kWifiPortalPassword = FPSTR("12345678");
 
-const char* kGsmApn = "wsim";
+const char* kMobileApn = "wsim";
 
 }  // namespace inamata

@@ -104,13 +104,29 @@ class Storage {
   ErrorResult storeBehavior(const JsonObjectConst& behavior);
   void deleteBehavior();
 
-  ErrorResult loadCustomConfig(JsonDocument& config);
-  ErrorResult storeCustomConfig(const JsonObjectConst& config);
-  void deleteCustomConfig();
+  static ErrorResult loadCustomConfig(JsonDocument& config);
+  static ErrorResult storeCustomConfig(const JsonObjectConst& config);
+  static void deleteCustomConfig();
+
+  /**
+   * Per-peripheral aging/calibration state (elapsed aging hours, calibrated
+   * conversion factors, etc.), keyed by peripheral UUID.
+   *
+   * Kept in its own file so a single controller action (deleting it) resets
+   * both aging progress and calibration, triggering a fresh calibration run
+   * on the next boot.
+   */
+  static ErrorResult loadCalibration(JsonDocument& config);
+  static ErrorResult storeCalibration(const JsonObjectConst& config);
+  static void deleteCalibration();
 
   ErrorResult loadMobileConfig(JsonDocument& config);
   ErrorResult storeMobileConfig(const JsonObjectConst& config);
   void deleteMobileConfig();
+
+  static ErrorResult loadFixedConfig(JsonDocument& config);
+
+  static bool endsWith(const char* str, const char* suffix);
 
   static const char* arduino_board_;
   static const char* device_type_name_;
@@ -126,13 +142,14 @@ class Storage {
   static const char* wifi_ap_password_key_;
 
  private:
-  ErrorResult loadJsonFile(JsonDocument& config, const char* path);
-  ErrorResult storeJsonFile(const JsonVariantConst& config, const char* path);
-
+  static ErrorResult loadJsonFile(JsonDocument& config, const char* path);
+  static ErrorResult storeJsonFile(const JsonVariantConst& config,
+                                   const char* path);
   static const char* secrets_path_;
   static const char* peripherals_path_;
   static const char* behavior_path_;
   static const char* custom_config_path_;
+  static const char* calibration_path_;
   static const char* mobile_config_path_;
   static const char* type_;
 };

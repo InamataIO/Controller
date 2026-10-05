@@ -1,3 +1,5 @@
+#ifdef CONFIGURATION_MANAGER
+
 #include "configman_task.h"
 
 #include "managers/time_manager.h"
@@ -63,3 +65,5 @@ const std::chrono::milliseconds ConfigurationManagementTask::interval_(100);
 }  // namespace config_man
 }  // namespace tasks
 }  // namespace inamata
+
+#endif

@@ -1,3 +1,5 @@
+#ifdef LAC_ENABLED
+
 #include "lac/if_action.h"
 
 #include "lac/math_action.h"
@@ -83,3 +85,5 @@ void IfAction::populateConfig(const JsonObjectConst& json, Config& config,
 
 }  // namespace lac
 }  // namespace inamata
+
+#endif

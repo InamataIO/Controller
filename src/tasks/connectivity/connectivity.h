@@ -32,17 +32,16 @@ class CheckConnectivity : public BaseTask {
     ProvisionDevice,
   };
 
-  enum class UseNetwork {
-    kGsm,
-    kWifi,
-    kNone,
-  };
+  enum class UseNetwork { kNone, kMobile, kWifi };
 
   CheckConnectivity(const ServiceGetters& services, Scheduler& scheduler);
   ~CheckConnectivity() = default;
 
   const String& getType() const final;
   static const String& type();
+
+  static Mode getMode();
+  static void setUseNetworkRequest(UseNetwork use_network);
 
  private:
   enum class WiFiScanMode { kNone, kScanning, kFinished };
@@ -105,8 +104,11 @@ class CheckConnectivity : public BaseTask {
 #endif
   std::shared_ptr<WebSocket> web_socket_;
 
-  Mode mode_ = Mode::ConnectWiFi;
+  static Mode mode_;
+  /// Which network is currently being used
   UseNetwork use_network_ = UseNetwork::kNone;
+  /// Emulates mobile/wifi switch in software to request change to that network
+  static UseNetwork use_network_request_;
   std::chrono::steady_clock::time_point mode_start_;
 
   /// Set true once WebSocket connects. Will not set false on disconnect. Avoids

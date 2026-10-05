@@ -1,3 +1,5 @@
+#ifdef LAC_ENABLED
+
 #pragma once
 
 #include <TaskSchedulerDeclarations.h>
@@ -36,3 +38,5 @@ class LacController {
 
 }  // namespace lac
 }  // namespace inamata
+
+#endif
