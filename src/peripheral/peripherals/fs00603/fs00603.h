@@ -20,8 +20,10 @@ namespace fs00603 {
  * Driver for the FS00603 air quality sensor (CO2, TVOC, formaldehyde)
  *
  * Continuously streams 9-byte frames (0xFF header + 6 data bytes + checksum)
- * at 9600 8N1. Buffers a frame via the startMeasurement/handleMeasurement
- * interface and reports the last valid frame's values via getValues.
+ * at 9600 8N1. The units of the values are CO2 in ppm, TVOC in ug/m3 and
+ * formaldehyde in ug/m3. Buffers a frame via the startMeasurement/
+ * handleMeasurement interface and reports the last valid frame's values via
+ * getValues.
  *
  * A completed measurement is cached for one sensor update interval. Multiple
  * tasks sharing this peripheral therefore receive the same reading
@@ -56,14 +58,14 @@ class FS00603 : public Peripheral,
   static bool capability_get_values_;
   static bool capability_start_measurement_;
 
-  static const __FlashStringHelper* co2_data_point_type_key_;
-  static const __FlashStringHelper* voc_data_point_type_key_;
-  static const __FlashStringHelper* formaldehyde_data_point_type_key_;
+  static const __FlashStringHelper* co2_ppm_dpt_key_;
+  static const __FlashStringHelper* tvoc_ug_m3_dpt_key_;
+  static const __FlashStringHelper* formaldehyde_ug_m3_dpt_key_;
 
   HardwareSerial* serial_ = nullptr;
-  utils::UUID co2_data_point_type_{nullptr};
-  utils::UUID voc_data_point_type_{nullptr};
-  utils::UUID formaldehyde_data_point_type_{nullptr};
+  utils::UUID co2_ppm_dpt_{nullptr};
+  utils::UUID tvoc_ug_m3_dpt_{nullptr};
+  utils::UUID formaldehyde_ug_m3_dpt_{nullptr};
 
   // Set from the UART event task on a break condition; checked/cleared on
   // the polling task so the in-progress frame (corrupt around the break) is
@@ -76,8 +78,8 @@ class FS00603 : public Peripheral,
   uint8_t in_data_i_ = 0;
 
   float last_co2_ppm_ = NAN;
-  float last_voc_ppm_ = NAN;
-  float last_formaldehyde_ugm3_ = NAN;
+  float last_tvoc_ug_m3_ = NAN;
+  float last_formaldehyde_ug_m3_ = NAN;
   bool started_ = false;
   bool measurement_ready_ = false;
   std::chrono::steady_clock::time_point measurement_ready_time_{};
@@ -85,7 +87,6 @@ class FS00603 : public Peripheral,
   std::chrono::steady_clock::time_point measurement_start_;
   static constexpr std::chrono::seconds measurement_timeout_{10};
   static constexpr std::chrono::milliseconds no_data_wait_{500};
-  static constexpr std::chrono::milliseconds kInitialWait{5000};
   static constexpr std::chrono::milliseconds kCacheDuration{2000};
 };
 

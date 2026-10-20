@@ -10,7 +10,6 @@ namespace inamata {
 namespace {
 
 constexpr uint16_t kImprovServiceDataUuid = 0x4677;
-constexpr size_t kMaxImprovAdvertisedShortName = 16;
 
 void logImprovAdvertisingError() { TRACELN("Improv advertising setup failed"); }
 
@@ -175,10 +174,6 @@ void BleImprov::setupService() {
 void BleImprov::refreshAdvertisingData(improv::State state) {
   std::string service_data{6, 0x00};
   const std::string full_name = Storage::device_type_name_;
-  const std::string short_name =
-      full_name.size() > kMaxImprovAdvertisedShortName
-          ? full_name.substr(0, kMaxImprovAdvertisedShortName)
-          : full_name;
   service_data[0] = static_cast<uint8_t>(state);
 
   uint8_t capabilities = 0x00;
@@ -197,12 +192,16 @@ void BleImprov::refreshAdvertisingData(improv::State state) {
     logImprovAdvertisingError();
     return;
   }
-  if (!advertisement_data.setServiceData(NimBLEUUID(kImprovServiceDataUuid),
-                                         service_data)) {
+  // Web Bluetooth filters on advertised service UUIDs, so the Improv service
+  // UUID must be in the advertisement. Flags (3) + 128-bit UUID (18) + service
+  // data (10) fill the 31 byte packet, so the name goes in the scan response.
+  if (!advertisement_data.setCompleteServices(
+          NimBLEUUID::fromString(improv::SERVICE_UUID))) {
     logImprovAdvertisingError();
     return;
   }
-  if (!advertisement_data.setShortName(short_name)) {
+  if (!advertisement_data.setServiceData(NimBLEUUID(kImprovServiceDataUuid),
+                                         service_data)) {
     logImprovAdvertisingError();
     return;
   }

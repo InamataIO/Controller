@@ -18,7 +18,7 @@
             "rx": 4,
             "tx": 5,
             "co2_data_point_type": "7f5db806-c165-48d9-b55b-176149db95d6",
-            "voc_data_point_type": "a960eb24-5cef-4b41-a312-5c9f3b66538b",
+            "voc_data_point_type": "e69415c7-79b2-40ad-879b-89be906aed40",
             "formaldehyde_data_point_type": "790ff4f8-3420-47e1-8ac9-243d2cef0245",
             "register": true
         }
@@ -36,9 +36,9 @@
                 },
                 {
                     "uuid": "75370164-3c2b-4bf9-a210-cb5b871a5a1e",
-                    "dpt": "a960eb24-5cef-4b41-a312-5c9f3b66538b",
+                    "dpt": "e69415c7-79b2-40ad-879b-89be906aed40",
                     "name": "TVOC",
-                    "unit": "ppm",
+                    "unit": "ug/m3",
                     "decimals": 0
                 },
                 {

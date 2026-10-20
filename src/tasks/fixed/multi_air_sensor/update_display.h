@@ -47,6 +47,7 @@ class UpdateDisplay : public BaseTask {
     String unit;
     uint8_t decimals;
     float value = 0;
+    bool has_value = false;
     State state = Sensor::State::kIdle;
     std::chrono::steady_clock::time_point wait_until =
         std::chrono::steady_clock::time_point::min();

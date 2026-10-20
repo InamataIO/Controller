@@ -37,24 +37,26 @@ extern const char* dpt_temperature_c_id;
 extern const char* dpt_voc_index_id;
 /// Air TVOC concentration in PPM
 extern const char* dpt_voc_ppm_id;
+/// Air TVOC concentration in ug/m3
+extern const char* dpt_tvoc_ug_m3_id;
 /// Air formaldehyde (HCHO) concentration in ug/m3
-extern const char* dpt_formaldehyde_id;
+extern const char* dpt_formaldehyde_ug_m3_id;
 /// Air NO2 concentration in ppm
-extern const char* dpt_no2_id;
+extern const char* dpt_no2_ppm_id;
 /// Air NH3 concentration in ppm
-extern const char* dpt_nh3_id;
+extern const char* dpt_nh3_ppm_id;
 /// Air SO2 concentration in ppm
-extern const char* dpt_so2_id;
-/// Air PM2.5 concentration in ppm
-extern const char* dpt_pm2_5_id;
+extern const char* dpt_so2_ppm_id;
+/// Air PM2.5 concentration in ug/m3
+extern const char* dpt_pm2_5_ug_m3_id;
 /// Air CO concentration in ppm
-extern const char* dpt_co_id;
+extern const char* dpt_co_ppm_id;
 /// Air Carbon Dioxide / CO2 concentration in ppm
-extern const char* dpt_co2_id;
-/// Air Oxygen / O2 concentration in ppm
-extern const char* dpt_o2_id;
-/// Air Ozone / O3 concentration in ppm
-extern const char* dpt_o3_id;
+extern const char* dpt_co2_ppm_id;
+/// Air Oxygen / O2 concentration in percent (%)
+extern const char* dpt_o2_pct_id;
+/// Air Ozone / O3 concentration in ppb
+extern const char* dpt_o3_ppb_id;
 
 #endif
 

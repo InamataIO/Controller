@@ -182,12 +182,12 @@ ESP32 and a wire only has to be connected to one of the compatible pins.
 
 ### FS00603 - CO2/TVOC/Formaldehyde Sensor
 
-| Parameter                    | Type   | Req. | Content                                           |
-| ----------------------------- | ------ | ---- | ------------------------------------------------ |
+| Parameter                     | Type   | Req. | Content                                           |
+| ----------------------------- | ------ | ---- | ------------------------------------------------- |
 | rx                            | Number | Yes  | UART receive pin (9600 8N1, via UartManager)      |
 | tx                            | Number | Yes  | UART transmit pin (9600 8N1, via UartManager)     |
 | co2_data_point_type           | String | Yes  | Data point type for CO2 readings (ppm)            |
-| voc_data_point_type           | String | Yes  | Data point type for TVOC readings (ppm)           |
+| voc_data_point_type           | String | Yes  | Data point type for TVOC readings (ug/m3)         |
 | formaldehyde_data_point_type  | String | Yes  | Data point type for formaldehyde readings (ug/m3) |
 
 ### Digital In

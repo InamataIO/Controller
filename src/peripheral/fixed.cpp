@@ -22,14 +22,15 @@ const char* dpt_relay_id = "68d4ce65-7c21-4ff3-be5e-160e7943573a";
 const char* dpt_temperature_c_id = "2c87f3d4-9150-4582-a14e-4630b0779f5d";
 const char* dpt_voc_index_id = "e22b2ea8-dd1c-4830-a6bd-b8dcfa1ba2cf";
 const char* dpt_voc_ppm_id = "a960eb24-5cef-4b41-a312-5c9f3b66538b";
-const char* dpt_formaldehyde_id = "790ff4f8-3420-47e1-8ac9-243d2cef0245";
-const char* dpt_no2_id = "1ff2c799-8014-4ca2-bb3c-1fadb458887b";
-const char* dpt_nh3_id = "a587122d-a83d-461e-b01a-d9267d86edb7";
-const char* dpt_so2_id = "72ba3a2a-508e-4dff-91cd-c5172718076b";
-const char* dpt_pm2_5_id = "d922287a-f2a6-48f2-8962-a524043494f6";
-const char* dpt_co_id = "869e0c4d-c70b-4bb8-88de-885a93c8e327";
-const char* dpt_o2_id = "22461e45-9b2f-4acb-ab6e-4fdf0ce73f45";
-const char* dpt_o3_id = "25e76766-abab-4d46-8755-91e649039d96";
+const char* dpt_tvoc_ug_m3_id = "e69415c7-79b2-40ad-879b-89be906aed40";
+const char* dpt_formaldehyde_ug_m3_id = "790ff4f8-3420-47e1-8ac9-243d2cef0245";
+const char* dpt_no2_ppm_id = "1ff2c799-8014-4ca2-bb3c-1fadb458887b";
+const char* dpt_nh3_ppm_id = "a587122d-a83d-461e-b01a-d9267d86edb7";
+const char* dpt_so2_ppm_id = "72ba3a2a-508e-4dff-91cd-c5172718076b";
+const char* dpt_pm2_5_ug_m3_id = "d922287a-f2a6-48f2-8962-a524043494f6";
+const char* dpt_co_ppm_id = "869e0c4d-c70b-4bb8-88de-885a93c8e327";
+const char* dpt_o2_pct_id = "22461e45-9b2f-4acb-ab6e-4fdf0ce73f45";
+const char* dpt_o3_ppb_id = "25e76766-abab-4d46-8755-91e649039d96";
 
 #endif
 

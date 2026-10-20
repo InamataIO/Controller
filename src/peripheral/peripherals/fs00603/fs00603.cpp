@@ -2,7 +2,7 @@
 
 #include "fs00603.h"
 
-#include <uart.h>
+#include <driver/uart.h>
 
 #include "managers/logging.h"
 #include "managers/uart_manager.h"
@@ -16,24 +16,24 @@ namespace peripherals {
 namespace fs00603 {
 
 FS00603::FS00603(const JsonObjectConst& parameters) {
-  co2_data_point_type_ = utils::UUID(parameters[co2_data_point_type_key_]);
-  if (!co2_data_point_type_.isValid()) {
-    setInvalid(ErrorStore::genMissingProperty(co2_data_point_type_key_,
+  co2_ppm_dpt_ = utils::UUID(parameters[co2_ppm_dpt_key_]);
+  if (!co2_ppm_dpt_.isValid()) {
+    setInvalid(ErrorStore::genMissingProperty(co2_ppm_dpt_key_,
                                               ErrorStore::KeyType::kUUID));
     return;
   }
 
-  voc_data_point_type_ = utils::UUID(parameters[voc_data_point_type_key_]);
-  if (!voc_data_point_type_.isValid()) {
-    setInvalid(ErrorStore::genMissingProperty(voc_data_point_type_key_,
+  tvoc_ug_m3_dpt_ = utils::UUID(parameters[tvoc_ug_m3_dpt_key_]);
+  if (!tvoc_ug_m3_dpt_.isValid()) {
+    setInvalid(ErrorStore::genMissingProperty(tvoc_ug_m3_dpt_key_,
                                               ErrorStore::KeyType::kUUID));
     return;
   }
 
-  formaldehyde_data_point_type_ =
-      utils::UUID(parameters[formaldehyde_data_point_type_key_]);
-  if (!formaldehyde_data_point_type_.isValid()) {
-    setInvalid(ErrorStore::genMissingProperty(formaldehyde_data_point_type_key_,
+  formaldehyde_ug_m3_dpt_ =
+      utils::UUID(parameters[formaldehyde_ug_m3_dpt_key_]);
+  if (!formaldehyde_ug_m3_dpt_.isValid()) {
+    setInvalid(ErrorStore::genMissingProperty(formaldehyde_ug_m3_dpt_key_,
                                               ErrorStore::KeyType::kUUID));
     return;
   }
@@ -113,8 +113,8 @@ capabilities::StartMeasurement::Result FS00603::startMeasurement(
     resetState();
     started_ = true;
     // TRACEF("FS00603 startMeasurement: first start, wait=%lldms\r\n",
-    //        (long long)kInitialWait.count());
-    return {.wait = kInitialWait};
+    //        (long long)no_data_wait_.count());
+    return {.wait = no_data_wait_};
   }
 
   // Only handleMeasurement() drives readFrame(), so a completed frame always
@@ -165,12 +165,10 @@ capabilities::GetValues::Result FS00603::getValues() {
   }
 
   capabilities::GetValues::Result result;
+  result.values.push_back(utils::ValueUnit(last_co2_ppm_, co2_ppm_dpt_));
+  result.values.push_back(utils::ValueUnit(last_tvoc_ug_m3_, tvoc_ug_m3_dpt_));
   result.values.push_back(
-      utils::ValueUnit(last_co2_ppm_, co2_data_point_type_));
-  result.values.push_back(
-      utils::ValueUnit(last_voc_ppm_, voc_data_point_type_));
-  result.values.push_back(
-      utils::ValueUnit(last_formaldehyde_ugm3_, formaldehyde_data_point_type_));
+      utils::ValueUnit(last_formaldehyde_ug_m3_, formaldehyde_ug_m3_dpt_));
 
   return result;
 }
@@ -225,12 +223,22 @@ capabilities::StartMeasurement::Result FS00603::readFrame() {
         continue;
       }
 
-      last_co2_ppm_ = (static_cast<uint16_t>(in_data_[2]) << 8) | in_data_[3];
-      last_voc_ppm_ = (static_cast<uint16_t>(in_data_[4]) << 8) | in_data_[5];
-      last_formaldehyde_ugm3_ =
+      const uint16_t co2_ppm =
+          (static_cast<uint16_t>(in_data_[2]) << 8) | in_data_[3];
+      const uint16_t tvoc_ug_m3 =
+          (static_cast<uint16_t>(in_data_[4]) << 8) | in_data_[5];
+      const uint16_t formaldehyde_ug_m3 =
           (static_cast<uint16_t>(in_data_[6]) << 8) | in_data_[7];
-      Serial.printf("CO2: %f, VOC: %f, Form: %f\r\n", last_co2_ppm_,
-                    last_voc_ppm_, last_formaldehyde_ugm3_);
+      if (co2_ppm == 450 && tvoc_ug_m3 == 220 && formaldehyde_ug_m3 == 50) {
+        in_data_i_ = 0;
+        continue;
+      }
+
+      last_co2_ppm_ = co2_ppm;
+      last_tvoc_ug_m3_ = tvoc_ug_m3;
+      last_formaldehyde_ug_m3_ = formaldehyde_ug_m3;
+      Serial.printf("CO2: %.0fppm, TVOC: %.0fug/m3, Form: %.0fug/m3\r\n",
+                    last_co2_ppm_, last_tvoc_ug_m3_, last_formaldehyde_ug_m3_);
       received_valid_frame = true;
       in_data_i_ = 0;
     }
@@ -273,11 +281,11 @@ bool FS00603::capability_get_values_ =
 bool FS00603::capability_start_measurement_ =
     capabilities::StartMeasurement::registerType(type());
 
-const __FlashStringHelper* FS00603::co2_data_point_type_key_ =
+const __FlashStringHelper* FS00603::co2_ppm_dpt_key_ =
     FPSTR("co2_data_point_type");
-const __FlashStringHelper* FS00603::voc_data_point_type_key_ =
+const __FlashStringHelper* FS00603::tvoc_ug_m3_dpt_key_ =
     FPSTR("voc_data_point_type");
-const __FlashStringHelper* FS00603::formaldehyde_data_point_type_key_ =
+const __FlashStringHelper* FS00603::formaldehyde_ug_m3_dpt_key_ =
     FPSTR("formaldehyde_data_point_type");
 
 }  // namespace fs00603

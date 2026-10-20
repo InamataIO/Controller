@@ -80,6 +80,8 @@ JsonObjectConst UpdateDisplay::findConfig(JsonArrayConst tasks_config) {
 bool UpdateDisplay::TaskCallback() {
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
   std::chrono::nanoseconds min_wait = std::chrono::nanoseconds::max();
+  const bool initial_display_update =
+      last_measurement_start_ == std::chrono::steady_clock::time_point::min();
   bool sensor_updated = false;
 
   // Start new measurements for all sensors that support capability
@@ -154,6 +156,7 @@ bool UpdateDisplay::TaskCallback() {
           if (!sensor.data_point_type.isValid() ||
               value.data_point_type == sensor.data_point_type) {
             sensor.value = value.value;
+            sensor.has_value = true;
             sensor_updated = true;
             break;
           }
@@ -164,7 +167,7 @@ bool UpdateDisplay::TaskCallback() {
     }
   }
 
-  if (sensor_updated) {
+  if (initial_display_update || sensor_updated) {
     updateDisplay();
   }
 
@@ -231,7 +234,9 @@ void UpdateDisplay::updateDisplay() {
     }
 
     // Draw value
-    buffer = String(sensor.value, (unsigned int)sensor.decimals);
+    buffer = sensor.has_value
+                 ? String(sensor.value, (unsigned int)sensor.decimals)
+                 : "na";
     if (sensor_count <= 2) {
       driver->setFont(u8g2_font_10x20_tr);
     }
@@ -241,8 +246,8 @@ void UpdateDisplay::updateDisplay() {
       driver->setFont(u8g2_font_6x10_tr);
     }
 
-    // Draw unit
-    x_offset_ += 2;
+    // Draw unit, separated from the value by a space in the unit's font
+    x_offset_ += driver->getStrWidth(" ");
     if (sensor.unit.length()) {
       driver->drawStr(x_offset_, y_offset_, sensor.unit.c_str());
     }
