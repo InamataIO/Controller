@@ -36,7 +36,8 @@ static const std::chrono::minutes kProvisionTimeout(10);
 #if defined(DEVICE_TYPE_VOC_SENSOR_MK1) ||    \
     defined(DEVICE_TYPE_TIAKI_CO2_MONITOR) || \
     defined(DEVICE_TYPE_FIRE_DATA_LOGGER) ||  \
-    defined(DEVICE_TYPE_MULTI_AIR_SENSOR)
+    defined(DEVICE_TYPE_MULTI_AIR_SENSOR) ||  \
+    defined(DEVICE_TYPE_DUAL_TH_SENSOR)
 #define BEHAVIOR_BASED
 const bool kBehaviorBased = true;
 #endif

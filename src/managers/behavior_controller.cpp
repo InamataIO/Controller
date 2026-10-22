@@ -26,6 +26,11 @@ void BehaviorController::handleCallback(const JsonObjectConst& message) {
       behavior_command[clear_command_key_].as<JsonObjectConst>();
   if (clear_behavior) {
     services_.getStorage()->deleteBehavior();
+
+    behavior_id_.clear();
+    updated_at_ = 0;
+    JsonDocument empty_behavior;
+    handleConfig(empty_behavior.to<JsonObject>());
   }
 }
 

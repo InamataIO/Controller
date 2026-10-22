@@ -78,6 +78,46 @@ void setRegisterFixedPeripherals(JsonObject msg) {
   fp["fid"] = peripheral_status_led_id;
 }
 
+#elif defined(DEVICE_TYPE_DUAL_TH_SENSOR)
+
+const char* peripheral_air_left_id = "ae11f9bf-229f-477c-a83c-8fa6a17cc657";
+const char* peripheral_air_right_id = "20037c44-86e6-4b3a-9870-1d683610b4ee";
+const char* peripheral_status_led_id = "d2c3af59-6174-4fba-a6e2-82ad3c7101f7";
+
+const char* config =
+    R"([
+{"scl":9,"sda":8,"uuid":"de7d5509-82e2-4909-a19c-42865088eb7e","type":"I2CAdapter","version":0},
+{"scl":12,"sda":11,"uuid":"df2893b4-86be-4fe7-b199-0698399b08ab","type":"I2CAdapter","version":0},
+{"color_encoding":"grb","led_pin":6,"led_count":1,"uuid":"d2c3af59-6174-4fba-a6e2-82ad3c7101f7","type":"NeoPixel","version":0},
+{"i2c_adapter":"de7d5509-82e2-4909-a19c-42865088eb7e","i2c_address":64,"humidity_data_point_type":"8843470c-79aa-4db9-944c-d02b3b6f8c35","temperature_data_point_type":"2c87f3d4-9150-4582-a14e-4630b0779f5d","uuid":"ae11f9bf-229f-477c-a83c-8fa6a17cc657","type":"SHT2x","version":0},
+{"i2c_adapter":"df2893b4-86be-4fe7-b199-0698399b08ab","i2c_address":64,"humidity_data_point_type":"8843470c-79aa-4db9-944c-d02b3b6f8c35","temperature_data_point_type":"2c87f3d4-9150-4582-a14e-4630b0779f5d","uuid":"20037c44-86e6-4b3a-9870-1d683610b4ee","type":"SHT2x","version":0}
+])";
+
+std::array<const char*, 2> configs{config, nullptr};
+const char* config_path = nullptr;
+
+void addAirSensor(JsonArray fps, const char* peripheral_id) {
+  JsonObject fp = fps.add<JsonObject>();
+  fp["fid"] = peripheral_id;
+  JsonArray fdpts = fp["fdpts"].to<JsonArray>();
+
+  JsonObject fdpt = fdpts.add<JsonObject>();
+  fdpt["fid"] = dpt_humidity_rh_id;
+  fdpt["prefix"] = "humidity";
+
+  fdpt = fdpts.add<JsonObject>();
+  fdpt["fid"] = dpt_temperature_c_id;
+  fdpt["prefix"] = "temperature";
+}
+
+void setRegisterFixedPeripherals(JsonObject msg) {
+  JsonArray fps = msg["fps"].to<JsonArray>();
+  addAirSensor(fps, peripheral_air_left_id);
+  addAirSensor(fps, peripheral_air_right_id);
+  JsonObject status_led = fps.add<JsonObject>();
+  status_led["fid"] = peripheral_status_led_id;
+}
+
 #elif defined(DEVICE_TYPE_TIAKI_CO2_MONITOR)
 
 const char* peripheral_led_fault_id = "d6b77a3f-9ed0-40e4-af72-b4b2568f7882";

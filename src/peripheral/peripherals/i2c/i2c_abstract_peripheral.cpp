@@ -39,9 +39,14 @@ uint8_t I2CAbstractPeripheral::getWireIndex() {
 
 bool I2CAbstractPeripheral::isDeviceConnected(uint16_t i2c_address) {
   TwoWire* wire = getWire();
-  wire->beginTransmission(i2c_address);
-  byte error = wire->endTransmission();
-  return error == 0;
+  // The first transaction after the bus is started can fail, so retry
+  for (uint8_t attempt = 0; attempt < 3; attempt++) {
+    wire->beginTransmission(i2c_address);
+    if (wire->endTransmission() == 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 int I2CAbstractPeripheral::parseI2CAddress(JsonVariantConst i2c_address) {

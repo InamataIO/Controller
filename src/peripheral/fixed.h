@@ -66,6 +66,12 @@ extern const char* peripheral_voc_id;
 extern const char* peripheral_air_id;
 extern const char* peripheral_status_led_id;
 
+#elif defined(DEVICE_TYPE_DUAL_TH_SENSOR)
+
+extern const char* peripheral_air_left_id;
+extern const char* peripheral_air_right_id;
+extern const char* peripheral_status_led_id;
+
 #elif defined(DEVICE_TYPE_TIAKI_CO2_MONITOR)
 
 extern const char* peripheral_led_alarm_1_id;
