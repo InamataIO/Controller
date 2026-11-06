@@ -130,8 +130,12 @@ capabilities::StartMeasurement::Result SHT2xSensor::handleMeasurement() {
       next_check_time_ = std::chrono::steady_clock::now() + kReadyCheckInterval;
       return {.wait = kReadyCheckInterval};
     }
-    if (!driver_->readTemperature()) {
-      return measurementError("Failed to read temperature");
+    const bool read_success = driver_->readTemperature();
+    const int driver_error = driver_->getError();
+    if (!read_success || driver_error != SHT2x_OK) {
+      return measurementError(
+          String("Failed to read temperature (driver error: ") + driver_error +
+          ")");
     }
     temperature_ = driver_->getTemperature();
     if (!std::isfinite(temperature_)) {
@@ -149,8 +153,11 @@ capabilities::StartMeasurement::Result SHT2xSensor::handleMeasurement() {
     next_check_time_ = std::chrono::steady_clock::now() + kReadyCheckInterval;
     return {.wait = kReadyCheckInterval};
   }
-  if (!driver_->readHumidity()) {
-    return measurementError("Failed to read humidity");
+  const bool read_success = driver_->readHumidity();
+  const int driver_error = driver_->getError();
+  if (!read_success || driver_error != SHT2x_OK) {
+    return measurementError(String("Failed to read humidity (driver error: ") +
+                            driver_error + ")");
   }
   humidity_ = driver_->getHumidity();
   if (!std::isfinite(humidity_)) {
@@ -158,7 +165,7 @@ capabilities::StartMeasurement::Result SHT2xSensor::handleMeasurement() {
   }
   measurement_state_ = MeasurementState::kReady;
   measurement_ready_time_ = std::chrono::steady_clock::now();
-  TRACEF("Humidity: %f %%RH, Temp: %f C", humidity_, temperature_);
+  TRACEF("Humidity: %f %%RH, Temp: %f C\r\n", humidity_, temperature_);
   return {.wait = {}};
 }
 
