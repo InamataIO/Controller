@@ -1,0 +1,218 @@
+#ifdef DEVICE_TYPE_DUAL_TH_SENSOR
+
+#include "network_state.h"
+
+#include "peripheral/fixed.h"
+
+namespace inamata {
+namespace tasks {
+namespace fixed {
+
+NetworkState::NetworkState(const ServiceGetters& services, Scheduler& scheduler,
+                           const JsonObjectConst& behavior_config)
+    : BaseTask(scheduler, Input(nullptr, true)),
+      ble_server_(services.getBleServer()) {
+  if (!isValid()) {
+    return;
+  }
+
+  if (ble_server_ == nullptr) {
+    setInvalid(services.ble_server_nullptr_error_);
+    return;
+  }
+
+  bool success = setFixedPeripherals();
+  if (!success) {
+    return;
+  }
+
+  Services::getActionController().setIdentifyCallback(
+      std::bind(&NetworkState::identify, this));
+
+  setIterations(TASK_FOREVER);
+  enable();
+}
+
+NetworkState::~NetworkState() {
+  Services::getActionController().clearIdentifyCallback();
+  if (status_led_) {
+    status_led_->clearOverride();
+  }
+}
+
+const String& NetworkState::getType() const { return type(); }
+
+const String& NetworkState::type() {
+  static const String name{"DualThNetworkState"};
+  return name;
+}
+
+bool NetworkState::TaskCallback() {
+  Task::delay(std::chrono::milliseconds(default_interval_).count());
+
+  if (identify_step_ > identify_pattern_.size()) {
+    // The final pattern bit has now been displayed for its full duration.
+    identify_step_ = 0;
+    status_led_->clearOverride();
+  }
+
+  // As default display signal strength. If identify_step_ is non-zero, run
+  // identify blink sequence. Else if BleServer is active, device can be
+  // provisioned so display that color state.
+  if (!identify_step_) {
+    if (ble_server_->isActive()) {
+      mode_ = Mode::kDisplayProvisioning;
+    } else {
+      if (mode_ != Mode::kDisplaySignalStrength) {
+        signal_strength_blinks_ = 127;
+      }
+      mode_ = Mode::kDisplaySignalStrength;
+    }
+  }
+
+  switch (mode_) {
+    case Mode::kDisplaySignalStrength:
+      handleDisplaySignalStrength();
+      break;
+    case Mode::kDisplayProvisioning:
+      handleDisplayProvisioning();
+      break;
+    case Mode::kIdentify:
+      handleIdentify();
+      break;
+  }
+
+  return true;
+}
+
+bool NetworkState::setFixedPeripherals() {
+  std::shared_ptr<peripheral::Peripheral> peripheral =
+      Services::getPeripheralController().getPeripheral(
+          peripheral::fixed::peripheral_status_led_id);
+  if (!peripheral) {
+    setInvalid(peripheral::Peripheral::peripheralNotFoundError(
+        peripheral::fixed::peripheral_status_led_id));
+    return false;
+  }
+
+  // Since the UUID is specified externally, check the type
+  const String& neopixel_type =
+      peripheral::peripherals::neo_pixel::NeoPixel::type();
+  if (peripheral->getType() == neopixel_type && peripheral->isValid()) {
+    status_led_ =
+        std::static_pointer_cast<peripheral::peripherals::neo_pixel::NeoPixel>(
+            peripheral);
+  } else {
+    setInvalid(peripheral::Peripheral::notAValidError(
+        peripheral::fixed::peripheral_status_led_id, neopixel_type));
+    return false;
+  }
+  return true;
+}
+
+void NetworkState::handleDisplaySignalStrength() {
+  if (signal_strength_blinks_ == 127) {
+    // Use the same WiFi thresholds as the fire data logger.
+    if (WiFi.isConnected()) {
+      const int32_t signal_quality = WiFi.RSSI();
+      if (signal_quality < -90) {
+        signal_strength_blinks_ = -1;
+      } else if (signal_quality < -75) {
+        signal_strength_blinks_ = 1;
+      } else if (signal_quality < -67) {
+        signal_strength_blinks_ = 2;
+      } else if (signal_quality < -55) {
+        signal_strength_blinks_ = 3;
+      } else {
+        signal_strength_blinks_ = 4;
+      }
+    } else {
+      // Not connected so one long off blink.
+      signal_strength_blinks_ = -1;
+    }
+    signal_strength_blinks_ *= 2;
+  }
+
+  unsigned long delay_ms = 0;
+  if (signal_strength_blinks_ > 0) {
+    // Positive is short blinks
+    if (signal_strength_blinks_ % 2) {
+      // Odd number restores the current alert color
+      status_led_->clearOverride();
+      delay_ms = 400;
+    } else {
+      // Even number briefly overrides the alert color with black
+      status_led_->setOverride(utils::Color::fromRgbw(0, 0, 0, 0));
+      delay_ms = 400;
+    }
+    signal_strength_blinks_--;
+  } else if (signal_strength_blinks_ < 0) {
+    // Negative means long blinks
+    if (signal_strength_blinks_ % 2) {
+      // Odd number restores the current alert color
+      status_led_->clearOverride();
+      delay_ms = 400;
+    } else {
+      // Even number overrides the alert color for a long no-signal blink
+      status_led_->setOverride(utils::Color::fromRgbw(0, 0, 0, 0));
+      delay_ms = 2000;
+    }
+    signal_strength_blinks_++;
+  } else {
+    // Zero is wait before repeating pattern
+    signal_strength_blinks_ = 127;
+    status_led_->clearOverride();
+    delay_ms = 2000;
+  }
+
+  if (delay_ms == 0) {
+    TRACELN("No delay. Using 1000ms");
+    delay_ms = 1000;
+  }
+  Task::delay(delay_ms);
+}
+
+void NetworkState::handleDisplayProvisioning() {
+  const auto color = utils::Color::fromRgbw(0, 55, 0, 0);
+  if (ble_server_->is_provisioning_) {
+    if (provision_blink_state_) {
+      status_led_->setOverride(color);
+    } else {
+      status_led_->setOverride(utils::Color::fromRgbw(0, 0, 0, 0));
+    }
+    provision_blink_state_ = !provision_blink_state_;
+  } else {
+    status_led_->setOverride(color);
+  }
+  Task::delay(300);
+}
+
+void NetworkState::handleIdentify() {
+  const uint8_t steps = identify_pattern_.size();
+
+  if (identify_pattern_.test(steps - identify_step_)) {
+    status_led_->setOverride(utils::Color::fromRgbw(255, 255, 255, 255));
+  } else {
+    status_led_->setOverride(utils::Color::fromRgbw(0, 0, 0, 0));
+  }
+
+  ++identify_step_;
+
+  Task::delay(std::chrono::milliseconds(identify_step_duration_).count());
+}
+
+void NetworkState::identify() {
+  identify_step_ = 1;
+  mode_ = Mode::kIdentify;
+  Task::forceNextIteration();
+}
+
+const std::bitset<18> NetworkState::identify_pattern_{0b101010100010100000};
+const std::chrono::milliseconds NetworkState::identify_step_duration_{150};
+const std::chrono::seconds NetworkState::default_interval_{2};
+
+}  // namespace fixed
+}  // namespace tasks
+}  // namespace inamata
+
+#endif

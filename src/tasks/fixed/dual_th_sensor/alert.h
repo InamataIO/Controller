@@ -65,24 +65,16 @@ class Alert : public BaseTask {
   void sendLimitEvent(const LimitInfo& limit, const utils::ValueUnit& value,
                       const utils::UUID& peripheral_id,
                       utils::LimitEvent::Type event_type);
-  std::chrono::milliseconds updateLed(
-      std::chrono::steady_clock::time_point now);
   void showLimitStatus();
 
   std::array<SensorInfo, 2> sensors_;
   std::shared_ptr<peripheral::peripherals::neo_pixel::NeoPixel> status_led_;
   std::shared_ptr<WebSocket> web_socket_;
 
-  bool missing_probe_blink_active_ = false;
-  std::chrono::steady_clock::time_point missing_probe_blink_start_ =
-      std::chrono::steady_clock::time_point::min();
-
   const utils::Color ok_color_ = utils::Color::fromRgbw(20, 255, 20);
   const utils::Color warning_color_ = utils::Color::fromRgbw(255, 255, 20);
   const utils::Color danger_color_ = utils::Color::fromRgbw(255, 20, 20);
   const std::chrono::seconds continue_event_period_{15 * 60};
-  const std::chrono::seconds missing_probe_blink_period_{10};
-  const std::chrono::milliseconds missing_probe_blink_duration_{50};
   static const std::chrono::seconds default_interval_;
 };
 

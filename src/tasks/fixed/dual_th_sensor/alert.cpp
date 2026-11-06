@@ -124,7 +124,7 @@ bool Alert::TaskCallback() {
         default_interval_);
   }
 
-  next_delay = std::min(next_delay, updateLed(now));
+  showLimitStatus();
   Task::delay(next_delay.count());
   return true;
 }
@@ -262,49 +262,6 @@ void Alert::showLimitStatus() {
     }
   }
   status_led_->turnOn(warning ? warning_color_ : ok_color_);
-}
-
-std::chrono::milliseconds Alert::updateLed(
-    const std::chrono::steady_clock::time_point now) {
-  const bool missing_probe = std::any_of(
-      sensors_.begin(), sensors_.end(), [](const SensorInfo& sensor) {
-        return !sensor.peripheral->isInitialized();
-      });
-
-  if (!missing_probe) {
-    missing_probe_blink_active_ = false;
-    missing_probe_blink_start_ = std::chrono::steady_clock::time_point::min();
-    showLimitStatus();
-    return std::chrono::milliseconds::max();
-  }
-
-  if (missing_probe_blink_start_ ==
-      std::chrono::steady_clock::time_point::min()) {
-    missing_probe_blink_start_ = now;
-  }
-
-  const auto since_blink_start =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          now - missing_probe_blink_start_);
-  if (missing_probe_blink_active_) {
-    if (since_blink_start < missing_probe_blink_duration_) {
-      status_led_->turnOff();
-      return missing_probe_blink_duration_ - since_blink_start;
-    }
-    missing_probe_blink_active_ = false;
-    showLimitStatus();
-  }
-
-  if (since_blink_start >= missing_probe_blink_period_) {
-    missing_probe_blink_active_ = true;
-    missing_probe_blink_start_ = now;
-    status_led_->turnOff();
-    return missing_probe_blink_duration_;
-  }
-
-  showLimitStatus();
-  return std::chrono::duration_cast<std::chrono::milliseconds>(
-      missing_probe_blink_period_ - since_blink_start);
 }
 
 bool Alert::setFixedPeripherals() {

@@ -3,6 +3,7 @@
 #include "tasks/fixed/config.h"
 
 #include "alert.h"
+#include "network_state.h"
 #include "poll_sensors.h"
 
 namespace inamata {
@@ -24,6 +25,14 @@ bool startFixedTasks(const ServiceGetters& services, Scheduler& scheduler,
   if (error.isError()) {
     poll_sensors->abort();
     delete poll_sensors;
+    return false;
+  }
+  NetworkState* network_state =
+      new NetworkState(services, scheduler, behavior_config);
+  error = network_state->getError();
+  if (error.isError()) {
+    network_state->abort();
+    delete network_state;
     return false;
   }
   return true;
