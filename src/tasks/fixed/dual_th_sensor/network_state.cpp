@@ -26,6 +26,10 @@ NetworkState::NetworkState(const ServiceGetters& services, Scheduler& scheduler,
     return;
   }
 
+  handleBehaviorConfig(behavior_config);
+  Services::getBehaviorController().registerConfigCallback(std::bind(
+      &NetworkState::handleBehaviorConfig, this, std::placeholders::_1));
+
   Services::getActionController().setIdentifyCallback(
       std::bind(&NetworkState::identify, this));
 
@@ -110,7 +114,28 @@ bool NetworkState::setFixedPeripherals() {
   return true;
 }
 
+void NetworkState::handleBehaviorConfig(const JsonObjectConst& config) {
+  const String brightness = config["led_brightness"] | "high";
+  status_led_->setBrightness(brightness == "low"   ? 32
+                             : brightness == "mid" ? 128
+                                                   : 255);
+
+  const bool show_signal = config["show_connection_strength"] | true;
+  if (show_signal != show_signal_strength_) {
+    show_signal_strength_ = show_signal;
+    signal_strength_blinks_ = 127;
+    if (mode_ == Mode::kDisplaySignalStrength) {
+      status_led_->clearOverride();
+      Task::forceNextIteration();
+    }
+  }
+}
+
 void NetworkState::handleDisplaySignalStrength() {
+  if (!show_signal_strength_) {
+    status_led_->clearOverride();
+    return;
+  }
   if (signal_strength_blinks_ == 127) {
     // Use the same WiFi thresholds as the fire data logger.
     if (WiFi.isConnected()) {

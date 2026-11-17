@@ -70,6 +70,11 @@ void NeoPixel::clearOverride() {
   setOutput();
 }
 
+void NeoPixel::setBrightness(uint8_t brightness) {
+  brightness_ = brightness;
+  setOutput();
+}
+
 void NeoPixel::setOutput() {
   // driver_.setBrightness(255);
   utils::Color color;
@@ -80,7 +85,9 @@ void NeoPixel::setOutput() {
     color = color_;
     // driver_.fill(color_.getWrgbInt());
   }
-  rgbLedWrite(pin_, color.getRed(), color.getGreen(), color.getBlue());
+  rgbLedWrite(pin_, (static_cast<uint16_t>(color.getRed()) * brightness_) / 255,
+              (static_cast<uint16_t>(color.getGreen()) * brightness_) / 255,
+              (static_cast<uint16_t>(color.getBlue()) * brightness_) / 255);
   // driver_.show();
   // rgbLedWrite(pin_, color_.getRed(), color_.getGreen(), color_.getBlue());
 }

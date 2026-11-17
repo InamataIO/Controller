@@ -49,6 +49,9 @@ class NeoPixel : public Peripheral, public capabilities::LedStrip {
    */
   void clearOverride();
 
+  /// Set output brightness from 0 to 255, retaining the selected colors.
+  void setBrightness(uint8_t brightness);
+
  private:
   void setOutput();
 
@@ -65,6 +68,7 @@ class NeoPixel : public Peripheral, public capabilities::LedStrip {
   utils::Color override_color_;
   /// Whether override is currently active
   bool is_override_ = false;
+  uint8_t brightness_ = 255;
 
   static const uint8_t blue_offset_{0};
   static const uint8_t green_offset_{2};

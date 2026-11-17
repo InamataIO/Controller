@@ -37,6 +37,7 @@ class NetworkState : public BaseTask {
    * Show signal strength (WiFi) in off blinks (1 - 4)
    */
   void handleDisplaySignalStrength();
+  void handleBehaviorConfig(const JsonObjectConst& config);
 
   /**
    * Change status color to provisioning color (green)
@@ -57,6 +58,7 @@ class NetworkState : public BaseTask {
 
   Mode mode_ = Mode::kDisplaySignalStrength;
   int8_t signal_strength_blinks_ = 127;
+  bool show_signal_strength_ = true;
 
   bool provision_blink_state_ = false;
 
