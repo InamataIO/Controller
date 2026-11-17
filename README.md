@@ -72,6 +72,10 @@ The Google C++ code style is used. It is recommended to use clang-format to auto
 
 ## Troubleshooting
 
+### Factory Reset
+
+Start the controller normally, then hold BOOT for at least 11 seconds and release it. The controller deletes its stored LittleFS data and restarts, preserving the `/fixed` directory. Cached WiFi credentials in NVS are not erased. This also works during the restart delay after a setup failure. Do not hold BOOT while powering on or pressing RESET; that enters firmware download mode.
+
 ### Erase Flash
 
 Clear all flash on the microcontroller with the `Erase Flash` command in PlatformIO - VS Code. This will remove saved secrets and temporarily saved WiFi credentials.

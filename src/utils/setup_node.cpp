@@ -192,9 +192,28 @@ bool loadFixedPeripherals(Services& services) {
   return true;
 }
 
-bool setupNode(Services& services) {
+void restartAfterSetupFailure(
+    Scheduler& recovery_scheduler,
+    const tasks::factory_reset::FactoryReset& factory_reset) {
+  TRACELN("Node setup failed. Restarting in 10s");
+  const unsigned long failure_time = millis();
+  do {
+    recovery_scheduler.execute();
+    delay(10);
+  } while (millis() - failure_time < 10000 ||
+           factory_reset.isPressInProgress());
+  ESP.restart();
+}
+
+bool setupNode(Services& services,
+               tasks::factory_reset::FactoryReset& factory_reset) {
+  const bool reset_monitor_started = factory_reset.enable();
+
   // Enable serial communication and prints
   Serial.begin(115200);
+  if (!reset_monitor_started) {
+    TRACELN("Failed to start BOOT button factory reset monitor");
+  }
   delay(2000);
   Serial.print("Fimware version: ");
   Serial.println(WebSocket::firmware_version_);
